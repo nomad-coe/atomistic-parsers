@@ -1,0 +1,44 @@
+# NAMD CONFIGURATION FILE FOR ER-GRE BENCHMARK
+
+# molecular system
+structure	er-gre.psf
+coordinates	er-gre.pdb
+
+# force field
+parameters      pro_residues.par
+parameters      nuc_residues.par
+parameters      water+ions.par
+parameters      par22.zinc
+exclude		scaled1-4
+1-4scaling	0.4
+
+# approximations
+switching	on
+switchdist	8
+cutoff		12
+pairlistdist	13.5
+margin		0
+stepspercycle   10
+
+# integrator
+timestep	1.0
+
+# extra forces
+sphericalBC     on
+sphericalBCcenter 0.0,0.0,0.0
+sphericalBCr1   48
+sphericalBCk1   10
+sphericalBCexp1 2
+
+# output
+outputenergies  1
+outputtiming    50
+outputname 	/tmp/er-gre.out
+restartfreq          50  # Restart file frequency
+DCDfreq              100  # Trajectory file frequency
+
+# protocol
+seed		83623
+temperature     300
+numsteps	500
+

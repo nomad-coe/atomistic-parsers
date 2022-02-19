@@ -1,0 +1,74 @@
+LAMMPS (14 May 2016)
+# input script for topotools tutorial step 2a
+units real
+boundary p p p
+atom_style full
+
+
+# interaction styles
+pair_style lj/cut/coul/cut 12.0
+bond_style harmonic
+angle_style harmonic
+
+read_data data.64xmethane_from_restart
+  orthogonal box = (-8.297 -8.1455 -7.2013) to (8.3174 8.1829 7.1735)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  320 atoms
+  reading velocities ...
+  320 velocities
+  scanning bonds ...
+  4 = max bonds/atom
+  scanning angles ...
+  6 = max angles/atom
+  reading bonds ...
+  256 bonds
+  reading angles ...
+  384 angles
+  4 = max # of 1-2 neighbors
+  3 = max # of 1-3 neighbors
+  3 = max # of 1-4 neighbors
+  4 = max # of special neighbors
+
+
+#dihedral_style opls
+pair_modify mix geometric tail yes
+
+
+# OPLS considers 1-4 interactions with 50%.
+special_bonds lj/coul 0.0 0.0 0.5
+  4 = max # of 1-2 neighbors
+  3 = max # of 1-3 neighbors
+  3 = max # of 1-4 neighbors
+  4 = max # of special neighbors
+
+# force field parameters
+pair_coeff   1 1  0.066 3.5      # CT
+pair_coeff   2 2  0.03  2.5      # HC
+# the remaining parameters are inferred from mixing.
+bond_coeff   1   340.0   1.09    # CT-HC
+angle_coeff  1    33.0 107.8     # HC-CT-HC
+
+# equilibration. real methane freezes at 91K and boils at 112K
+# so we hope the force field has it as a liquid at 100K.
+timestep 0.25
+reset_timestep 0
+neighbor 1.5 bin
+neigh_modify every 10 delay 20 check yes
+thermo 400
+thermo_style custom step temp pe ke press vol density
+
+fix 2 all nvt temp 100.0 100.0 100.0
+
+# equilibration trajectory
+
+# dump 1 all dcd 400 64xmethane-nvt.dcd
+# dump 1 all xtc 400 64xmethane-nvt.xtc
+dump 1 all xyz 400 64xmethane-nvt.xyz
+# dump 1 all atom 400 64xmethane-nvt.atom
+# dump 1 all atom 400 64xmethane-nvt.atom_unscaled_image_flags
+# dump 1 all custom 400 64xmethane-nvt.lammpstrj id type x y z vx vy vz fx fy fz ix iy iz
+# dump_modify 1 image yes scale no
+
+# output log
+log log.64xmethane-nvt-thermo_style_custom

@@ -1,0 +1,14 @@
+remarks   parameters for zn patch zn is of type ZN
+
+
+bonds S   ZN     78.0000    2.325 !taken from {ERIK95}
+
+angle H S ZN      0.0  120.0 ! used only to  Hbuild no angle term entered
+angle S ZN S     36.0  109.5 ! taken from {ERIK95}
+angle ZN S CT2   36.0  116.3 ! taken from {ERIK95}
+
+!dihedral CT2 S ZN S 0.0  0.0
+
+NONbonded ZN       0.0125   1.1    0.0125   1.1 !taken from {ERIK95}  
+NONbonded  S       0.4700   2.2    0.4700   2.2 !taken from {ERIK95} 
+

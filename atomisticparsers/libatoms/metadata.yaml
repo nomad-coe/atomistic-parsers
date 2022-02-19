@@ -1,0 +1,9 @@
+codeLabel: libAtoms
+codeLabelStyle: 'Capitals: A'
+codeName: lib-atoms
+codeUrl: http://libatoms.github.io/
+parserDirName: dependencies/parsers/lib-atoms/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-lib-atoms.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

@@ -1,0 +1,183 @@
+|===============================================================================
+|
+|  DFTB+ development version (commit: 12acc2a)
+|
+|  Copyright (C) 2006 - 2020  DFTB+ developers group
+|
+|===============================================================================
+|
+|  When publishing results obtained with DFTB+, please cite the following
+|  reference:
+|
+|  * DFTB+, a software package for efficient approximate density functional
+|    theory based atomistic simulations, J. Chem. Phys. 152, 124101 (2020).
+|    [doi: 10.1063/1.5143190]
+|
+|  You should also cite additional publications crediting the parametrization
+|  data you use. Please consult the documentation of the SK-files for the
+|  references.
+|
+|===============================================================================
+
+Reading input file 'dftb_in.hsd'
+Parser version: 8
+
+--------------------------------------------------------------------------------
+Reading SK-files:
+Done.
+
+
+Processed input in HSD format written to 'dftb_pin.hsd'
+
+Starting initialization...
+--------------------------------------------------------------------------------
+OpenMP threads:              28
+Chosen random seed:          1522746922
+Mode:                        Static calculation
+Self consistent charges:     Yes
+SCC-tolerance:                 0.100000E-06
+Max. scc iterations:                   1000
+Shell resolved Hubbard:      No
+Spin polarisation:           No
+Nr. of up electrons:          7782.500000
+Nr. of down electrons:        7782.500000
+Periodic boundaries:         No
+Electronic solver:           Divide and Conquer
+Mixer:                       Broyden mixer
+Mixing parameter:                  0.051000
+Maximal SCC-cycles:                    1000
+Nr. of chrg. vec. in memory:              0
+Electronic temperature:        0.950045E-03 H      0.258520E-01 eV
+Initial charges:             Set automatically (system chrg:   0.000E+00)
+Included shells:            Ag:  s, p, d
+Extra options:
+                             Mulliken analysis
+
+--------------------------------------------------------------------------------
+
+***  Geometry step: 0
+
+ iSCC Total electronic   Diff electronic      SCC error    
+    1   -0.45201511E+04    0.00000000E+00    0.24392028E+00
+    2   -0.45200242E+04    0.12689996E+00    0.13626074E+00
+    3   -0.45201335E+04   -0.10926402E+00    0.17147209E+00
+    4   -0.45205698E+04   -0.43633029E+00    0.88968691E-01
+    5   -0.45205781E+04   -0.82813755E-02    0.31480555E-01
+    6   -0.45205818E+04   -0.37147251E-02    0.20544389E-01
+    7   -0.45204038E+04    0.17799035E+00    0.19156640E-01
+    8   -0.45205396E+04   -0.13577475E+00    0.12706976E-01
+    9   -0.45205847E+04   -0.45089917E-01    0.97677230E-02
+   10   -0.45205854E+04   -0.68995253E-03    0.35214567E-02
+   11   -0.45205853E+04    0.17257479E-04    0.29237164E-02
+   12   -0.45205855E+04   -0.16121232E-03    0.18436282E-02
+   13   -0.45205838E+04    0.17536490E-02    0.15122440E-02
+   14   -0.45205855E+04   -0.17672808E-02    0.11863688E-02
+   15   -0.45205855E+04   -0.18812077E-04    0.12304489E-02
+   16   -0.45205855E+04    0.34621316E-05    0.11707206E-02
+   17   -0.45205855E+04    0.11762768E-06    0.10386099E-02
+   18   -0.45205855E+04   -0.50438939E-06    0.64560919E-03
+   19   -0.45205855E+04    0.17968058E-04    0.32318239E-03
+   20   -0.45205855E+04   -0.19670100E-04    0.24591619E-03
+>> Charges saved for restart in charges.bin
+   21   -0.45205855E+04   -0.81151393E-06    0.17885698E-03
+   22   -0.45205855E+04   -0.19772233E-06    0.12650349E-03
+   23   -0.45205855E+04    0.11691554E-06    0.14214872E-04
+   24   -0.45205855E+04   -0.52295945E-08    0.10261550E-04
+   25   -0.45205855E+04    0.85628926E-08    0.75541765E-05
+   26   -0.45205855E+04    0.63237167E-08    0.61522060E-05
+   27   -0.45205855E+04   -0.14048055E-07    0.21739548E-05
+   28   -0.45205855E+04    0.76852302E-09    0.20237858E-05
+   29   -0.45205855E+04    0.33105607E-08    0.15145287E-05
+   30   -0.45205855E+04    0.28067006E-08    0.54578173E-06
+   31   -0.45205855E+04    0.53387339E-09    0.67613439E-06
+   32   -0.45205855E+04    0.14551915E-09    0.33926932E-06
+   33   -0.45205855E+04   -0.33105607E-09    0.13642591E-06
+   34   -0.45205855E+04   -0.31013769E-09    0.56099752E-07
+>> Charges saved for restart in charges.bin
+ 
+Total Energy:                    -4520.5849713180 H      -123011.3758 eV
+Extrapolated to 0:               -4520.5991334035 H      -123011.7612 eV
+Total Mermin free energy:        -4520.6132954890 H      -123012.1466 eV
+Force related energy:            -4520.6132954890 H      -123012.1466 eV
+S inverted
+Density kicked along x!
+Starting dynamics
+Step        0  elapsed loop time:  16.259899  average time per loop  16.259899
+Step     2000  elapsed loop time: **********  average time per loop  16.145265
+Step     4000  elapsed loop time: **********  average time per loop -37.568487
+Step     6000  elapsed loop time: **********  average time per loop -19.653484
+Step     8000  elapsed loop time: **********  average time per loop -10.707248
+Step    10000  elapsed loop time: **********  average time per loop  -5.338751
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** JOB 259896 ON cnode84 CANCELLED AT 2020-07-03T06:47:17 DUE TO TIME LIMIT ***
+slurmstepd: error: *** STEP 259896.0 ON cnode84 CANCELLED AT 2020-07-03T06:47:17 DUE TO TIME LIMIT ***
+*** longjmp causes uninitialized stack frame ***: /home/chem/mssodg/software/dftb_kronos/dftbplus/_build/prog/dftb+/dftb+ terminated
+======= Backtrace: =========
+/lib64/libc.so.6(__fortify_fail+0x37)[0x2b1862824577]
+/lib64/libc.so.6(+0x11848d)[0x2b186282448d]
+/lib64/libc.so.6(__longjmp_chk+0x29)[0x2b18628243e9]
+/home/chem/mssodg/software/dftb_kronos/dftbplus/_build/prog/dftb+/dftb+[0x8f0ad2]
+/lib64/libpthread.so.0(+0xf630)[0x2b18624ff630]
+/home/chem/mssodg/software/dftb_kronos/dftbplus/_build/prog/dftb+/dftb+[0x8f0ac0]
+/lib64/libpthread.so.0(+0xf630)[0x2b18624ff630]
+/lib64/libc.so.6(__sched_yield+0x7)[0x2b18627ef777]
+/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/mkl/lib/intel64/libmkl_intel_thread.so(+0x2cad85)[0x2b185dcf7d85]
+/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/mkl/lib/intel64/libmkl_intel_thread.so(+0x2cff22)[0x2b185dcfcf22]
+/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/lib/intel64/libiomp5.so(__kmp_invoke_microtask+0x93)[0x2b18621fc7a3]
+/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/lib/intel64/libiomp5.so(+0x9353a)[0x2b18621ca53a]
+/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/lib/intel64/libiomp5.so(+0x92cca)[0x2b18621c9cca]
+/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/lib/intel64/libiomp5.so(+0xc5c00)[0x2b18621fcc00]
+/lib64/libpthread.so.0(+0x7ea5)[0x2b18624f7ea5]
+/lib64/libc.so.6(clone+0x6d)[0x2b186280a8dd]
+======= Memory map: ========
+00400000-00a0b000 r-xp 00000000 00:2b 75176235                           /gpfs/home/chem/mssodg/software/dftb_kronos/dftbplus/_build/prog/dftb+/dftb+
+00c0a000-00c0c000 r--p 0060a000 00:2b 75176235                           /gpfs/home/chem/mssodg/software/dftb_kronos/dftbplus/_build/prog/dftb+/dftb+
+00c0c000-00cac000 rw-p 0060c000 00:2b 75176235                           /gpfs/home/chem/mssodg/software/dftb_kronos/dftbplus/_build/prog/dftb+/dftb+
+00cac000-00d4b000 rw-p 00000000 00:00 0 
+0283d000-033f7000 rw-p 00000000 00:00 0                                  [heap]
+2b185cd1b000-2b185cd3d000 r-xp 00000000 fd:00 394721                     /usr/lib64/ld-2.17.so
+2b185cd3d000-2b185cd41000 rw-p 00000000 00:00 0 
+2b185cd4c000-2b185cd4d000 rw-p 00000000 00:00 0 
+2b185cd4d000-2b185cd63000 r-xp 00000000 00:2b 798655                     /gpfs/warwick/csc/orac/software/Core/GCCcore/6.4.0/lib64/libgcc_s.so.1
+2b185cd63000-2b185cd64000 r--p 00015000 00:2b 798655                     /gpfs/warwick/csc/orac/software/Core/GCCcore/6.4.0/lib64/libgcc_s.so.1
+2b185cd64000-2b185cd65000 rw-p 00016000 00:2b 798655                     /gpfs/warwick/csc/orac/software/Core/GCCcore/6.4.0/lib64/libgcc_s.so.1
+2b185cd65000-2b185ceb9000 rw-p 00000000 00:00 0 
+2b185cf3c000-2b185cf3d000 r--p 00021000 fd:00 394721                     /usr/lib64/ld-2.17.so
+2b185cf3d000-2b185cf3e000 rw-p 00022000 fd:00 394721                     /usr/lib64/ld-2.17.so
+2b185cf3e000-2b185cf3f000 rw-p 00000000 00:00 0 
+2b185cf3f000-2b185d814000 r-xp 00000000 00:2b 23724229                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_intel_lp64.so
+2b185d814000-2b185da13000 ---p 008d5000 00:2b 23724229                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_intel_lp64.so
+2b185da13000-2b185da15000 r--p 008d4000 00:2b 23724229                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_intel_lp64.so
+2b185da15000-2b185da27000 rw-p 008d6000 00:2b 23724229                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_intel_lp64.so
+2b185da27000-2b185da2d000 rw-p 00000000 00:00 0 
+2b185da2d000-2b185f839000 r-xp 00000000 00:2b 23724230                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_intel_thread.so
+2b185f839000-2b185fa38000 ---p 01e0c000 00:2b 23724230                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_intel_thread.so
+2b185fa38000-2b185fa3c000 r--p 01e0b000 00:2b 23724230                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_intel_thread.so
+2b185fa3c000-2b185fc9a000 rw-p 01e0f000 00:2b 23724230                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_intel_thread.so
+2b185fc9a000-2b185fca2000 rw-p 00000000 00:00 0 
+2b185fca2000-2b1861bb4000 r-xp 00000000 00:2b 23724218                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_core.so
+2b1861bb4000-2b1861db4000 ---p 01f12000 00:2b 23724218                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_core.so
+2b1861db4000-2b1861dbc000 r--p 01f12000 00:2b 23724218                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_core.so
+2b1861dbc000-2b1861dde000 rw-p 01f1a000 00:2b 23724218                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin/libmkl_core.so
+2b1861dde000-2b1861e35000 rw-p 00000000 00:00 0 
+2b1861e35000-2b1861f36000 r-xp 00000000 fd:00 394736                     /usr/lib64/libm-2.17.so
+2b1861f36000-2b1862135000 ---p 00101000 fd:00 394736                     /usr/lib64/libm-2.17.so
+2b1862135000-2b1862136000 r--p 00100000 fd:00 394736                     /usr/lib64/libm-2.17.so
+2b1862136000-2b1862137000 rw-p 00101000 fd:00 394736                     /usr/lib64/libm-2.17.so
+2b1862137000-2b18622b6000 r-xp 00000000 00:2b 23724076                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin/libiomp5.so
+2b18622b6000-2b18624b6000 ---p 0017f000 00:2b 23724076                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin/libiomp5.so
+2b18624b6000-2b18624c2000 rw-p 0017f000 00:2b 23724076                   /gpfs/warwick/csc/orac/software/MPI/intel/2018.1.163-GCC-6.4.0-2.28/impi/2018.1.163/imkl/2018.1.163/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin/libiomp5.so
+2b18624c2000-2b18624f0000 rw-p 00000000 00:00 0 
+2b18624f0000-2b1862507000 r-xp 00000000 fd:00 394754                     /usr/lib64/libpthread-2.17.so
+2b1862507000-2b1862706000 ---p 00017000 fd:00 394754                     /usr/lib64/libpthread-2.17.so
+2b1862706000-2b1862707000 r--p 00016000 fd:00 394754                     /usr/lib64/libpthread-2.17.so
+2b1862707000-2b1862708000 rw-p 00017000 fd:00 394754                     /usr/lib64/libpthread-2.17.so
+2b1862708000-2b186270c000 rw-p 00000000 00:00 0 
+2b186270c000-2b18628cf000 r-xp 00000000 fd:00 394728                     /usr/lib64/libc-2.17.so
+2b18628cf000-2b1862acf000 ---p 001c3000 fd:00 394728                     /usr/lib64/libc-2.17.so
+2b1862acf000-2b1862ad3000 r--p 001c3000 fd:00 394728                     /usr/lib64/libc-2.17.so
+2b1862ad3000-2b1862ad5000 rw-p 001c7000 fd:00 394728                     /usr/lib64/libc-2.17.so
+2b1862ad5000-2b1862ada000 rw-p 00000000 00:00 0 
+2b1862ada000-2b1862adc000 r-xp 00000000 fd:00 394734                     /usr/lib64/libdl-2.17.so
+2b1862adc000-2b1862cdc000 ---p 00002000 fd:00 394734                     /usr/lib64/libdl-2.17.so
+2b1862cdc000-2b1862cdd000 r--p 00002000 fd:00 394734                     /usr/lib64/libdl-2.17.so

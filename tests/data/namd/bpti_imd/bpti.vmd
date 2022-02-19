@@ -1,0 +1,5 @@
+
+mol load psf bpti.psf pdb bpti.pdb
+
+imd connect localhost 3111
+

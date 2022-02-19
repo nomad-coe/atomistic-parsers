@@ -1,0 +1,78 @@
+                  :-) GROMACS - gmx grompp, VERSION 5.1.4 (-:
+
+                            GROMACS is written by:
+     Emile Apol      Rossen Apostolov  Herman J.C. Berendsen    Par Bjelkmar   
+ Aldert van Buuren   Rudi van Drunen     Anton Feenstra   Sebastian Fritsch 
+  Gerrit Groenhof   Christoph Junghans   Anca Hamuraru    Vincent Hindriksen
+ Dimitrios Karkoulis    Peter Kasson        Jiri Kraus      Carsten Kutzner  
+    Per Larsson      Justin A. Lemkul   Magnus Lundborg   Pieter Meulenhoff 
+   Erik Marklund      Teemu Murtola       Szilard Pall       Sander Pronk   
+   Roland Schulz     Alexey Shvetsov     Michael Shirts     Alfons Sijbers  
+   Peter Tieleman    Teemu Virolainen  Christian Wennberg    Maarten Wolf   
+                           and the project leaders:
+        Mark Abraham, Berk Hess, Erik Lindahl, and David van der Spoel
+
+Copyright (c) 1991-2000, University of Groningen, The Netherlands.
+Copyright (c) 2001-2015, The GROMACS development team at
+Uppsala University, Stockholm University and
+the Royal Institute of Technology, Sweden.
+check out http://www.gromacs.org for more information.
+
+GROMACS is free software; you can redistribute it and/or modify it
+under the terms of the GNU Lesser General Public License
+as published by the Free Software Foundation; either version 2.1
+of the License, or (at your option) any later version.
+
+GROMACS:      gmx grompp, VERSION 5.1.4
+Executable:   /Users/bonat/GROMACS/BUILD/bin/gmx_mpi
+Data prefix:  /Users/bonat/GROMACS/BUILD
+Command line:
+  gmx_mpi grompp -f ./grompp.mdp -c ./conf -p ./topol -maxwarn 10
+
+Ignoring obsolete mdp entry 'optimize_fft'
+Replacing old mdp entry 'verlet-buffer-drift' by 'verlet-buffer-tolerance'
+Replacing old mdp entry 'nstxtcout' by 'nstxout-compressed'
+Replacing old mdp entry 'xtc_precision' by 'compressed-x-precision'
+
+NOTE 1 [file ./grompp.mdp]:
+  The group cutoff scheme is deprecated since GROMACS 5.0 and will be
+  removed in a future release when all interaction forms are supported for
+  the verlet scheme. The verlet scheme already scales better, and it is
+  compatible with GPUs and other accelerators.
+
+
+NOTE 2 [file ./grompp.mdp]:
+  The Berendsen thermostat does not generate the correct kinetic energy
+  distribution. You might want to consider using the V-rescale thermostat.
+
+
+NOTE 3 [file ./grompp.mdp]:
+  The switch/shift interaction settings are just for compatibility; you
+  will get better performance from applying potential modifiers to your
+  interactions!
+
+
+
+NOTE 4 [file ./grompp.mdp]:
+  For energy conservation with switch/shift potentials, rlist should be 0.1
+  to 0.3 nm larger than rvdw.
+
+Generated 330891 of the 330891 non-bonded parameter combinations
+Generating 1-4 interactions: fudge = 0.5
+Generated 330891 of the 330891 1-4 parameter combinations
+Excluding 2 bonded neighbours molecule type 'SOL'
+Cleaning up constraints and constant bonded interactions with virtual sites
+Number of degrees of freedom in T-Coupling group System is 1293.00
+
+NOTE 5 [file ./grompp.mdp]:
+  The sum of the two largest charge group radii (0.067481) is larger than
+  rlist (0.900000) - rvdw (0.900000).
+  With exact cut-offs, better performance can be obtained with
+  cutoff-scheme = Verlet, because it does not use charge groups at all.
+
+Estimate for the relative computational load of the PME mesh part: 0.15
+
+There were 5 notes
+
+Thanx for Using GROMACS - Have a Nice Day
+

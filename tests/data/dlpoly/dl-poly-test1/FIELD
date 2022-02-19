@@ -1,0 +1,14 @@
+SODIUM CHLORIDE WITH EWALD SUM (27000 IONS)
+units internal
+molecular types 1
+SODIUM CHLORIDE
+nummols 27
+atoms 1000
+Na+          22.9898         1.0  500
+Cl-           35.453        -1.0  500
+finish
+vdw    3 
+Na+     Na+     bhm      2544.35      3.1545      2.3400   1.0117e+4   4.8177e+3
+Na+     Cl-     bhm      2035.48      3.1545      2.7550   6.7448e+4   8.3708e+4
+Cl-     Cl-     bhm      1526.61      3.1545      3.1700   6.9857e+5   1.4032e+6
+close

@@ -1,0 +1,73 @@
+ Geometry = GenFormat {
+ <<< "coords.gen"
+ } 
+ Driver ={} 
+ Hamiltonian = DFTB {
+   SCC = Yes
+   SCCTolerance = 1.0e-7
+   MaxSCCIterations = 1000
+   Mixer = Broyden {
+     MixingParameter = 0.051
+     InverseJacobiWeight = 0.01
+     MinimalWeight = 1.
+     MaximalWeight = 100000.
+     WeightFactor = 0.01
+   }
+   SlaterKosterFiles = Type2FileNames {
+   Prefix = "~/software/dftb_params/hyb-0-2/"
+   Separator = "-"
+   Suffix = ".skf"
+   LowerCaseTypeName = No
+   }
+   MaxAngularMomentum = {
+   Ag = "d"
+   }
+   Charge = 0.0
+   SpinPolarisation = {}
+   Filling = Fermi {
+     Temperature [k] = 300 
+   }
+   ElectricField = {}
+   ReadInitialCharges =  No
+   Solver = DivideAndConquer {}
+   OldSKInterpolation = No
+   Dispersion = {}
+    }
+ 
+   Analysis = {
+    ElectronDynamics = {
+    Steps = 20000
+    TimeStep [au] = 0.2
+    Perturbation = Kick {
+      PolarizationDirection = x
+    }
+    FieldStrength [v/a] = 0.001
+    Populations = No
+    WriteFrequency = 50
+    Restart = No
+    WriteRestart = No
+    RestartFrequency = 10
+    EnvelopeShape = Constant {}
+  }  
+  ProjectStates = {}
+  MullikenAnalysis = Yes
+  AtomResolvedEnergies = No
+  WriteEigenvectors = No
+  WriteBandOut = Yes
+  CalculateForces = No
+}
+
+ Options = {
+   WriteAutotestTag = No 
+   WriteDetailedXML = No 
+   WriteResultsTag = No 
+   WriteDetailedOut = Yes
+   RandomSeed = 0
+ }
+   ParserOptions = {
+   ParserVersion = 8
+   WriteHSDInput = Yes
+   WriteXMLInput = Yes
+   StopAfterParsing = No
+ }
+

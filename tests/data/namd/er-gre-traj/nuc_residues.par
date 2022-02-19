@@ -1,0 +1,539 @@
+ REMARKS Charmm parameter set for nucleic acids v22 b6
+ REMARKS FILENAME="nuc_residues.par"
+
+ SET ECHO=FALSE END
+
+ { \\\\\\\ All-Hydrogen Nucleic Acid Parameter File ///////
+  \\\\\\\\\\\\\\\\\\ Developmental ///////////////////////
+      Alexander D. MacKerell Jr. and Joanna Wiorkiewicz
+              Version 6.0, January 1993
+  All comments to ADM jr.  bitnet:alex,tammy.harvard.edu
+                telephone: 410-706-7442
+  These files are a beta release; additional parameter development
+  and testing may lead to alteration of the contents.}
+
+
+!-----------------------------------------------------------------------------------------------
+!	VARIOUS BOND PARAMETERS:  Force Constant, Equilibrium Radius
+!-----------------------------------------------------------------------------------------------
+
+ BOND  CN1  CN3      302.000 {SD=      .031}      1.425 !U,T,  par_a4 JWK 9/30/91 
+ BOND  CN1  CN5      302.000 {SD=      .031}      1.360 !G,  JWK, adm jr., 7/24/91 
+ BOND  CN1  NN2      302.000 {SD=      .031}      1.400 !U, JWK, adm jr., 7/24/91 
+ BOND  CN1  NN2G     340.000 {SD=      .030}      1.410 !G, par_a4 JWK 9/30/91 
+ BOND  CN1  NN2U     340.000 {SD=      .030}      1.410 !U, par_a4 JWK 9/30/91 
+ BOND  CN1  NN3      400.000 {SD=      .027}      1.358 !C, par_a6 JWK 9/30/91 
+ BOND  CN1  ON1      620.000 {SD=      .022}      1.235 !U,A,G par_a4 adm jr., 10/2/91 
+ BOND  CN1  ON1C     620.000 {SD=      .022}      1.245 !C, adm jr., 10/2/91 
+ BOND  CN2  CN3      302.000 {SD=      .031}      1.420 !C, JWK, adm jr., 7/24/91 
+ BOND  CN2  CN5      302.000 {SD=      .031}      1.360 !A, JWK, adm jr., 10/2/91 
+ BOND  CN2  NN1      400.000 {SD=      .027}      1.365 !C,A,G JWK, adm jr., 10/2/91 
+ BOND  CN2  NN2G     400.000 {SD=      .027}      1.400 !G  JWK, adm jr., 7/24/91 
+ BOND  CN2  NN3      400.000 {SD=      .027}      1.340 !C  par_a6 JWK 9/30/91 
+ BOND  CN2  NN3A     320.000 {SD=      .030}      1.340 !A  par_a8 JWK 9/30/91 
+ BOND  CN3  CN3      560.000 {SD=      .023}      1.335 ! par_a4 JWK 9/30/91 
+ BOND  CN3  CN9      230.000 {SD=      .036}      1.480 !T, par_51, adm jr., 7/24/91 
+ BOND  CN3  HN3      350.000 {SD=      .029}      1.090 !C,U, JWK 
+ BOND  CN3  NN2      302.000 {SD=      .031}      1.365 !C,U, JWK, adm jr., 7/24/91 
+ BOND  CN4  HN3      380.000 {SD=      .028}      1.090 !G,A, JWK par_a7 9/30/91 
+ BOND  CN4  NN2      300.000 {SD=      .031}      1.365 !G,A, JWK, adm jr., 7/24/91 
+ BOND  CN4  NN3A     310.000 {SD=      .031}      1.310 !A, JWK, par_a7 9/30/91 
+ BOND  CN4  NN4      400.000 {SD=      .027}      1.308 !G,A, JWK par_a8 9/30/91 
+ BOND  CN5  CN5      320.000 {SD=      .030}      1.370 !G,A, JWK par_a8 9/30/91 
+ BOND  CN5  NN2      302.000 {SD=      .031}      1.408 !G,A, JWK, adm jr., 7/24/91 
+ BOND  CN5  NN3A     350.000 {SD=      .029}      1.336 !A, JWK par_a8 9/30/91 
+ BOND  CN5  NN4      350.000 {SD=      .029}      1.360 !G,A, JWK, par_a8 9/30/91 
+ BOND  CN6  CN6      222.500 {SD=      .036}      1.516 !RIBOSE, ADM Jr. 
+ BOND  CN6  CN6B     222.500 {SD=      .036}      1.527 !RIBOSE, ADM Jr. 
+ BOND  CN6  CN6C     222.500 {SD=      .036}      1.537 !RIBOSE, ADM Jr. 
+ BOND  CN6B CN6C     222.500 {SD=      .036}      1.527 !RIBOSE, ADM Jr. 
+ BOND  CN6  CN7      222.500 {SD=      .036}      1.516 !RIBOSE, ADM Jr. 
+ BOND  CN6  CN8      222.500 {SD=      .036}      1.516 !RIBOSE, ADM Jr. 
+ BOND  CN6  CN9      222.500 {SD=      .036}      1.516 !RIBOSE, ADM Jr. 
+ BOND  CN6  HN6      309.000 {SD=      .031}      1.111 !RIBOSE, ADM Jr. 
+ BOND  CN6B HN6      309.000 {SD=      .031}      1.111 !RIBOSE, ADM Jr. 
+ BOND  CN6C HN6      309.000 {SD=      .031}      1.111 !RIBOSE, ADM Jr. 
+ BOND  CN6B NN2      300.000 {SD=      .031}      1.480 !RIBOSE, ADM Jr. 
+ BOND  CN6B NN1      300.000 {SD=      .031}      1.480 !RIBOSE, ADM Jr. 
+ BOND  CN6  ON2      340.000 {SD=      .030}      1.430 !from CN7 ON2, ADM Jr. 
+ BOND  CN6  ON5      428.000 {SD=      .026}      1.420 !RIBOSE, MeOH 
+ BOND  CN6  ON6      296.700 {SD=      .032}      1.445 !RIBOSE, ADM Jr. 
+ BOND  CN6B ON6      296.700 {SD=      .032}      1.410 !RIBOSE, ADM Jr. 
+ BOND  CN7  CN7      222.500 {SD=      .036}      1.500 !Alkanes, sacred 
+ BOND  CN7  CN8      222.500 {SD=      .036}      1.538 !Alkanes, free 
+ BOND  CN7  CN9      222.500 {SD=      .036}      1.538 !Alkanes, sacred 
+ BOND  CN7  HN7      309.000 {SD=      .031}      1.111 !Alkanes, sacred 
+ BOND  CN8  CN9      222.500 {SD=      .036}      1.528 !Alkanes, sacred 
+ BOND  CN8  HN7      309.000 {SD=      .031}      1.111 !Alkanes, sacred 
+ BOND  CN8  NN2      400.000 {SD=      .027}      1.460 !9-E-GUA, ADM JR. 
+ BOND  CN8  ON2      340.000 {SD=      .030}      1.430 !DMP, ADM Jr. 
+ BOND  CN8  ON5      428.000 {SD=      .026}      1.420 !RIBOSE, MeOH 
+ BOND  CN9  HN7      322.000 {SD=      .030}      1.111 !Alkanes, sacred 
+ BOND  CN9  NN2      400.000 {SD=      .027}      1.460 !FOR 9-M-ADE(THY), ADM JR. 
+ BOND  CN9  ON2      340.000 {SD=      .030}      1.430 !DMP, ADM Jr. 
+ BOND  HN1  NN1      488.000 {SD=      .025}      1.000 !A,C,G, JWK, adm jr., 7/24/91 
+ BOND  HN2  NN2      474.000 {SD=      .025}      1.010 !C,U, JWK 
+ BOND  HN2  NN2G     471.000 {SD=      .025}      1.010 !G, JWK, par_a12 9/30/91 
+ BOND  HN2  NN2U     474.000 {SD=      .025}      1.010 !U, JWK, adm jr., 7/24/91 
+ BOND  HN4  ON4      545.000 {SD=      .023}       .960 !MP_1, ADM Jr. 
+ BOND  HN5  ON5      545.000 {SD=      .023}       .960 !RIBOSE, MeOH 
+ BOND  ON2  P        270.000 {SD=      .033}      1.600 !DMP, ADM Jr. 
+ BOND  ON3  P        580.000 {SD=      .023}      1.480 !DMP, ADM Jr. 
+ BOND  ON4  P        237.000 {SD=      .035}      1.580 !MP_1, ADM Jr. 
+ BOND  NN5  HN1      460.000 {SD=      .025}      1.010 !sugar model, adm jr. 
+ BOND  NN5  CN6B     240.000 {SD=      .035}      1.470 !sugar model, adm jr. 
+
+
+!------------------------------------------------------------------------------------------------------
+!	VARIOUS ANGLE PARAMETERS:  Force Constant, Equilibrium Angle, Urie-Bradley Force Const., 
+!									U.-B. equilibrium  (if any)
+!------------------------------------------------------------------------------------------------------
+
+ ANGLE  CN3  CN1  NN2U      67.00 {SD=      .066}    113.4000 !U,T, JWK, adm jr., 7/24/91 
+ ANGLE  CN3  CN1  ON1      100.00 {SD=      .054}    124.7000 !U,T, par_a3 JWK 9/30/91 
+ ANGLE  CN5  CN1  NN2G      67.00 {SD=      .066}    109.4000 !G, JWK, adm jr., 7/24/91 
+ ANGLE  CN5  CN1  ON1      100.00 {SD=      .054}    125.6000 !G, par_a3 adm jr., 10/2/91 
+ ANGLE  NN2  CN1  NN2U      67.00 {SD=      .066}    114.6000 !U,T, JWK, adm jr., 7/24/91 
+ ANGLE  NN2  CN1  NN3       70.00 {SD=      .065}    116.4000 !C, JWK, adm jr., 7/24/91 
+ ANGLE  NN2  CN1  ON1      100.00 {SD=      .054}    123.5000 !C,U,G par_a3 JWK 9/30/91 
+ ANGLE  NN2  CN1  ON1C     100.00 {SD=      .054}    121.5000 !C, adm jr., 10/2/91 
+ ANGLE  NN2G CN1  ON1      100.00 {SD=      .054}    125.0000 !G par_a4 adm jr., 10/2/91 
+ ANGLE  NN2U CN1  ON1      100.00 {SD=      .054}    121.9000 !U, par_a3 JWK 9/30/91 
+ ANGLE  NN3  CN1  ON1C     100.00 {SD=      .054}    122.1000 !C, par_a3 JWK 9/30/91 
+ ANGLE  CN3  CN2  NN1       70.00 {SD=      .065}    117.9000 !C, JWK, adm jr., 7/24/91 
+ ANGLE  CN3  CN2  NN3       70.00 {SD=      .065}    119.8000 !C, JWK, adm jr., 7/24/91 
+      !CN5  CN2  NN1     70.0     119.9        !A, JWK, adm jr., 10/2/91 
+ ANGLE  CN5  CN2  NN1       70.00 {SD=      .065}    119.1000 !A, adm jr., 6/7/92 
+ ANGLE  CN5  CN2  NN3A      80.00 {SD=      .061}    112.6000 !A, JWK   par_a9 9/30/91 
+ ANGLE  NN1  CN2  NN2G      70.00 {SD=      .065}    114.8000    UB     20.000       2.300 !G, JWK, adm jr., 7/24/91 
+ ANGLE  NN1  CN2  NN3       70.00 {SD=      .065}    122.3000 !C JWK, adm jr., 7/24/91 
+      !NN1  CN2  NN3A    70.0     122.3        !A JWK, adm jr., 10/2/91 
+ ANGLE  NN1  CN2  NN3A      70.00 {SD=      .065}    128.3000 !A adm jr., 6/7/92 
+ ANGLE  NN2G CN2  NN3A      70.00 {SD=      .065}    122.9000 !G, JWK   par_49, par_a11 9/30/91 
+ ANGLE  CN1  CN3  CN3      125.00 {SD=      .049}    118.0000 !U,T, JWK, adm jr., 7/24/91 
+ ANGLE  CN1  CN3  CN9       70.00 {SD=      .065}    118.3000 !T, JWK, adm jr., 7/24/91 
+ ANGLE  CN1  CN3  HN3       30.00 {SD=      .099}    120.0000 !C,U, JWK, adm jr., 7/24/91 
+ ANGLE  CN2  CN3  CN3      125.00 {SD=      .049}    119.3000 !C, JWK, adm jr., 7/24/91 
+ ANGLE  CN2  CN3  HN3       30.00 {SD=      .099}    118.7000 !C, JWK, adm jr., 7/24/91 
+ ANGLE  CN3  CN3  CN9       70.00 {SD=      .065}    123.7000 !T, JWK, adm jr., 7/24/91 
+ ANGLE  CN3  CN3  HN3       30.00 {SD=      .099}    122.0000 !C,U, JWK, adm jr., 7/24/91 
+ ANGLE  CN3  CN3  NN2      125.00 {SD=      .049}    124.2000 !C,U, JWK, adm jr., 7/24/91 
+ ANGLE  HN3  CN3  NN2       30.00 {SD=      .099}    113.8000 !C,U, JWK, adm jr., 7/24/91 
+ ANGLE  HN3  CN4  NN2       40.00 {SD=      .086}    119.0000 !G,A, JWK, par_a9 9/30/91 
+ ANGLE  HN3  CN4  NN3A      35.00 {SD=      .092}    114.7500 !A, JWK, par_a9 9/30/91 
+ ANGLE  HN3  CN4  NN4       40.00 {SD=      .086}    126.7000 !G,A, JWK, par_a9 9/30/91 
+ ANGLE  NN2  CN4  NN4      100.00 {SD=      .054}    114.3000 !G,A, JWK, par_a9 9/30/91 
+ ANGLE  NN3A CN4  NN3A      80.00 {SD=      .061}    130.5000 !A, JWK, par_a9 9/30/91 
+ ANGLE  CN1  CN5  CN5      125.00 {SD=      .049}    119.5000 !G, JWK, adm jr., 7/24/91 
+ ANGLE  CN1  CN5  NN4      125.00 {SD=      .049}    128.8000 !G, JWK, adm jr., 7/24/91 
+ ANGLE  CN2  CN5  CN5      100.00 {SD=      .054}    119.7000 !A, JWK, par_a7 9/30/91 
+ ANGLE  CN2  CN5  NN4      120.00 {SD=      .050}    128.6000 !A, JWK, par_a9 9/30/91 
+ ANGLE  CN5  CN5  NN2      100.00 {SD=      .054}    105.1000 !G,A, JWK, par_a9 9/30/91 
+ ANGLE  CN5  CN5  NN3A     100.00 {SD=      .054}    127.5000 !A, JWK, par_a7 9/30/91 
+ ANGLE  CN5  CN5  NN4      100.00 {SD=      .054}    111.7000 !G,A, JWK, par_a7 9/30/91 
+ ANGLE  NN2  CN5  NN3A     140.00 {SD=      .046}    127.4000 !A, JWK, par_a9 9/30/91 
+ ANGLE  CN6  CN6  CN6       53.35 {SD=      .074}    111.0000    UB      8.000       2.561 ! Alkanes 
+ ANGLE  CN6  CN6  CN6B      53.35 {SD=      .074}    105.5000    UB      8.000       2.561 ! Alkanes(new eq geom) 
+ ANGLE  CN6  CN6  CN6C      53.35 {SD=      .074}    108.0000    UB      8.000       2.561 ! Alkanes(new eq geom) 
+ ANGLE  CN6  CN6C CN6B      53.35 {SD=      .074}    105.5000    UB      8.000       2.561 ! Alkanes(new eq geom) 
+ ANGLE  CN6  CN6  CN8       53.35 {SD=      .074}    108.5000    UB      8.000       2.561 ! Alkanes 
+ ANGLE  CN6  CN6  CN9       53.35 {SD=      .074}    108.5000    UB      8.000       2.561 ! Alkanes 
+ ANGLE  CN6  CN6B NN2       70.00 {SD=      .065}    113.7000 !RIBOSE, ADM Jr. 
+ ANGLE  CN6C CN6B NN2       70.00 {SD=      .065}    113.7000 !RIBOSE, ADM Jr. 
+ ANGLE  CN6  CN6B NN1       70.00 {SD=      .065}    113.7000 !RIBOSE, ADM Jr. 
+ ANGLE  CN6  CN6  ON2       75.70 {SD=      .063}    110.1000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN6C CN6  ON2       75.70 {SD=      .063}    110.1000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN6  CN6  ON5       75.70 {SD=      .063}    110.1000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN6B CN6  ON5       75.70 {SD=      .063}    110.1000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN6C CN6  ON5       75.70 {SD=      .063}    110.1000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN6  CN6  ON6      110.00 {SD=      .052}    105.0000 !RIBOSE, ADM Jr. 
+ ANGLE  CN6  CN6B ON6      110.00 {SD=      .052}    105.0000 !RIBOSE, ADM Jr. 
+ ANGLE  CN6C CN6B ON6      110.00 {SD=      .052}    105.0000 !RIBOSE, ADM Jr. 
+ ANGLE  CN7  CN6  ON6      110.00 {SD=      .052}    109.0000 !RIBOSE, ADM Jr. 
+ ANGLE  CN8  CN6  ON6      110.00 {SD=      .052}    109.0000 !RIBOSE, ADM Jr. 
+ ANGLE  CN9  CN6  ON6      110.00 {SD=      .052}    109.0000 !RIBOSE, ADM Jr. 
+ ANGLE  HN6  CN6  CN6       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  HN6  CN6B CN6       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  HN6  CN6B CN6C      34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, free 
+ ANGLE  HN6  CN6C CN6       33.40 {SD=      .094}    110.1000    UB     22.530       2.179 ! Alkanes, free 
+ ANGLE  HN6  CN6C CN6B      33.40 {SD=      .094}    110.1000    UB     22.530       2.179 ! Alkanes, free 
+ ANGLE  HN6  CN6  CN6B      34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  HN6  CN6  CN6C      34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, free 
+ ANGLE  HN6  CN6  CN7       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  HN6  CN6  CN8       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, free 
+ ANGLE  HN6  CN6  CN9       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  HN6  CN6C HN6       35.50 {SD=      .091}    109.0000    UB      5.400       1.802 ! Alkanes, free 
+ ANGLE  HN6  CN6B NN2       43.00 {SD=      .083}    111.0000 !RIBOSE, ADM Jr. 
+ ANGLE  HN6  CN6  ON2       60.00 {SD=      .070}    109.5000 !from HN7 CN7 ON2, ADM JR. 
+ ANGLE  HN6  CN6  ON5       45.90 {SD=      .080}    108.8900 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  HN6  CN6  ON6       45.20 {SD=      .081}    107.2400 !RIBOSE, ADM Jr. 
+ ANGLE  HN6  CN6B ON6       45.20 {SD=      .081}    107.2400 !RIBOSE, ADM Jr. 
+ ANGLE  ON5  CN6  ON6       92.60 {SD=      .057}    111.5500 !RIBOSE, ADM Jr., ribose (with O1') 
+ ANGLE  ON6  CN6B NN2       70.00 {SD=      .065}    108.0000 !RIBOSE, ADM Jr. 
+ ANGLE  ON6  CN6B NN5       70.00 {SD=      .065}    108.0000 !GLYCOSIDAC, Arnott + Huckins 
+ ANGLE  CN6  CN6B NN5       70.00 {SD=      .065}    113.7000 !GLYCOSIDAC, Arnott + Huckins 
+ ANGLE  CN6C CN6B NN5       70.00 {SD=      .065}    113.7000 !GLYCOSIDAC, Arnott + Huckins 
+ ANGLE  NN5  CN6B HN6       38.00 {SD=      .088}    111.0000    UB     50.000       2.140 ! sugar model, adm jr. 
+ ANGLE  CN6  CN7  HN7       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  CN6  CN7  ON2       75.70 {SD=      .063}    110.1000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN6  CN7  ON5       75.70 {SD=      .063}    110.1000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN7  CN7  HN7       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  CN8  CN7  HN7       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, free 
+ ANGLE  HN7  CN7  ON5       45.90 {SD=      .080}    108.8900 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN6  CN8  HN7       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, free 
+ ANGLE  CN6  CN8  ON2       75.70 {SD=      .063}    110.1000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN6  CN8  ON5       75.70 {SD=      .063}    110.1000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN7  CN8  HN7       34.50 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, free 
+ ANGLE  CN8  CN8  HN7       26.50 {SD=      .106}    110.1000    UB     22.530       2.179 ! Alkanes, free 
+ ANGLE  CN9  CN8  HN7       34.60 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  CN9  CN8  NN2       70.00 {SD=      .065}    113.7000 !from CN6  CN6B NN2, adm jr. 
+ ANGLE  HN7  CN8  HN7       35.50 {SD=      .091}    109.0000    UB      5.400       1.802 ! Alkanes, sacred 
+ ANGLE  HN7  CN8  NN2       33.43 {SD=      .094}    110.1000 !FOR 9-M-ADE(THY), ADM 
+ ANGLE  HN7  CN8  ON2       60.00 {SD=      .070}    109.5000 !DMP, ADM Jr. 
+ ANGLE  HN7  CN8  ON5       45.90 {SD=      .080}    108.8900 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN3  CN9  HN7       33.43 {SD=      .094}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  CN6  CN9  HN7       33.43 {SD=      .094}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  CN7  CN9  HN7       33.43 {SD=      .094}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  CN8  CN9  HN7       34.60 {SD=      .093}    110.1000    UB     22.530       2.179 ! Alkanes, sacred 
+ ANGLE  HN7  CN9  HN7       35.50 {SD=      .091}    108.4000    UB      5.400       1.802 ! Alkanes, sacred 
+ ANGLE  HN7  CN9  NN2       33.43 {SD=      .094}    110.1000 !FOR 9-M-ADE(THY), ADM 
+ ANGLE  HN7  CN9  ON2       60.00 {SD=      .070}    109.5000 !DMP, ADM Jr. 
+ ANGLE  CN2  NN1  HN1       40.00 {SD=      .086}    120.0000 ! par_a6 JWK 9/30/91 
+ ANGLE  HN1  NN1  HN1       32.00 {SD=      .096}    120.0000 ! par_a5 JWK 9/30/91 
+ ANGLE  CN1  NN2  CN3      125.00 {SD=      .049}    120.6000 !C,U, JWK 
+ ANGLE  CN1  NN2  CN6B      70.00 {SD=      .065}    117.7000 !from CN1 NN2 CN7, adm jr., 7/24/91 
+ ANGLE  CN1  NN2  CN9       70.00 {SD=      .065}    117.7000 !1-M-T XTAL, adm jr., 7/24/91 
+ ANGLE  CN1  NN2  HN2       40.50 {SD=      .086}    122.0000 !C,U  JWK, adm jr., 7/24/91 
+ ANGLE  CN3  NN2  CN6B      70.00 {SD=      .065}    121.7000 !from CN3 NN2 CN7, adm jr., 7/24/91 
+ ANGLE  CN3  NN2  CN9       70.00 {SD=      .065}    121.7000 !1-M-T XTAL, adm jr., 7/24/91 
+ ANGLE  CN3  NN2  HN2       32.00 {SD=      .096}    117.4000 !C,U, JWK, adm jr., 7/24/91 
+ ANGLE  CN4  NN2  CN5      110.00 {SD=      .052}    105.6000 !G,A, JWK, par_a9 9/30/91 
+ ANGLE  CN4  NN2  CN6B      70.00 {SD=      .065}    128.4000 !from CN4 NN2 CN7, adm jr., 7/24/91 
+ ANGLE  CN4  NN2  CN8       70.00 {SD=      .065}    128.4000 !9-E-GUA, adm jr., 7/24/91 
+ ANGLE  CN4  NN2  CN9       70.00 {SD=      .065}    128.4000 !9-M-ADE, adm jr., 7/24/91 
+ ANGLE  CN4  NN2  HN2       30.00 {SD=      .099}    125.0000 !G,A, JWK, par_a9 9/30/91 
+ ANGLE  CN5  NN2  CN6B      70.00 {SD=      .065}    126.0000 !from CN5 NN2 CN7, adm jr., 7/24/91 
+ ANGLE  CN5  NN2  CN8       70.00 {SD=      .065}    126.0000 !9-E-GUA, adm jr., 7/24/91 
+ ANGLE  CN5  NN2  CN9       70.00 {SD=      .065}    126.0000 !9-M-ADE, adm jr., 7/24/91 
+ ANGLE  CN5  NN2  HN2       30.00 {SD=      .099}    129.4000 !G,A, JWK, par_a9 9/30/91 
+ ANGLE  CN1  NN2G CN2      125.00 {SD=      .049}    128.7000 !G, JWK, adm jr., 7/24/91 
+ ANGLE  CN1  NN2G HN2       40.50 {SD=      .086}    114.3000 !G, adm jr., 7/24/91 
+ ANGLE  CN2  NN2G HN2       40.50 {SD=      .086}    117.0000 !G par_49, adm jr., 7/24/91 
+ ANGLE  CN1  NN2U CN1       90.00 {SD=      .057}    129.2000 !U,T, par_a4 JWK 9/30/91 
+ ANGLE  CN1  NN2U HN2       40.50 {SD=      .086}    115.4000 !T,U, JWK, adm jr., 7/24/91 
+ ANGLE  CN1  NN3  CN2       70.00 {SD=      .065}    119.7000 !C, JWK, adm jr., 7/24/91 
+ ANGLE  CN2  NN3A CN5       90.00 {SD=      .057}    112.0000 !G, JWK, par_a11 9/30/91 
+ ANGLE  CN2  NN3A CN4       90.00 {SD=      .057}    119.9000 !A, JWK, par_a9 9/30/91 
+ ANGLE  CN4  NN3A CN5       90.00 {SD=      .057}    110.3000 !A, JWK, par_a9 9/30/91 
+ ANGLE  CN4  NN4  CN5      110.00 {SD=      .052}    103.3000 !G,A, JWK, par_a9 9/30/91 
+ ANGLE  CN6B NN5  HN1       50.00 {SD=      .077}    111.5000 ! sugar model, adm jr. 
+ ANGLE  HN1  NN5  HN1       39.00 {SD=      .087}    106.0000 ! sugar model, adm jr. 
+ ANGLE  CN6  ON2  P         20.00 {SD=      .122}    120.0000    UB     35.000       2.330 !DMP, ADM JR. 
+ ANGLE  CN8  ON2  P         20.00 {SD=      .122}    120.0000    UB     35.000       2.330 !DMP, ADM Jr. 
+ ANGLE  CN9  ON2  P         20.00 {SD=      .122}    120.0000    UB     35.000       2.330 !DMP, ADM Jr. 
+ ANGLE  HN4  ON4  P         30.00 {SD=      .099}    115.0000    UB     40.000       2.350 !MP_1, ADM Jr. 
+ ANGLE  HN5  ON5  CN6       57.50 {SD=      .072}    106.0000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  HN5  ON5  CN7       57.50 {SD=      .072}    106.0000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  HN5  ON5  CN8       57.50 {SD=      .072}    106.0000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  HN5  ON5  CN9       57.50 {SD=      .072}    106.0000 !RIBOSE, ADM Jr., MeOH 
+ ANGLE  CN6  ON6  CN6      110.00 {SD=      .052}    107.5000 !RIBOSE, ADM Jr. 
+ ANGLE  CN6  ON6  CN6B     110.00 {SD=      .052}    107.5000 !RIBOSE, ADM Jr. 
+ ANGLE  ON2  P    ON2       80.00 {SD=      .061}    104.3000 !DMP, ADM Jr. 
+ ANGLE  ON2  P    ON3       98.90 {SD=      .055}    111.6000 !DMP, ADM Jr. 
+ ANGLE  ON2  P    ON4       48.10 {SD=      .078}    108.0000 !MP_1, ADM Jr. 
+ ANGLE  ON3  P    ON3      120.00 {SD=      .050}    120.0000 !DMP, ADM Jr. 
+ ANGLE  ON3  P    ON4       98.90 {SD=      .055}    108.2300 !MP_1, ADM Jr. 
+ ANGLE  ON4  P    ON4       98.90 {SD=      .055}    104.0000 !MP_0, ADM Jr. 
+
+
+!------------------------------------------------------------------------------------------------------
+!	VARIOUS DIHEDRAL PARAMETERS:  Energy Constant, Periodicity, Phase Shift 
+!  (energy minima correspond to dihedral angles k*delta, 0<k<=n, delta - phase shift, n - periodicity). 
+!	For some dihedrals Multiplicity is specified, which means that dihedral interactions is 
+!  contributed from some different chemicals occupying involved atoms' bonds, each group being like
+!  separate dihedral formator posessing its own energy constant and dihedral minima.
+!------------------------------------------------------------------------------------------------------
+
+ DIHEDRAL  ON2  P    ON2  CN6    MULTIPLE= 2        .95     2       .0000 !DMP, ADM Jr. 
+                                                    .50     3       .0000 !DMP, ADM Jr. (X P ON2 CN6 ON2) 
+ DIHEDRAL  ON2  P    ON2  CN8    MULTIPLE= 2        .95     2       .0000 !DMP, ADM Jr. (X P ON2 CN6 ON2) 
+                                                    .50     3       .0000 !DMP, ADM Jr. 
+ DIHEDRAL  ON2  P    ON2  CN9    MULTIPLE= 2        .95     2       .0000 !DMP, ADM Jr. (X P ON2 CN6 ON2) 
+                                                    .50     3       .0000 !DMP, ADM Jr. 
+ DIHEDRAL  ON3  P    ON2  CN6          .10 {SD=     1.721}    3       .0000 !DMP, ADM Jr. 
+ DIHEDRAL  ON3  P    ON2  CN8          .10 {SD=     1.721}    3       .0000 !DMP, ADM Jr. (X P ON2 CN6 ON2) 
+ DIHEDRAL  ON3  P    ON2  CN9          .10 {SD=     1.721}    3       .0000 !DMP, ADM Jr. (X P ON2 CN6 ON2) 
+ DIHEDRAL  ON4  P    ON2  CN6    MULTIPLE= 2        .95     2       .0000 !MP_1, ADM Jr. 
+                                                    .50     3       .0000 !MP_1, ADM Jr. 
+ DIHEDRAL  ON4  P    ON2  CN8    MULTIPLE= 2        .95     2       .0000 !MP_1, ADM Jr. 
+                                                    .50     3       .0000 !MP_1, ADM Jr. 
+ DIHEDRAL  ON4  P    ON2  CN9    MULTIPLE= 2        .95     2       .0000 !MP_1, ADM Jr. 
+                                                    .50     3       .0000 !MP_1, ADM Jr. 
+ DIHEDRAL  X    ON4  P    X            .30 {SD=      .993}    3       .0000 !MP_1, ADM Jr. 
+      ! phosphate ester related terms 
+ DIHEDRAL  X    CN8  ON2  X           -.10 {SD=999999.000}    3       .0000 !DMP, ADM Jr. (P ON2 CN7 HN7) 
+ DIHEDRAL  X    CN9  ON2  X           -.10 {SD=999999.000}    3       .0000 !DMP, ADM Jr. (P ON2 CN7 HN7) 
+ DIHEDRAL  X    CN6  ON2  X           -.10 {SD=999999.000}    3       .0000 !from (P ON2 CN7 HN7) 
+ DIHEDRAL  X    CN6  CN6  X            .15 {SD=     1.405}    3       .0000 ! Alkanes (0.2 to 0.15) 
+ DIHEDRAL  X    CN6  CN6B X            .15 {SD=     1.405}    3       .0000 ! Alkanes (0.2 to 0.15) 
+ DIHEDRAL  X    CN6  CN6C X            .15 {SD=     1.405}    3       .0000 ! Alkanes (0.2 to 0.15) 
+ DIHEDRAL  X    CN6B CN6C X            .15 {SD=     1.405}    3       .0000 ! Alkanes (0.2 to 0.15) 
+      ! RIBOSE 
+ DIHEDRAL  ON5  CN6  CN6  ON2          .50 {SD=      .770}    3       .0000  
+ DIHEDRAL  ON5  CN6  CN6  ON5          .50 {SD=      .770}    3       .0000  
+ DIHEDRAL  X    CN6  ON6  X            .10 {SD=     1.721}    3       .0000  
+ DIHEDRAL  X    CN6B ON6  X            .10 {SD=     1.721}    3       .0000  
+ DIHEDRAL  CN5  NN2  CN6B CN6          .50 {SD=      .770}    3       .0000  
+ DIHEDRAL  CN3  NN2  CN6B CN6          .50 {SD=      .770}    3       .0000  
+ DIHEDRAL  HN1  NN1  CN6B CN6          .50 {SD=      .770}    3       .0000  
+ DIHEDRAL  X    CN6B NN2  X            .00 {SD=999999.000}    3       .0000  
+ DIHEDRAL  X    CN6B NN1  X            .00 {SD=999999.000}    3       .0000  
+ DIHEDRAL  X    CN8  NN2  X            .00 {SD=999999.000}    3       .0000  
+ DIHEDRAL  X    CN9  NN2  X            .00 {SD=999999.000}    3       .0000 
+      ! SUGAR GAUCHE TERMS 
+ DIHEDRAL  CN6B CN6  CN6  ON2          .20 {SD=     1.217}    2       .0000 ! ADM Jr. (ribo) 
+ DIHEDRAL  CN6B CN6C CN6  ON2          .45 {SD=      .811}    2       .0000 ! ADM Jr. (deo) 
+ DIHEDRAL  CN6B CN6  CN6  ON5          .20 {SD=     1.217}    2       .0000 ! ADM Jr. (ribo) 
+ DIHEDRAL  CN6B CN6C CN6  ON5          .45 {SD=      .811}    2       .0000 ! ADM Jr. (deo) 
+      ! 
+      ! WILDCARDS 
+ DIHEDRAL  X    CN6  CN8  X            .20 {SD=     1.217}    3       .0000 ! Alkanes 
+ DIHEDRAL  X    CN6  CN9  X            .20 {SD=     1.217}    3       .0000 ! Alkanes 
+ DIHEDRAL  X    CN6  ON5  X            .14 {SD=     1.454}    3       .0000 ! MeOH 
+ DIHEDRAL  X    CN7  CN7  X            .20 {SD=     1.217}    3       .0000 ! Alkanes 
+ DIHEDRAL  X    CN7  CN8  X            .20 {SD=     1.217}    3       .0000 ! Alkanes 
+ DIHEDRAL  X    CN7  CN9  X            .20 {SD=     1.217}    3       .0000 ! Alkanes 
+ DIHEDRAL  X    CN8  CN8  X            .20 {SD=     1.232}    3       .0000 ! Alkanes 
+ DIHEDRAL  X    CN8  CN9  X            .16 {SD=     1.360}    3       .0000 ! Alkanes 
+ DIHEDRAL  X    CN8  ON5  X            .14 {SD=     1.454}    3       .0000 ! MeOH 
+      ! butane gauche terms 
+ DIHEDRAL  CN9  CN8  CN8  CN9          .15 {SD=     1.405}    1       .0000  
+ DIHEDRAL  CN9  CN8  CN8  CN8          .15 {SD=     1.405}    1       .0000  
+ DIHEDRAL  CN8  CN8  CN8  CN8          .15 {SD=     1.405}    1       .0000 ! BASES 
+      ! Uracil 
+ DIHEDRAL  NN2  CN3  CN3  CN1         4.00 {SD=      .272}    2    180.0000 ! par_31 
+ DIHEDRAL  CN3  CN3  CN1  NN2U        3.00 {SD=      .314}    2    180.0000 ! par_a1 JWK 9/30/91 
+ DIHEDRAL  CN3  CN1  NN2  CN1         3.50 {SD=      .291}    2    180.0000 ! PAR_32 
+ DIHEDRAL  CN1  NN2U CN1  NN2         3.50 {SD=      .291}    2    180.0000 ! PAR_32 
+ DIHEDRAL  CN1  NN2  CN3  CN3         3.50 {SD=      .291}    2    180.0000 ! PAR_32 
+ DIHEDRAL  NN2U CN1  NN2  CN3         3.00 {SD=      .314}    2    180.0000 ! par_a1 JWK 9/30/91 
+ DIHEDRAL  HN3  CN3  CN3  HN3         3.00 {SD=      .314}    2    180.0000 ! par_34 
+ DIHEDRAL  HN3  CN3  CN1  ON1         4.00 {SD=      .272}    2    180.0000 ! par_a1 JWK 9/30/91 
+ DIHEDRAL  ON1  CN1  NN2  HN2         3.00 {SD=      .314}    2    180.0000 ! par_a1 JWK 9/30/91 
+ DIHEDRAL  ON1  CN1  NN2G HN2         3.00 {SD=      .314}    2    180.0000 ! PAR_36, adm jr., 7/24/91 
+ DIHEDRAL  ON1  CN1  NN2U HN2         2.50 {SD=      .344}    2    180.0000 ! par_a2 JWK 9/30/91 
+ DIHEDRAL  HN2  NN2  CN3  HN3         1.80 {SD=      .406}    2    180.0000 ! PAR_36 
+ DIHEDRAL  NN2  CN1  NN2U HN2         1.80 {SD=      .406}    2    180.0000 ! par_a2 JWK 9/30/91 
+ DIHEDRAL  CN3  CN1  NN2U HN2         1.80 {SD=      .406}    2    180.0000 ! par_a2 JWK 9/30/91 
+      ! Thymine 
+ DIHEDRAL  NN2  CN1  CN3  CN9         3.00 {SD=      .314}    3       .0000 !  par_51 
+ DIHEDRAL  NN2  CN3  CN3  CN9         3.00 {SD=      .314}    3       .0000 !  par_51 
+ DIHEDRAL  CN1  CN3  CN9  HN7          .00 {SD=999999.000}    3       .0000 !  par_51, adm jr. 8/1/91 
+ DIHEDRAL  CN3  CN3  CN9  HN7          .00 {SD=999999.000}    3       .0000 !  par_51, adm jr. 8/1/91 
+      ! Cytosine 
+ DIHEDRAL  NN2  CN3  CN3  CN2         4.00 {SD=      .272}    2    180.0000 ! par_7 
+ DIHEDRAL  CN3  CN3  CN2  NN3         4.00 {SD=      .272}    2    180.0000 ! par_39 
+ DIHEDRAL  CN3  CN2  NN3  CN1         4.50 {SD=      .257}    2    180.0000 ! par_13 
+ DIHEDRAL  CN2  NN3  CN1  NN2         4.50 {SD=      .257}    2    180.0000 ! par_13 
+ DIHEDRAL  NN3  CN1  NN2  CN3         3.50 {SD=      .291}    2    180.0000 ! par_39 
+ DIHEDRAL  NN3  CN2  NN1  HN1         2.00 {SD=      .385}    2    180.0000 ! par_40 
+ DIHEDRAL  CN3  CN2  NN1  HN1         2.00 {SD=      .385}    2    180.0000 ! par_40 
+ DIHEDRAL  NN1  CN2  CN3  HN3         2.00 {SD=      .385}    2    180.0000 ! par_39 
+ DIHEDRAL  ON1C CN1  NN2  HN2         3.00 {SD=      .314}    2    180.0000 ! par_a1 adm jr., 10/2/91 
+ DIHEDRAL  X    CN2  NN3  X           1.00 {SD=      .544}    2    180.0000 ! par_41 
+      ! Adenine 
+ DIHEDRAL  NN3A CN2  CN5  CN5         6.00 {SD=      .222}    2    180.0000 ! par_24 par_a7 9/30/91 
+ DIHEDRAL  CN5  CN2  NN3A CN4         6.00 {SD=      .222}    2    180.0000 ! par_24 par_a7 9/30/91 
+ DIHEDRAL  NN4  CN4  NN2  CN5        10.00 {SD=      .172}    2    180.0000 ! par_47 par_a7 9/30/91 
+ DIHEDRAL  NN3A CN4  NN3A CN5         6.00 {SD=      .222}    2    180.0000 ! par_24 par_a7 9/30/91 
+ DIHEDRAL  NN3A CN4  NN3A CN2         8.00 {SD=      .192}    2    180.0000 ! par_43 par_a7 9/30/91 
+ DIHEDRAL  NN2  CN4  NN4  CN5         8.00 {SD=      .192}    2    180.0000 ! par_25 par_a7 9/30/91 
+ DIHEDRAL  CN2  CN5  CN5  NN3A        6.00 {SD=      .222}    2    180.0000 ! par_24 par_a7 9/30/91 
+ DIHEDRAL  NN4  CN5  CN5  NN2         8.00 {SD=      .192}    2    180.0000 ! par_25 par_a7 9/30/91 
+ DIHEDRAL  CN5  CN5  NN2  CN4        10.00 {SD=      .172}    2    180.0000 ! par_47 par_a7 9/30/91 
+ DIHEDRAL  CN5  CN5  NN3A CN4         6.00 {SD=      .222}    2    180.0000 ! par_24 par_a7 9/30/91 
+ DIHEDRAL  CN5  CN5  NN4  CN4         8.00 {SD=      .192}    2    180.0000 ! par_25 par_a7 9/30/91 
+ DIHEDRAL  CN5  CN2  NN1  HN1         2.50 {SD=      .344}    2    180.0000 ! par_26 par_a10 9/30/91 
+ DIHEDRAL  HN2  NN2  CN4  HN3         1.50 {SD=      .444}    2    180.0000 ! par_44 par_a7 9/30/91 
+ DIHEDRAL  NN3A CN2  NN1  HN1         2.50 {SD=      .344}    2    180.0000 ! par_40 par_a10 9/30/91 
+      ! Butterfly motion 
+ DIHEDRAL  NN3A CN5  CN5  NN4        20.00 {SD=      .122}    2    180.0000 !A, par_24 par_a7 9/30/91 
+ DIHEDRAL  CN2  CN5  CN5  NN2        20.00 {SD=      .122}    2    180.0000 !A, par_24 
+      ! Guanine 
+ DIHEDRAL  NN2G CN1  CN5  CN5         6.00 {SD=      .222}    2    180.0000 ! par_49 
+ DIHEDRAL  CN5  CN1  NN2G CN2         6.00 {SD=      .222}    2    180.0000 ! par_49 
+ DIHEDRAL  CN1  NN2G CN2  NN3A        6.00 {SD=      .222}    2    180.0000 ! par_49 
+ DIHEDRAL  NN2G CN2  NN3A CN5         6.00 {SD=      .222}    2    180.0000 ! par_49 
+ DIHEDRAL  CN2  NN3A CN5  CN5         6.00 {SD=      .222}    2    180.0000 ! par_49 
+ DIHEDRAL  CN1  CN5  CN5  NN3A        6.00 {SD=      .222}    2    180.0000 ! par_49 
+ DIHEDRAL  NN2G CN2  NN1  HN1         2.00 {SD=      .385}    2    180.0000 ! par_49 
+      ! Butterfly motion 
+ DIHEDRAL  CN1  CN5  CN5  NN2        20.00 {SD=      .122}    2    180.0000 ! par_49 
+      ! Wild cards for uracil, thymine and cytosine 
+ DIHEDRAL  X    CN1  NN3  X           1.00 {SD=      .544}    2    180.0000 ! par_39 
+ DIHEDRAL  X    CN1  NN2  X            .90 {SD=      .574}    2    180.0000 ! par_36 
+ DIHEDRAL  X    CN1  NN2G X            .90 {SD=      .574}    2    180.0000 ! par_36 
+ DIHEDRAL  X    CN1  NN2U X            .90 {SD=      .574}    2    180.0000 ! par_36 
+ DIHEDRAL  X    CN3  NN2  X           1.00 {SD=      .544}    2    180.0000 ! par_36 
+ DIHEDRAL  X    CN3  CN3  X           1.00 {SD=      .544}    2    180.0000 ! par_36 
+ DIHEDRAL  X    CN1  CN3  X           1.00 {SD=      .544}    2    180.0000 ! par_36 
+ DIHEDRAL  X    CN2  CN3  X            .80 {SD=      .608}    2    180.0000 ! par_39 
+      ! Wild cards for adenine and guanine 
+ DIHEDRAL  X    CN1  CN5  X           1.00 {SD=      .544}    2    180.0000 ! par_49 
+ DIHEDRAL  X    CN2  NN2G X           1.00 {SD=      .544}    2    180.0000 ! par_49 
+ DIHEDRAL  X    CN2  CN5  X           1.00 {SD=      .544}    2    180.0000 ! par_41 
+ DIHEDRAL  X    CN4  NN2  X           1.50 {SD=      .444}    2    180.0000 ! par_44 
+ DIHEDRAL  X    CN4  NN3A X           3.50 {SD=      .291}    2    180.0000 ! par_47 par_a7 9/30/91 
+ DIHEDRAL  X    CN4  NN4  X           1.00 {SD=      .544}    2    180.0000 ! par_41 
+ DIHEDRAL  X    CN5  CN5  X            .00 {SD=999999.000}    2    180.0000 ! par_20 
+ DIHEDRAL  X    CN5  NN2  X           1.50 {SD=      .444}    2    180.0000 ! par_44 
+ DIHEDRAL  X    CN5  NN3A X           1.00 {SD=      .544}    2    180.0000 ! par_41 par_a7 9/30/91 
+ DIHEDRAL  X    CN5  NN4  X           1.00 {SD=      .544}    2    180.0000 ! par_41 
+ DIHEDRAL  X    CN2  NN3A X           1.00 {SD=      .544}    2    180.0000 ! par_41 par_a7 9/30/91 
+      ! MISC. 
+ DIHEDRAL  CN1  NN2  CN9  HN7          .19 {SD=     1.248}    3       .0000 ! 1-M-THY 
+ DIHEDRAL  CN3  NN2  CN9  HN7          .00 {SD=999999.000}    3       .0000 ! 1-M-THY 
+ DIHEDRAL  CN4  NN2  CN9  HN7          .00 {SD=999999.000}    3       .0000 ! 9-M-ADE 
+ DIHEDRAL  CN5  NN2  CN9  HN7          .19 {SD=     1.248}    3       .0000 ! 9-M-ADE 
+      ! sp2 amine parameters, adm jr. 
+ DIHEDRAL  X    CN6B NN5  X            .11 {SD=     1.641}    3       .0000  
+ DIHEDRAL  NN5  CN6B CN6  ON5          .05 {SD=     2.431}    3       .0000  
+ DIHEDRAL  NN5  CN6B CN6  HN6          .05 {SD=     2.431}    3       .0000  
+ DIHEDRAL  NN5  CN6B CN6  CN6          .05 {SD=     2.431}    3       .0000  
+ DIHEDRAL  NN5  CN6B CN6C ON5          .05 {SD=     2.431}    3       .0000  
+ DIHEDRAL  NN5  CN6B CN6C HN6          .05 {SD=     2.431}    3       .0000  
+ DIHEDRAL  NN5  CN6B CN6C CN6          .05 {SD=     2.431}    3       .0000  
+ DIHEDRAL  CN6  ON6  CN6B NN5          .10 {SD=     1.721}    3       .0000  
+
+
+!------------------------------------------------------------------------------------------------------------------
+!	VARIOUS IMPROPER PARAMETERS:  Energy Constant, Periodicity(0), Phase Shift(0)
+!   Improper angles are almost the same as dihedrals but they are introduced for PLANARITY maintaining,
+! that's why they all have zero periodicity and phase shift (the only energy minima is 0) and no multiplicity.
+!------------------------------------------------------------------------------------------------------------------
+
+ IMPROPER  HN2  CN4  CN5  NN2         7.00 {SD=      .206}    0       .0000 !A, JWK par_42 
+ IMPROPER  HN2  CN1  CN1  NN2U        4.00 {SD=      .272}    0       .0000 !U, JWK par_35 
+ IMPROPER  HN2  X    X    NN2          .30 {SD=      .993}    0       .0000 !C,U, JWK par_15 
+ IMPROPER  HN2  X    X    NN2G         .30 {SD=      .993}    0       .0000 !G, JWK par_15 
+ IMPROPER  HN1  X    X    NN1         2.00 {SD=      .385}    0       .0000 !C, JWK par_40 
+ IMPROPER  HN3  CN1  CN3  CN3        18.00 {SD=      .128}    0       .0000 !   JWK par_37 
+ IMPROPER  HN3  X    X    CN3        15.00 {SD=      .140}    0       .0000 !   JWK par_37 
+ IMPROPER  CN1  X    X    ON1        70.00 {SD=      .065}    0       .0000 !U, JWK par_32 
+ IMPROPER  CN1  X    X    ON1C       70.00 {SD=      .065}    0       .0000 !C, par_32, adm jr., 10/2/91 
+ IMPROPER  CN2  X    X    NN1        90.00 {SD=      .057}    0       .0000 !C, JWK par_15 
+ IMPROPER  HN3  X    X    CN4        20.00 {SD=      .122}    0       .0000 !A, JWK par_42 
+ IMPROPER  CN9  X    X    CN3        20.00 {SD=      .122}    0       .0000 !T par_51 
+
+
+!---------------------------------------------------------------------------------------------------
+! 	Here are supplied DEFAULT ENERGY PARAMETERS for nonbonded atom interactions.
+!---------------------------------------------------------------------------------------------------
+
+ NBONDS 
+
+! -----NONBONDED-LIST-OPTIONS-------------------------------
+  CUTNB=  13.000 TOLERANCE=    .500 WMIN=   1.500 ATOM   
+  INHIBIT=    .250                                       
+! -----ELECTROSTATIC OPTIONS--------------------------------
+  EPS=   1.000 E14FAC=   1.000 CDIELECTRIC SHIFT         
+! -----VAN DER WAALS OPTIONS--------------------------------
+  VSWITCH                                                
+! -----SWITCHING /SHIFTING PARAMETERS-----------------------
+  CTONNB=  10.000 CTOFNB=  12.000                        
+! -----EXCLUSION LIST OPTIONS-------------------------------
+  NBXMOD=   5                                            
+! ----------------------------------------------------------
+
+ END 
+
+
+!-------------------------------------------------------------------------------------------------
+!	VAN-DER-VAALS PARAMETERS: Energy Well Depth, Distance of Minimum(div. by 2**1/6)
+!   for "atoms itself", i.e. for X-X interactions; for X-Y interactions the parameters
+!   values are taken as arithmetic mean of appropriate "atomic" parameters.
+!   "(1:4)" values refer to special intramolecular interactions between atoms connected through 
+!   three bonds. These interactions are taken into consideration only when NBXMOD switch is set
+!   to 5 in NBONDS...END statement, which is taken for default (see 10 lines above).	
+!-------------------------------------------------------------------------------------------------
+
+ !                    EPS     SIGMA    EPS(1:4)  SIGMA(1:4)
+
+ NONBONDED  HN1      .0460    .4000    .0460    .4000  
+ NONBONDED  HN2      .0460    .4000    .0460    .4000  
+ NONBONDED  HN3      .0220   2.3520    .0220   2.3520  
+ NONBONDED  HN4      .0460    .4000    .0460    .4000  
+ NONBONDED  HN5      .0460    .4000    .0460    .4000  
+ NONBONDED  HN6      .0220   2.3520    .0220   2.3520  
+ NONBONDED  HN7      .0220   2.3520    .0220   2.3520  
+ ! 
+ NONBONDED  NN1      .2000   3.2963    .2000   3.2963  
+ NONBONDED  NN2      .2000   3.2963    .2000   3.2963  
+ NONBONDED  NN2G     .2000   3.2963    .2000   3.2963  
+ NONBONDED  NN2U     .2000   3.2963    .2000   3.2963  
+ NONBONDED  NN3      .2000   3.2963    .2000   3.2963  
+ NONBONDED  NN3A     .2000   3.2963    .2000   3.2963  
+ NONBONDED  NN4      .2000   3.2963    .2000   3.2963  
+ NONBONDED  NN5      .2000   3.2963    .2000   3.2963
+ !
+ NONBONDED  ON1      .1200   3.0291    .1200   3.0291  
+ NONBONDED  ON1C     .1200   3.0291    .1200   3.0291  
+ NONBONDED  ON2      .1521   3.1538    .1521   3.1538  
+ NONBONDED  ON3      .1200   3.0291    .1200   3.0291  
+ NONBONDED  ON4      .1521   3.1538    .1521   3.1538  
+ NONBONDED  ON5      .1521   3.1538    .1521   3.1538  
+ NONBONDED  ON6      .1521   3.1538    .1521   3.1538  
+ ! 
+ NONBONDED  CN1      .1400   3.2072    .1400   3.2072  
+ NONBONDED  CN2      .1400   3.2072    .1400   3.2072  
+ NONBONDED  CN3      .1800   3.2072    .1800   3.2072  
+ NONBONDED  CN4      .1200   3.2072    .1200   3.2072  
+ NONBONDED  CN5      .1200   3.2072    .1200   3.2072  
+ NONBONDED  CN6      .0200   4.0536    .0100   3.3854 !equivalent to protein CT1 
+ NONBONDED  CN6B     .0200   4.0536    .0100   3.3854 !equivalent to protein CT1 
+ NONBONDED  CN6C     .0550   3.8754    .0100   3.3854 !equivalent to protein CT2 
+ NONBONDED  CN7      .0200   4.0536    .0100   3.3854 !equivalent to protein CT1 
+ NONBONDED  CN8      .0550   3.8754    .0100   3.3854 !equivalent to protein CT2 
+ NONBONDED  CN9      .0800   3.6705    .0100   3.3854 !equivalent to protein CT3 
+ ! 
+ NONBONDED  P        .5850   3.8309    .5850   3.8309  
+
+
+
+!-------------------------------------------------------------------------------------------------------------
+!	H-BOND GLOBAL DEFAULTS and PARTICULAR PAIR's PARAMETERS:  Energy Well Depth, Equilibrium Distance
+!  intended for explicit hydrogen bond description. Since it's exotics than EMIN is set to zero and defaults
+!  are "commented off"; it practically exludes this energy term. To use it it is necessary to create globals 
+!  anew and substitute desired EMIN values.
+!-------------------------------------------------------------------------------------------------------------
+
+      ! 
+      ! Note: HAEX AND AAEX SHOULD BE SET TO 4 AND 2 FOR HBONDS TO 
+      ! BE ANALYZED. 
+      ! 
+
+! HBONDS 
+
+! -----HYDROGEN-BOND-LIST-OPTIONS---------------------------
+!  TOLERANCE=    .500                                     
+!  DCUTOFF=  7.50 DOFF=  6.50 DON=  5.50         
+!  ACUTOFF=100.00 AOFF= 80.00 AON= 60.00           
+!  ACCEPTOR= TRUE                                              
+ REXP=  6 AEXP=  4 HAEX=  0 AAEX=  0                    
+! ----------------------------------------------------------
+! END 
+
+ ! HBOND               EMIN     RMIN
+
+ HBOND  H*   N*      -.0000   2.0000  
+ HBOND  H*   O*      -.0000   2.0000  
+ HBOND  N*   N*      -.0000   3.0000  
+ HBOND  N*   O*      -.0000   2.9000  
+ HBOND  O*   N*      -.0000   2.8500  
+ HBOND  O*   O*      -.0000   2.7500  
+
+
+!---------------------------------------------------------------------------------------------
+!---------------------------------------------------------------------------------------------
+ 
+ SET ECHO=TRUE END

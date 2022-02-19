@@ -1,0 +1,9 @@
+codeLabel: DFTB+
+codeLabelStyle: all in capitals; use + instead of word
+codeName: dftbplus
+codeUrl: http://www.dftbplus.org/
+parserDirName: dependencies/parsers/dftbplus/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-dftbplus.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

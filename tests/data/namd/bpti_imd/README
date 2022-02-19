@@ -1,0 +1,7 @@
+BPTI Interactive Simulation
+
+First start NAMD with bpti.namd, then start VMD as "vmd -e bpti.vmd" to
+connect and view the simulation.  You may need to edit the command
+"imd connect localhost 3111" with the correct hostname, or just type
+the correct version in the VMD console.
+

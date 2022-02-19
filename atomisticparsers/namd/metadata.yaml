@@ -1,0 +1,9 @@
+codeLabel: NAMD
+codeLabelStyle: All in capitals
+codeName: namd
+codeUrl: http://www.ks.uiuc.edu/Research/namd/
+parserDirName: dependencies/parsers/namd/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-namd.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

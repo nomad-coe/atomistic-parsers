@@ -1,0 +1,9 @@
+codeLabel: GULP
+codeLabelStyle: All in capitals
+codeName: gulp
+codeUrl: http://gulp.curtin.edu.au/gulp/
+parserDirName: dependencies/parsers/gulp/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-gulp.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

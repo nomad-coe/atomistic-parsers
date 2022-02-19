@@ -1,0 +1,9 @@
+codeLabel: GROMACS
+codeLabelStyle: All in capitals
+codeName: gromacs
+codeUrl: http://www.gromacs.org/
+parserDirName: dependencies/parsers/gromacs/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-gromacs.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

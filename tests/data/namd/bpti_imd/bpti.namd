@@ -1,0 +1,49 @@
+# NAMD configuration file for BPTI
+
+# molecular system
+structure	bpti.psf
+
+# force field
+paratypecharmm	on
+parameters	par_all22_prot.inp
+exclude		scaled1-4
+1-4scaling	1.0
+
+# approximations
+switching	on
+switchdist	8
+cutoff		12
+pairlistdist	13.5
+margin		0
+stepspercycle	20
+
+#integrator
+timestep 1.0
+
+#output
+outputenergies	10
+outputtiming	100
+binaryoutput	no
+imdon		yes
+imdfreq		1
+imdport		3111
+
+# molecular system
+coordinates	bpti.pdb
+
+#output
+outputname	bpti_out
+#dcdfreq		1000
+
+#protocol
+temperature	0
+langevin	on
+langevinDamping	10
+langevinTemp	300
+
+#script
+
+minimize 200
+
+run 20000
+

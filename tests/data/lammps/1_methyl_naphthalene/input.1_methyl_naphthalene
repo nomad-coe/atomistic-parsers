@@ -1,0 +1,93 @@
+# input script for topotools tutorial step 2a
+units real
+boundary p p p
+atom_style full
+
+#read_restart naph_min.restart
+read_data data.1_methyl_naphthalene
+
+kspace_style pppm 1.0e-6 
+
+# interaction styles
+pair_style lj/cut/coul/long 12.0  # 20.0 # 6.0 6.0
+bond_style harmonic
+angle_style harmonic
+dihedral_style opls
+pair_modify mix geometric tail yes
+
+# OPLS considers 1-4 interactions with 50%. 
+special_bonds lj/coul 0.0 0.0 0.5
+
+# force field parameters
+pair_coeff   1 1  0.07  3.55     #CA Aromatic C [90 48]  
+pair_coeff   2 2  0.07  3.55     #CB Aromatic C bridge [92 48]
+pair_coeff   3 3  0.066 3.5      #CM Methyl C [80 13]
+pair_coeff   4 4  0.03  2.42     #HA Aromatic H [91 49]
+pair_coeff   5 5  0.03  2.5      #HM Methyl H [85 46]
+
+
+# # the remaining parameters are inferred from mixing.
+
+bond_coeff   1  469.00     1.4000 # 4  CA-CA [48 48]
+bond_coeff   2  469.00     1.4000 # 5  CA-CB [48 48]
+bond_coeff   3  367.00     1.0800 # 6  CA-HA [48 49]
+bond_coeff   4  469.00     1.4000 # 7  CB-CB [48 48]
+bond_coeff   5  317.00     1.5100 # 8  CB-CM [13 48]
+bond_coeff   6  340.00     1.0900 # 9  CM-HM [13 46]
+
+angle_coeff  1   63.00   120.00	  # 5  CA-CA-CA 48-48-48
+angle_coeff  2   63.00   120.00	  # 6  CA-CA-CB 48-48-48
+angle_coeff  3   35.00   120.00	  # 7  CA-CA-HA 48-48-49
+angle_coeff  4   63.00   120.00	  # 8  CA-CB-CA 48-48-48
+angle_coeff  5   63.00   120.00	  # 9  CA-CB-CB 48-48-48
+angle_coeff  6   70.00   120.00	  # 10 CA-CB-CM 48-48-13
+angle_coeff  7   35.00   120.00	  # 11 CB-CA-HA 48-48-49
+angle_coeff  8   63.00   120.00	  # 12 CB-CB-CB 48-48-48
+angle_coeff  9   70.00   120.00	  # 13 CB-CB-CM 48-48-13
+angle_coeff 10   35.00   109.50	  # 14 CB-CM-HM 48-13-46
+angle_coeff 11   70.00   120.00	  # 21 HM-CM-HM 46-13-46
+
+dihedral_coeff   1  0.000  7.250   0.000 0.0  # 5   CA-CA-CA-CA 48-48-48-48
+dihedral_coeff   2  0.000  7.250   0.000 0.0  # 6   CA-CA-CA-CB 48-48-48-48
+dihedral_coeff   3  0.000  7.250   0.000 0.0  # 7   CA-CA-CA-HA 48-48-48-49
+dihedral_coeff   4  0.000  7.250   0.000 0.0  # 8   CA-CA-CB-CA 48-48-48-48
+dihedral_coeff   5  0.000  7.250   0.000 0.0  # 9   CA-CA-CB-CB 48-48-48-48
+dihedral_coeff   6  0.000  7.250   0.000 0.0  # 10  CA-CA-CB-CM 48-48-48-13
+dihedral_coeff   7  0.000  7.250   0.000 0.0  # 11  CA-CB-CB-CA 48-48-48-48
+dihedral_coeff   8  0.000  7.250   0.000 0.0  # 12  CA-CB-CB-CB 48-48-48-48
+dihedral_coeff   9  0.000  7.250   0.000 0.0  # 13  CA-CB-CB-CM 48-48-48-13
+dihedral_coeff  10  0.00   0.000   0.000 0.0  # 14  CA-CB-CM-HM 48-48-13-46
+dihedral_coeff  11  0.000  7.250   0.000 0.0  # 15  CB-CA-CA-HA 48-48-48-49
+dihedral_coeff  12  0.000  7.250   0.000 0.0  # 16  CB-CB-CB-CM 48-48-48-13
+dihedral_coeff  13  0.00   0.000   0.000 0.0  # 17  CB-CB-CM-HM 48-48-13-46
+dihedral_coeff  14  0.000  7.250   0.000 0.0  # 25  HA-CA-CA-HA 49-48-48-49
+dihedral_coeff  15  0.000  7.250   0.000 0.0  # 26  HA-CA-CB-CA 49-48-48-48
+dihedral_coeff  16  0.000  7.250   0.000 0.0  # 27  HA-CA-CB-CB 49-48-48-48
+dihedral_coeff  17  0.000  7.250   0.000 0.0  # 28  HA-CA-CB-CM 49-48-48-13
+
+# PRODUCTION RUN
+variable dt equal 2.0
+variable tempe equal 300.0
+variable press equal 800.0
+
+reset_timestep 0
+timestep ${dt}
+neighbor 2.5 bin
+neigh_modify every 1 delay 0 check yes page 1000000 one 100000
+thermo 100
+thermo_style custom step temp pe etotal press vol density # v_ciao c_miao 
+#fix 1 all rattle 0.0001 20 0 m 1.0080
+fix 2 all npt temp ${tempe} ${tempe} 100.0 iso ${press} ${press} 1000.0 tchain 4 pchain 4 mtk yes
+
+
+# equilibration trajectorys
+dump 1 all custom 10000 naph_298_eq.lammpstrj id type x y z ix iy iz
+log log.naph_298_396_20ns
+# # dump_modify 1 unwrap yes
+
+# 20.0 ns
+#run 10000000
+run 30000
+
+# keep a restart of this, too.
+write_restart naph_298_396_20ns.restart

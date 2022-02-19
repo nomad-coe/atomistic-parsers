@@ -1,0 +1,27 @@
+; Argon
+
+[ defaults ]
+; nb-function	combinationrule
+1		2
+
+[ atomtypes ]
+; type 	mass 	charge	ptype 	sig	eps
+AR      1.0     0.0     A	1.0     1.0     
+
+[ moleculetype ]
+; molname      nrexcl
+Argon          1
+
+[ atoms ]
+; id    at type res nr  residu name     at name cg nr
+1       AR      1       Argon           AR      1 
+
+[ system ]
+; systemname
+Argon
+
+[ molecules ]
+; molecule 	number
+Argon		125
+;Argon		2
+

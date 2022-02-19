@@ -1,0 +1,2 @@
+Runline command   #lmp is the executable 
+lmp -sc none < in_start.lj    #you can use the parallel version with mpirun -np # command

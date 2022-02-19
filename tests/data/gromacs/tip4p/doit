@@ -1,0 +1,11 @@
+#!/bin/csh -f
+
+grompp -v
+
+mdrun -v -o mno -g mno -e mno -debug
+mv mdrun.log debug-mno.log
+
+setenv GMX_NO_SOLV_OPT 1
+mdrun -v -o norm -g norm -e norm -debug
+mv mdrun.log debug-norm.log
+

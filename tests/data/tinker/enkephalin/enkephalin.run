@@ -1,0 +1,3 @@
+../bin/protein < enkephalin.dat
+../bin/minimize enkephalin 0.00001
+../bin/vibrate enkephalin -7 8

@@ -1,0 +1,75 @@
+ REMARKS Charmm parameter set for water and ions v22 b4
+ REMARKS FILENAME="water+ions.par"
+
+ SET ECHO=FALSE END
+
+ {>>>>>>>>>> Developmental Parameter File for Proteins <<<<<<<<<<
+  >>>>>>>>>>>>>>>>> Using All Hydrogens (ALLH) <<<<<<<<<<<<<<<<<<
+  >>>>>>>>>>>>>>>>>>>>>>> Jan 1993 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  >>>>>>> Direct comments to Alexander D. MacKerell Jr. <<<<<<<<<
+  >>>>>> 410-706-7442 or bitnet: alex,tammy.harvard.edu <<<<<<<<<
+  These files are a beta release; additional parameter development
+  and testing may lead to alteration of the contents.}
+
+!-----------------------------------------------------------------------------------------------
+!	VARIOUS BOND PARAMETERS:  Force Constant, Equilibrium Radius
+!-----------------------------------------------------------------------------------------------
+
+ BOND  HT   HT          .000 {SD=999999.000}      1.514 ! ALLOW WAT 
+						        ! FROM TIPS3P GEOMETRY (FOR SHAKE/W PARAM) 
+ BOND  OT   HT       450.000 {SD=      .026}       .957 ! ALLOW   WAT 
+						        ! FROM TIPS3P GEOM 
+
+!------------------------------------------------------------------------------------------------------
+!	VARIOUS ANGLE PARAMETERS:  Force Constant, Equilibrium Angle, Urie-Bradley Force Const., 
+!									U.-B. equilibrium  (if any)
+!------------------------------------------------------------------------------------------------------
+
+ ANGLE  HT   OT   HT        55.00 {SD=      .073}    104.5200 ! ALLOW WAT 
+							      ! TIP3P GEOMETRY, ADM JR. 
+ 
+!-------------------------------------------------------------------------------------------------
+!	VAN-DER-VAALS PARAMETERS: Energy Well Depth, Distance of Minimum(div. by 2**1/6)
+!   for "atoms itself", i.e. for X-X interactions; for X-Y interactions the parameters
+!   values are taken as arithmetic mean of appropriate "atomic" parameters.
+!   "(1:4)" values refer to special intramolecular interactions between atoms connected through 
+!   three bonds. These interactions are taken into consideration only when NBXMOD switch is set
+!   to 5 in NBONDS...END statement, which is taken for default (see 10 lines above).	
+!-------------------------------------------------------------------------------------------------
+
+ NONBONDED  HT       .0460    .4000    .0460    .4000 ! ALLOW WAT 
+						      !TIP3P HYDROGEN PARAMETERS, adm jr., NBFIX obsolete 
+ NONBONDED  OT       .1521   3.1506    .1521   3.1506 ! ALLOW   WAT 
+						      !TIP3P OXYGEN PARAMETERS, adm jr., NBFIX obsolete 
+ NONBONDED  CAL      .1200   3.0469    .1200   3.0469 ! ALLOW  ION 
+						      ! optimized before july 89, and need polarization term (BP) 
+! NONBONDED  ZN       .2500   1.9422    .2500   1.9422 ! ALLOW  ION 
+						      ! RHS March 18, 1990 
+ NONBONDED  CLA      .1500   4.2763    .1500   4.2763 ! chloride anion 
+ NONBONDED  SOD      .1000   2.7297    .1000   2.7297 ! from Benoit Roux 
+ NONBONDED  MG       .0010   2.9400    .0010   2.9400 ! from Blaise Prodhom 
+
+!-------------------------------------------------------------------------------------------------
+!	VAN-DER-VAALS PARAMETERS: A,B
+!   for some specific atom pairs. They related to the parameters above as: 
+!	A  =  4 * Eps * Sig**12  =      E * R**2,	
+!	B  =  4 * Eps * Sig**6   =  2 * E * R**6.
+!-------------------------------------------------------------------------------------------------
+ !                      A             B          A(1:4)       B(1:4)
+
+! NBFIX  SOD  OT      82964.866      439.895    82964.866      439.895 ! from Benoit Roux 
+! NBFIX  SOD  ON1      7812.117       55.900     7812.117       55.900 ! from Benoit Roux 
+! NBFIX  MG   OT      84928.658     1626.769    84928.658     1626.769 ! From Blaise Prodhom 
+! NBFIX  MG   ON1     46273.255     2720.978    46273.255     2720.978 ! From Blaise Prodhom 
+! NBFIX  MG   ON2     84928.658     1626.769    84928.658     1626.769 ! From Blaise Prodhom 
+! NBFIX  MG   ON3     36779.138      857.661    36779.138      857.661 ! From Blaise Prodhom 
+! NBFIX  MG   ON4     84928.658     1626.769    84928.658     1626.769 ! From Blaise Prodhom 
+! NBFIX  MG   ON5     84928.658     1626.769    84928.658     1626.769 ! From Blaise Prodhom 
+! NBFIX  MG   ON6     84928.658     1626.769    84928.658     1626.769 ! From Blaise Prodhom 
+
+
+!---------------------------------------------------------------------------------------------
+!---------------------------------------------------------------------------------------------
+ 
+ SET ECHO=TRUE END
+

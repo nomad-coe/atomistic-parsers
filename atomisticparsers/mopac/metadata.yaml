@@ -1,0 +1,9 @@
+codeLabel: MOPAC
+codeLabelStyle: All in capitals
+codeName: mopac
+codeUrl: http://openmopac.net/
+parserDirName: dependencies/parsers/mopac/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-mopac.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

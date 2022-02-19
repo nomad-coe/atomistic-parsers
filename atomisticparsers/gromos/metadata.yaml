@@ -1,0 +1,9 @@
+codeLabel: GROMOS
+codeLabelStyle: All in capitals
+codeName: gromos
+codeUrl: http://www.gromos.net/
+parserDirName: dependencies/parsers/gromos/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-gromos.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

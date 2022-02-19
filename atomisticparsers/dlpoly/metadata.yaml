@@ -1,0 +1,9 @@
+codeLabel: DL_POLY
+codeLabelStyle: all capitals and underscore, not dash (minus)
+codeName: dl-poly
+codeUrl: https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx
+parserDirName: dependencies/parsers/dl-poly/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-dl-poly.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

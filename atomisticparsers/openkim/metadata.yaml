@@ -1,0 +1,9 @@
+codeLabel: openKIM
+codeLabelStyle: 'Capitals: K,I,M'
+codeName: openkim
+codeUrl: https://openkim.org/
+parserDirName: dependencies/parsers/openkim/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-openkim.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

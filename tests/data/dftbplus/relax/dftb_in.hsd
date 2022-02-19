@@ -1,0 +1,59 @@
+Geometry = GenFormat {
+<<< "dftb_in.gen"
+}
+Driver = ConjugateGradient {
+    LatticeOpt = Yes
+    MaxSteps = 2000
+    MaxForceComponent = 0.0001
+    MaxLatticeStep = 0.2
+}
+
+Hamiltonian = DFTB {
+   SCC = Yes
+   #SCCTolerance = 0.00001
+   MaxSCCIterations = 200
+ 
+   MaxAngularMomentum = {
+    C = "p"
+    H = "s"
+    B = "p"
+    O = "p"
+ }
+
+  SlaterKosterFiles = Type2FileNames {
+    Prefix = "/home/yizh781b/DFTB+/slako/matsci/matsci-0-3/"
+    Separator = "-"
+    Suffix = ".skf"
+  }
+
+ KPointsAndWeights = SupercellFolding {
+     6 0 0
+     0 6 0
+     0 0 10 
+     0.0 0.0 0.0
+     }
+
+#Dispersion = DftD3 {
+    #Damping = BeckeJohnson {
+        #a1 = 0.5719
+        #a2 = 3.6017
+    #}
+    #s6 = 1.0
+    #s8 = 0.5883
+#}
+
+#}
+
+Dispersion = LennardJones {
+    Parameters = UFFParameters {}
+}
+}
+
+Options = {
+TimingVerbosity = 0
+}
+
+ParserOptions = {
+  ParserVersion = 6
+}
+

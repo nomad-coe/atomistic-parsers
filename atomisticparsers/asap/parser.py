@@ -23,7 +23,6 @@ import numpy as np
 from ase.io.trajectory import Trajectory
 
 from nomad.units import ureg
-from nomad.parsing import FairdiParser
 from nomad.parsing.file_parser import FileParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
@@ -58,11 +57,8 @@ class TrajParser(FileParser):
             return '3.x.x'
 
 
-class AsapParser(FairdiParser):
+class AsapParser:
     def __init__(self):
-        super().__init__(
-            name='parsers/asap', code_name='ASAP', domain='dft',
-            mainfile_name_re=r'.*.traj$', mainfile_mime_re=r'application/octet-stream')
         self.traj_parser = TrajParser()
 
     def init_parser(self):

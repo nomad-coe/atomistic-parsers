@@ -23,7 +23,6 @@ import logging
 import numpy as np
 
 from nomad.units import ureg
-from nomad.parsing import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from nomad.datamodel.metainfo.simulation.run import (
     Run, Program
@@ -312,13 +311,8 @@ class OutParser(TextParser):
         ]
 
 
-class DFTBPlusParser(FairdiParser):
+class DFTBPlusParser:
     def __init__(self):
-        super().__init__(
-            name='parsers/dftbplus', code_name='DFTB+', domain='dft',
-            mainfile_contents_re=r'\|  DFTB\+',
-            mainfile_mime_re=r'text/.*'
-        )
         self.out_parser = OutParser()
         self.hsd_parser = HSDParser()
         self.detailed_parser = DetailedParser()

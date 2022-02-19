@@ -28,7 +28,6 @@ from ase.spacegroup import Spacegroup
 import numpy as np
 
 from nomad.units import ureg
-from nomad.parsing import FairdiParser
 from nomad.datamodel import EntryArchive
 from nomad.client import api
 
@@ -370,12 +369,9 @@ class Converter:
                 json.dump(self.archive.m_to_dict(), f, indent=4)
 
 
-class OpenKIMParser(FairdiParser):
+class OpenKIMParser:
     def __init__(self):
-        super().__init__(
-            name='parsers/openkim', code_name='OpenKIM', domain='dft',
-            mainfile_mime_re=r'(application/json)|(text/.*)',
-            mainfile_contents_re=r'openkim|OPENKIM|OpenKIM')
+        pass
 
     def parse(self, filepath, archive, logger):
         logger = logger if logger is not None else logging.getLogger('__name__')

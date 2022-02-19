@@ -38,7 +38,7 @@ from nomad.datamodel.metainfo.simulation.method import Method, ForceField, Model
 from nomad.datamodel.metainfo.simulation.calculation import (
     BandEnergies, BandStructure, Calculation, Energy, EnergyEntry, Thermodynamics, Stress, StressEntry)
 from nomad.datamodel.metainfo.workflow import Phonon, Workflow, Elastic, Interface
-import openkimparser.metainfo  # pylint: disable=unused-import
+from .metainfo import openkim  # pylint: disable=unused-import
 
 
 class Converter:

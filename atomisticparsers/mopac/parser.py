@@ -24,7 +24,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import BasicParser
 
 
-class MopacParser(BasicParser):
+class MopacParser:
     def __init__(self):
         re_f = r'\-*\d+\.\d+E*e*\-*\+*\d*'
 
@@ -36,14 +36,15 @@ class MopacParser(BasicParser):
             except Exception:
                 return []
 
-        super().__init__(
-            specifications=dict(
-                name='parsers/mopac', code_name='MOPAC', domain='dft',
-                mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
-                mainfile_mime_re=r'text/.*'),
+        self._parser = BasicParser(
+            'MOPAC',
             units_mapping=dict(length=ureg.angstrom, energy=ureg.eV),
             # include code name to distinguish gamess and firefly
             program_version=r'Version ([\w\.]+)',
             atom_labels_atom_positions=r'CARTESIAN COORDINATES\s*(1[\s\S]+?)\n *\n',
             energy_total=rf'TOTAL ENERGY *\= *({re_f})',
-            atom_forces=(r'TYPE +VALUE +GRADIENT\s*([\s\S]+?)\n *\n', get_forces))
+            atom_forces=(r'TYPE +VALUE +GRADIENT\s*([\s\S]+?)\n *\n', get_forces)
+        )
+
+    def parse(self, mainfile, archive, logger=None):
+        self._parser.parse(mainfile, archive, logger=None)

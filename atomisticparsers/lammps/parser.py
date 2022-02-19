@@ -27,7 +27,6 @@ except Exception:
     MDAnalysis = False
 
 from nomad.units import ureg
-from nomad.parsing.parser import FairdiParser
 
 from nomad.parsing.file_parser import Quantity, TextParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
@@ -624,12 +623,8 @@ class LogParser(TextParser):
         return styles_coeffs
 
 
-class LammpsParser(FairdiParser):
+class LammpsParser:
     def __init__(self):
-        super().__init__(
-            name='parsers/lammps', code_name='LAMMPS', code_homepage='https://lammps.sandia.gov/',
-            domain='dft', mainfile_contents_re=r'^LAMMPS')
-
         self.log_parser = LogParser()
         self._traj_parser = TrajParser()
         self._xyztraj_parser = XYZTrajParser()

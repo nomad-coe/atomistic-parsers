@@ -23,7 +23,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import BasicParser
 
 
-class GromosParser(BasicParser):
+class GromosParser:
     def __init__(self):
         re_f = r'\-*\d+\.\d+E*e*\-*\+*\d*'
 
@@ -35,10 +35,8 @@ class GromosParser(BasicParser):
                 labels, positions = [], []
             return dict(atom_labels=labels, atom_positions=positions)
 
-        super().__init__(
-            specifications=dict(
-                name='parsers/gromos', code_name='Gromos', domain='dft',
-                mainfile_contents_re=r'Bugreports to http://www.gromos.net'),
+        self._parser = BasicParser(
+            'Gromos',
             units_mapping=dict(length=ureg.nm, energy=ureg.kJ / 6.02214076e+23),
             # include code name to distinguish gamess and firefly
             program_version=r'version *\: *([\d\.]+)',
@@ -48,4 +46,8 @@ class GromosParser(BasicParser):
                 get_positions),
             energy_total=rf'E\_Total +\:\ *({re_f})',
             pressure=rf'pressure\: +({re_f})',
-            time_step=r'TIMESTEP\s+(\d+)')
+            time_step=r'TIMESTEP\s+(\d+)'
+        )
+
+    def parse(self, mainfile, archive, logger=None):
+        self._parser.parse(mainfile, archive, logger=None)

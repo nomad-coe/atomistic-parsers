@@ -24,7 +24,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import BasicParser
 
 
-class DLPolyParser:
+class DLPolyParser(BasicParser):
     def __init__(self):
         re_f = r'\-*\d+\.\d+E*\-*\+*\d*'
 
@@ -44,8 +44,11 @@ class DLPolyParser:
                 traj[keys[n]] = value
             return traj
 
-        self._parser = BasicParser(
-            'DL_POLY',
+        super().__init__(
+            specifications=dict(
+                name='parsers/dl-poly', code_name='DL_POLY',
+                code_homepage='https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx',
+                mainfile_contents_re=(r'\*\* DL_POLY \*\*')),
             units_mapping=dict(
                 length=ureg.angstrom, energy=10 * ureg.joule / 6.02214076e+23,
                 time=ureg.ps, mass=ureg.amu),
@@ -54,8 +57,4 @@ class DLPolyParser:
             lattice_vectors_atom_labels_atom_positions_atom_velocities_atom_forces=(
                 r'step +\d+ +\d+ +\d+ +\d+ +.+([\s\S]+?)time',
                 to_traj),
-            energy_total=rf'\-+\s+\d+ +({re_f}) +(?:{re_f}\s+)+?{re_f}\n *\n'
-        )
-
-    def parse(self, mainfile, archive, logger=None):
-        self._parser.parse(mainfile, archive, logger=None)
+            energy_total=rf'\-+\s+\d+ +({re_f}) +(?:{re_f}\s+)+?{re_f}\n *\n')

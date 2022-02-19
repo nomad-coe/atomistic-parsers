@@ -21,19 +21,20 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import BasicParser
 
 
-class GulpParser:
+class GulpParser(BasicParser):
     def __init__(self):
         re_f = r'\-*\d+\.\d+E*e*\-*\+*\d*'
 
-        self._parser = BasicParser(
-            'gulp',
+        super().__init__(
+            specifications=dict(
+                name='parsers/gulp', code_name='gulp', code_homepage='http://gulp.curtin.edu.au/gulp/',
+                mainfile_contents_re=(
+                    r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*'
+                    r'\*\*\*\*\*\*\*\*\*\*\*\*\*\s*'
+                    r'\s*\*\s*GENERAL UTILITY LATTICE PROGRAM\s*\*\s*')),
             units_mapping=dict(length=ureg.angstrom, energy=ureg.eV),
             # include code name to distinguish gamess and firefly
             program_version=r'Version *\= *([\d\.]+)',
             lattice_vectors=r'Final Cartesian lattice vectors \(Angstroms\) \:\s*([\d\.\-\s]+)',
             atom_labels_atom_positions_scaled=r'Final asymmetric unit coordinates \:\s*\-+\s*.+\s*.+\s*\-+\s*([\s\S]+?)\-{10}',
-            energy_total=rf'Final energy *= *({re_f})|Total energy *\(eV\) *\= *({re_f})'
-        )
-
-    def parse(self, mainfile, archive, logger=None):
-        self._parser.parse(mainfile, archive, logger=None)
+            energy_total=rf'Final energy *= *({re_f})|Total energy *\(eV\) *\= *({re_f})')

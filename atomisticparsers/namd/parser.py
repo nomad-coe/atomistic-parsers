@@ -24,7 +24,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import BasicParser
 
 
-class NAMDParser:
+class NAMDParser(BasicParser):
     def __init__(self):
         re_f = r'\-*\d+\.\d+E*e*\-*\+*\d*'
 
@@ -36,15 +36,14 @@ class NAMDParser:
             except Exception:
                 return dict()
 
-        self._parser = BasicParser(
-            'Namd',
+        super().__init__(
+            specifications=dict(
+                name='parsers/namd', code_name='Namd', domain='dft',
+                mainfile_contents_re=r'\s*Info:\s*NAMD\s*[0-9.]+\s*for\s*',
+                mainfile_mime_re=r'text/.*'),
             units_mapping=dict(length=ureg.angstrom, energy=ureg.kcal / 6.02214076e+23),
             auxilliary_files=r'Info\: COORDINATE PDB +(\S+\.pdb)',
             # due to auto type conversion, we need to include NAMD to make it string
             program_version=r'Info\: (NAMD [\d\.]+) for',
             atom_labels_atom_positions=(rf'(ATOM +\d+ +\w+ +\w+ +\d+ +{re_f}[\s\S]+?)END', get_positions),
-            energy_total=(rf'ENERGY\: +(\d+ +{re_f}.+)', lambda x: x.split()[10])
-        )
-
-    def parse(self, mainfile, archive, logger=None):
-        self._parser.parse(mainfile, archive, logger=None)
+            energy_total=(rf'ENERGY\: +(\d+ +{re_f}.+)', lambda x: x.split()[10]))

@@ -31,6 +31,7 @@ except Exception:
     MDAnalysis = False
 
 from nomad.units import ureg
+from nomad.parsing.parser import FairdiParser
 
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program, TimeRun
@@ -660,8 +661,11 @@ class MDAnalysisParser(FileParser):
         self._results[key] = val
 
 
-class GromacsParser:
+class GromacsParser(FairdiParser):
     def __init__(self):
+        super().__init__(
+            name='parsers/gromacs', code_name='Gromacs', code_homepage='http://www.gromacs.org/',
+            domain='dft', mainfile_contents_re=r'gmx mdrun, (VERSION|version)')
         self.log_parser = GromacsLogParser()
         self.traj_parser = MDAnalysisParser()
         self.energy_parser = GromacsEDRParser()

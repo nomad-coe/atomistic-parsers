@@ -29,6 +29,7 @@ except Exception:
     MDAnalysis = None
 from nomad.parsing.file_parser.text_parser import Quantity, TextParser, FileParser
 from nomad.units import ureg
+from nomad.parsing import FairdiParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms
@@ -254,8 +255,11 @@ class OutParser(TextParser):
         ]
 
 
-class TinkerParser:
+class TinkerParser(FairdiParser):
     def __init__(self):
+        super().__init__(
+            name='parsers/tinker', code_name='TINKER', domain='dft',
+            mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design')
         self.out_parser = OutParser()
         self.traj_parser = TrajParser()
         self.key_parser = KeyParser()

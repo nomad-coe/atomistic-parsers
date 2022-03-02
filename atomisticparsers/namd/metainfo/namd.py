@@ -20,7 +20,7 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    Reference, JSON
 )
 from nomad.datamodel.metainfo import simulation
 from nomad.datamodel.metainfo import workflow
@@ -1228,13 +1228,6 @@ class Run(simulation.run.Run):
         Program task no.
         ''')
 
-    x_namd_build_osarch = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Program Build OS/ARCH
-        ''')
-
     x_namd_program_build_date = Quantity(
         type=str,
         shape=[],
@@ -1353,6 +1346,75 @@ class Calculation(simulation.calculation.Calculation):
 
     m_def = Section(validate=False, extends_base_section=True)
 
-    x_namd_section_single_configuration_calculation = SubSection(
-        sub_section=SectionProxy('x_namd_section_single_configuration_calculation'),
-        repeats=True)
+    x_namd_temperature_average = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kelvin',
+        description='''
+        ''')
+
+    x_namd_gpressure = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        ''')
+
+    x_namd_pressure_average = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        ''')
+
+    x_namd_gpressure_average = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        ''')
+
+    x_namd_volume = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='meter ** 3',
+        description='''
+        ''')
+
+
+class Energy(simulation.calculation.Energy):
+
+    m_def = Section(validate=False, extends_base_section=True)
+
+    x_namd_total3 = SubSection(sub_section=simulation.calculation.EnergyEntry.m_def)
+
+
+class Program(simulation.run.Program):
+
+    m_def = Section(validate=False, extends_base_section=True)
+
+    x_namd_build_osarch = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Program Build OS/ARCH
+        ''')
+
+
+class Method(simulation.method.Method):
+
+    m_def = Section(validate=False, extends_base_section=True)
+
+    x_namd_input_parameters = Quantity(
+        type=JSON,
+        shape=[],
+        description='''
+        Input parameters read from the configuration file.
+        ''')
+
+    x_namd_simulation_parameters = Quantity(
+        type=JSON,
+        shape=[],
+        description='''
+        Simulation parameters used by the program.
+        ''')

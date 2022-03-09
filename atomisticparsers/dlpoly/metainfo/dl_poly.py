@@ -20,7 +20,7 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    Reference, JSON
 )
 from nomad.datamodel.metainfo import simulation
 from nomad.datamodel.metainfo import workflow
@@ -180,4 +180,33 @@ class Method(simulation.method.Method):
         shape=[],
         description='''
         Thermostat coupling temperature
+        ''')
+
+    x_dl_poly_control_parameters = Quantity(
+        type=JSON,
+        shape=[],
+        description='''
+        ''')
+
+
+class AtomParameters(simulation.method.AtomParameters):
+
+    m_def = Section(validate=False, extends_base_section=True)
+
+    x_dl_poly_nrept = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_ifrz = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_igrp = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
         ''')

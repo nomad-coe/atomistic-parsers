@@ -1,0 +1,5 @@
+Benchmark 3
+
+Simulation of the enzyme transferrin in 8102 water molecules. The
+simulation makes use of neutral group electrostatics and rigid bond
+constraints.  The system is 27539 atoms and runs on 8-512 processors.

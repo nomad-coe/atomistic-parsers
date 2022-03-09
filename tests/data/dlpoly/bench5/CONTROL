@@ -1,0 +1,26 @@
+DL_POLY BENCHMARK 5: SODIUM/POTASSIUM DISILICATE GLASS WITH 3 BODY FORCES
+
+temperature            1000.0
+pressure                  0.0
+steps                     300
+
+equilibration               0
+timestep                0.001
+multiple                    4
+print                      20
+rdf                        10
+print rdf
+stats                      10
+
+cutoff                  12.03
+primary                  10.0
+rvdw                      7.6
+delr                      1.0
+ewald precision         1.e-6
+ensemble nvt hoover       1.0
+
+trajectory        20000 100 0
+
+job time                 7200
+close time                200
+finish

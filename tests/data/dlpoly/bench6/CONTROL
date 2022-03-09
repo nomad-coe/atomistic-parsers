@@ -1,0 +1,35 @@
+DL_POLY BENCHMARK 6: VALINOMYCIN + K + 1223 SPC WATER MOLECULES                                                
+temperature             310.0
+pressure                0.0
+steps                   5000
+equilibration           2000
+timestep                0.001
+
+ensemble  nvt hoover    0.5
+
+cutoff                  16.0
+primary                 12.0
+rvdw                    10.0
+delr                    1.20
+                                   
+print                   10
+rdf                     1
+print rdf
+restart scale
+
+ewald precision         5.d-6
+shake tolerance        1.e-8
+
+collect 
+stats                  100
+stack                  100 
+
+job time                6000
+close time              100 
+
+finish
+
+
+
+
+

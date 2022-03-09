@@ -1,0 +1,23 @@
+DL_POLY BENCHMARK 1  : 19652 AL ATOMS
+
+temperature       300.0
+steps              1000
+timestep          0.005
+
+cutoff             8.60
+delr               1.00
+
+ensemble nvt evans
+no electrostatics 
+
+print               100
+stats               100
+
+job time           3600
+close time          100
+
+finish
+
+
+
+

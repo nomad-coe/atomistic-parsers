@@ -1,0 +1,7 @@
+Benchmark 7 
+
+Simulation of gramicidin A molecule in 4012 water molecules using
+neutral group electrostatics. The system is comprised of 12390 atoms
+and runs on 8-512 processors. This example was provided by Lewis
+Whitehead at the University of Southampton.
+

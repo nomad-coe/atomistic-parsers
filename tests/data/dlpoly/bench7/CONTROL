@@ -1,0 +1,24 @@
+DL_POLY BENCHMARK 7: GRAMICIDIN A JULY 1996 WITH TIP3P WATER SOLVATING
+
+temperature              300.0
+steps                     5000
+equilibration             2000
+timestep                 0.001
+
+cut                       12.0
+rvdw                       8.0
+delr                       1.0
+
+cap                     1000.0
+shake                  0.000001
+scale                     5
+coulombic
+
+print                     10
+stats                     10
+collect
+
+job time                 7200
+close time                100
+
+finish

@@ -1,0 +1,5 @@
+Benchmark 8 
+
+Simulation of an isolated magnesium oxide microcrystal comprised of
+5416 atoms originally in the shape of a truncated octahedron. Uses
+full coulombic potential. Runs on 16-512 processors.

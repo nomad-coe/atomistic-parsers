@@ -1,0 +1,30 @@
+DL_POLY BENCHMARK 5: SODIUM/POTASSIUM DISILICATE GLASS WITH 3 BODY FORCES
+UNITS
+MOLECULES 2
+Potassium Sodium 
+NUMMOLS 1
+ATOMS 1920
+K+           39.1000       1.000  960
+Na+          22.9898       1.000  960
+FINISH
+Silicate Backbone
+NUMMOLS 1
+ATOMS 6720
+Si4+         28.0860       4.000 1920
+O2-          15.9994      -2.000 4800        
+FINISH
+VDWTABLE 10
+K+      K+      buck        0.00      1.0000
+K+      Na+     buck        0.00      1.0000
+Na+     Na+     buck        0.00      1.0000
+Si4+    K+      buck        0.00      1.0000
+Si4+    Na+     buck        0.00      1.0000
+Si4+    Si4+    buck        0.00      1.0000
+O2-     K+      buck  8966593.92 .3619966159
+O2-     Na+     buck  5896217.19      0.3535
+O2-     Si4+    tab
+O2-     O2-     tab
+TBP 2
+O2-     Si4+    O2-     bvs2   4824.2644 109.4666667         1.2         2.6        3.45
+Si4+    O2-     Si4+    bvs2   2412.1322 144.0000000         4.0         2.6        3.45
+CLOSE

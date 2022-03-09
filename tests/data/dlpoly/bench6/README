@@ -1,0 +1,7 @@
+Benchmark 6 
+
+Simulation of a potassium-valinomycin complex in 1223 water molecules
+using an adapted AMBER forcefield and truncated octahedral periodic
+boundary conditions. The system size is 3838 atoms and runs on 16-512
+processors.
+

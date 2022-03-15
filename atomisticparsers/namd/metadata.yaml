@@ -2,8 +2,8 @@ codeLabel: NAMD
 codeLabelStyle: All in capitals
 codeName: namd
 codeUrl: http://www.ks.uiuc.edu/Research/namd/
-parserDirName: dependencies/parsers/namd/
-parserGitUrl: https://github.com/nomad-coe/nomad-parser-namd.git
+parserDirName: dependencies/parsers/atomistic/atomisticparsers/namd/
+parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
 parserSpecific: ''
 preamble: ''
 tableOfFiles: ''

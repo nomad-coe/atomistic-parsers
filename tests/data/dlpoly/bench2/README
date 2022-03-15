@@ -1,0 +1,9 @@
+Benchmark 2 
+
+Simulation of a 15-peptide in 1247 water molecules. This was designed
+as an AMBER comparison. The system consists of 3993 atoms in all and
+runs on 8-512 processors. It uses neutral group electrostatics and
+rigid bond constraints and is one of the smallest benchmarks in the
+set.
+
+

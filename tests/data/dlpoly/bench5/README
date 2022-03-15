@@ -1,0 +1,7 @@
+Benchmark 5
+
+Simulation of a sodium-potassium disilicate glass. Used Ewald sum
+electrostatics, a multiple timestep algorithm and a three-body valence
+angle potentials to support the silicate structure. It also using
+tabluated two-body potentials stored in the file TABLE. The system is
+comprised of 8640 atoms and runs on 16-512 processors.

@@ -1,0 +1,27 @@
+DL_POLY BENCHMARK 3: TRANSFERRIN MOLECULE SIMULATION
+
+temperature   300.0
+presure       0.001
+stats            10
+print            10
+timestep      .0001
+steps          2500
+equilibration  1000
+
+cap        100000.0
+collect
+
+scale             5
+cutoff         8.00
+delr           1.00
+
+shifted coulombic potential
+
+ensemble nve
+shake         5.d-4
+
+job time       4000
+close time      100
+
+finish
+

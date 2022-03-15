@@ -1,0 +1,6 @@
+DL_POLY Benchmark 1
+
+Simulation of metallic aluminium at 300K using a Sutton-Chen density
+dependent potential. The system is comprised of 19652 identical atoms.
+The simulation runs on 16 to 512 processors only. 
+

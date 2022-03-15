@@ -1,0 +1,12 @@
+DL_POLY BENCHMARK 1: 19652 AL ATOMS, CUBIC BOUNDARIES
+units kj
+molecular types 1
+Aluminium
+nummols 19652
+atoms 1
+Al           26.9815
+finish
+metal 1
+Al      Al      stch   0.033147    4.05       7.0        6.0         16.399
+close
+

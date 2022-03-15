@@ -22,14 +22,8 @@ import os
 import numpy as np
 import fnmatch
 
-try:
-    import MDAnalysis
-except Exception:
-    logging.warn('Error importing required MDAnalysis.')
-    MDAnalysis = None
-from nomad.parsing.file_parser.text_parser import Quantity, TextParser, FileParser
+from nomad.parsing.file_parser.text_parser import Quantity, TextParser
 from nomad.units import ureg
-from nomad.parsing import FairdiParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms
@@ -43,28 +37,12 @@ from nomad.datamodel.metainfo.simulation.calculation import (
 from nomad.datamodel.metainfo.workflow import (
     Workflow, GeometryOptimization, MolecularDynamics
 )
+from atomisticparsers.utils import MDAnalysisParser
 from .metainfo.tinker import x_tinker_section_control_parameters
 
 re_n = r'[\n\r]'
 re_f = r'[-+]?\d+\.\d*(?:[DdEe][-+]\d+)?'
 mol = (1 * ureg.mol).to('particle').magnitude
-
-
-class TrajParser(FileParser):
-    def __init__(self):
-        super().__init__()
-
-    @property
-    def universe(self):
-        if self._file_handler is None and self.mainfile is not None:
-            try:
-                self._results = dict()
-                topology_format = 'ARC' if self.mainfile.endswith('.arc') else 'TXYZ'
-                self._file_handler = MDAnalysis.Universe(self.mainfile, topology_format=topology_format)
-            except Exception:
-                self.logger.error('Error reading tinker trajectory file.')
-
-        return self._file_handler
 
 
 class KeyParser(TextParser):
@@ -255,13 +233,10 @@ class OutParser(TextParser):
         ]
 
 
-class TinkerParser(FairdiParser):
+class TinkerParser:
     def __init__(self):
-        super().__init__(
-            name='parsers/tinker', code_name='TINKER', domain='dft',
-            mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design')
         self.out_parser = OutParser()
-        self.traj_parser = TrajParser()
+        self.traj_parser = MDAnalysisParser()
         self.key_parser = KeyParser()
         self.run_parser = RunParser()
         self._run_types = {
@@ -297,6 +272,8 @@ class TinkerParser(FairdiParser):
 
     def parse_system(self, index, filename):
         self.traj_parser.mainfile = filename
+        self.traj_parser.options = dict(topology_format='ARC' if filename.endswith('.arc') else 'TXYZ')
+
         if self.traj_parser.universe is None:
             return
 
@@ -454,6 +431,7 @@ class TinkerParser(FairdiParser):
 
             if run.dynamic is not None:
                 self.traj_parser.mainfile = self._get_tinker_file('arc')
+                self.traj_parser.options = dict(topology_format='ARC')
                 average_values = {value.step: value for value in run.dynamic.get('average_values', [])}
                 for nframe, value in enumerate(run.dynamic.get('instantaneous_values', [])):
                     filename = os.path.join(self.maindir, value.get('coordinate_file', ''))

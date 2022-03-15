@@ -57,7 +57,7 @@ def test_md_verbose(parser):
     sec_systems = sec_run.system
     assert len(sec_systems) == 2
     assert np.shape(sec_systems[0].atoms.positions) == (1516, 3)
-    assert sec_systems[1].atoms.positions[800][1].magnitude == approx(2.4609454e-09)
+    assert sec_systems[1].atoms.positions[800][1].magnitude == approx(2.4740036e-09)
     assert sec_systems[0].atoms.velocities[500][0].magnitude == approx(869.4773)
     assert sec_systems[1].atoms.lattice_vectors[2][2].magnitude == approx(2.469158e-09)
     # assert len(sec_systems[0].atoms_group) == 2

@@ -31,8 +31,6 @@ except Exception:
     MDAnalysis = False
 
 from nomad.units import ureg
-from nomad.parsing.parser import FairdiParser
-
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program, TimeRun
 from nomad.datamodel.metainfo.simulation.method import (
@@ -46,6 +44,8 @@ from nomad.datamodel.metainfo.simulation.calculation import (
 )
 from nomad.datamodel.metainfo.workflow import Workflow, MolecularDynamics
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
+from atomisticparsers.utils import MDAnalysisParser
+
 
 MOL = 6.022140857e+23
 
@@ -251,40 +251,12 @@ class GromacsEDRParser(FileParser):
         return self.fileedr.shape[0]
 
 
-class MDAnalysisParser(FileParser):
+class GromacsMDAnalysisParser(MDAnalysisParser):
     def __init__(self):
         super().__init__(None)
 
-    @property
-    def trajectory_file(self):
-        return self._trajectory_file
-
-    @trajectory_file.setter
-    def trajectory_file(self, val):
-        self._file_handler = None
-        self._trajectory_file = val
-
     def get_interactions(self):
-        interactions = self.get('interactions', None)
-
-        if interactions is not None:
-            return interactions
-
-        interaction_types = ['angles', 'bonds', 'dihedrals', 'impropers']
-        interactions = []
-        for interaction_type in interaction_types:
-            try:
-                interaction = getattr(self.universe, interaction_type)
-            except Exception:
-                continue
-
-            for i in range(len(interaction)):
-                interactions.append(
-                    dict(
-                        atom_labels=list(interaction[i].type), parameters=float(interaction[i].value()),
-                        atom_indices=interaction[i].indices, type=interaction[i].btype
-                    )
-                )
+        interactions = super().get_interactions()
 
         # add force field parameters
         try:
@@ -295,24 +267,6 @@ class MDAnalysisParser(FileParser):
         self._results['interactions'] = interactions
 
         return interactions
-
-    def get_n_atoms(self, frame_index):
-        return self.get('n_atoms', [0] * frame_index)[frame_index]
-
-    def get_cell(self, frame_index):
-        return self.get('cell', [np.zeros((3, 3))] * frame_index)[frame_index]
-
-    def get_atom_labels(self, frame_index):
-        return self.get('atom_labels', None)
-
-    def get_positions(self, frame_index):
-        return self.get('positions', [None] * frame_index)[frame_index]
-
-    def get_velocities(self, frame_index):
-        return self.get('velocities', [None] * frame_index)[frame_index]
-
-    def get_forces(self, frame_index):
-        return self.get('forces', [None] * frame_index)[frame_index]
 
     def get_force_field_parameters(self):
         # read force field parameters not saved by MDAnalysis
@@ -586,88 +540,11 @@ class MDAnalysisParser(FileParser):
 
         return interactions
 
-    @property
-    def universe(self):
-        if self._file_handler is None:
-            try:
-                args = [f for f in [self.trajectory_file] if f is not None]
-                self._file_handler = MDAnalysis.Universe(self.mainfile, *args)
-            except Exception:
-                self.logger.error('Error setting up MDAnalysis.')
-        return self._file_handler
 
-    def parse(self, key):
-        if self._results is None:
-            self._results = dict()
-
-        if self.universe is None:
-            return
-
-        if not MDAnalysis:
-            return
-
-        atoms = list(self.universe.atoms)
-        try:
-            trajectory = self.universe.trajectory
-        except Exception:
-            trajectory = []
-
-        unit = None
-        val = None
-        if key == 'timestep':
-            val = trajectory.dt
-            unit = ureg.ps
-        elif key == 'atom_labels':
-            val = [
-                MDAnalysis.topology.guessers.guess_atom_element(atom.name)
-                for atom in atoms]
-        elif key == 'atom_names':
-            val = [atom.name for atom in atoms]
-        elif key == 'charges':
-            val = [atom.charge for atom in atoms] * ureg.elementary_charge
-        elif key == 'masses':
-            val = [atom.mass for atom in atoms] * ureg.amu
-        elif key == 'resids':
-            val = [atom.resid for atom in atoms]
-        elif key == 'resnames':
-            val = [atom.resname for atom in atoms]
-        elif key == 'molnums':
-            val = [atom.molnum for atom in atoms]
-        elif key == 'moltypes':
-            val = [atom.moltype for atom in atoms]
-        elif key == 'n_atoms':
-            val = [traj.n_atoms for traj in trajectory] if trajectory else [len(atoms)]
-        elif key == 'n_frames':
-            val = len(trajectory)
-        elif key == 'positions':
-            val = [traj.positions if traj.has_positions else None for traj in trajectory]
-            unit = ureg.angstrom
-        elif key == 'velocities':
-            val = [traj.velocities if traj.has_velocities else None for traj in trajectory]
-            unit = ureg.angstrom / ureg.ps
-        elif key == 'forces':
-            val = [traj.forces / MOL if traj.has_forces else None for traj in trajectory]
-            unit = ureg.kJ / ureg.angstrom
-        elif key == 'cell':
-            val = [traj.triclinic_dimensions for traj in trajectory]
-            unit = ureg.angstrom
-
-        if unit is not None:
-            if isinstance(val, list):
-                val = [v * unit if v is not None else v for v in val]
-            else:
-                val = val * unit
-
-        self._results[key] = val
-
-
-class GromacsParser(FairdiParser):
+class GromacsParser:
     def __init__(self):
-        super().__init__(
-            name='parsers/gromacs', code_name='Gromacs', code_homepage='http://www.gromacs.org/',
-            domain='dft', mainfile_contents_re=r'gmx mdrun, (VERSION|version)')
         self.log_parser = GromacsLogParser()
-        self.traj_parser = MDAnalysisParser()
+        self.traj_parser = GromacsMDAnalysisParser()
         self.energy_parser = GromacsEDRParser()
         self._metainfo_mapping = {
             'LJ (SR)': 'Leonard-Jones', 'Coulomb (SR)': 'coulomb',
@@ -679,7 +556,7 @@ class GromacsParser(FairdiParser):
     @property
     def frame_rate(self):
         if self._frame_rate is None:
-            n_atoms = self.traj_parser.get('n_atoms', [0])[0]
+            n_atoms = self.traj_parser.get('n_atoms', 0)
             n_frames = self.traj_parser.get('n_frames', 0)
             if n_atoms == 0 or n_frames == 0:
                 self._frame_rate = 1
@@ -724,12 +601,13 @@ class GromacsParser(FairdiParser):
     def parse_thermodynamic_data(self):
         sec_run = self.archive.run[-1]
 
-        forces = self.traj_parser.get('forces')
-        for n, forces_n in enumerate(forces):
+        # forces = self.traj_parser.get('forces')
+        n_frames = self.traj_parser.get('n_frames')
+        for n in range(n_frames):
             if (n % self.frame_rate) > 0:
                 continue
             sec_scc = sec_run.m_create(Calculation)
-            sec_scc.forces = Forces(total=ForcesEntry(value=forces_n))
+            sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(n)))
             sec_scc.system_ref = sec_run.system[n // self.frame_rate]
             sec_scc.method_ref = sec_run.method[-1]
 
@@ -747,10 +625,10 @@ class GromacsParser(FairdiParser):
                     continue
                 keys = step.energies.keys()
                 for key in keys:
-                    thermo_data.setdefault(key, [None] * len(forces))
+                    thermo_data.setdefault(key, [None] * n_frames)
                     thermo_data[key][n] = step.energies.get(key)
                 info = step.get('step_info', {})
-                thermo_data.setdefault('Time', [None] * len(forces))
+                thermo_data.setdefault('Time', [None] * n_frames)
                 thermo_data['Time'][n] = info.get('Time', None)
             n_evaluations = n + 1
 
@@ -760,7 +638,7 @@ class GromacsParser(FairdiParser):
             n_evaluations = self.energy_parser.length
 
         create_scc = False
-        if len(forces) != n_evaluations:
+        if n_frames != n_evaluations:
             self.logger.warn(
                 'Mismatch in number of calculations and number of thermodynamic '
                 'evaluations, will create new sections')
@@ -823,7 +701,7 @@ class GromacsParser(FairdiParser):
             sec_atoms = sec_system.m_create(Atoms)
             sec_atoms.n_atoms = self.traj_parser.get_n_atoms(n)
             sec_atoms.periodic = pbc
-            sec_atoms.lattice_vectors = self.traj_parser.get_cell(n)
+            sec_atoms.lattice_vectors = self.traj_parser.get_lattice_vectors(n)
             sec_atoms.labels = self.traj_parser.get_atom_labels(n)
             sec_atoms.positions = positions
 
@@ -852,22 +730,23 @@ class GromacsParser(FairdiParser):
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
         try:
-            n_atoms = self.traj_parser.get('n_atoms')[0]
+            n_atoms = self.traj_parser.get('n_atoms')
         except Exception:
             gro_file = self.get_gromacs_file('gro')
             self.traj_parser.mainfile = gro_file
-            n_atoms = self.traj_parser.get('n_atoms', [0])[0]
+            n_atoms = self.traj_parser.get('n_atoms', 0)
 
+        atom_info = self.traj_parser.get('atom_info', {})
         for n in range(n_atoms):
             sec_atom = sec_method.m_create(AtomParameters)
-            sec_atom.charge = self.traj_parser.get('charges', [None] * (n + 1))[n]
-            sec_atom.mass = self.traj_parser.get('masses', [None] * (n + 1))[n]
-            sec_atom.label = self.traj_parser.get('atom_labels', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_name = self.traj_parser.get('atom_names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resid = self.traj_parser.get('resids', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resname = self.traj_parser.get('resnames', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_molnum = self.traj_parser.get('molnums', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_moltype = self.traj_parser.get('moltypes', [None] * (n + 1))[n]
+            sec_atom.charge = atom_info.get('charges', [None] * (n + 1))[n]
+            sec_atom.mass = atom_info.get('masses', [None] * (n + 1))[n]
+            sec_atom.label = atom_info.get('names', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_name = atom_info.get('atom_names', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_resid = atom_info.get('resids', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_resname = atom_info.get('resnames', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_molnum = atom_info.get('molnums', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_moltype = atom_info.get('moltypes', [None] * (n + 1))[n]
 
         if n_atoms == 0:
             self.logger.error('Error parsing interactions.')
@@ -924,7 +803,7 @@ class GromacsParser(FairdiParser):
         elif topology_file.endswith('gro'):
             sec_input_output_files.x_gromacs_inout_file_confoutgro = topology_file
 
-        trajectory_file = os.path.basename(self.traj_parser.trajectory_file)
+        trajectory_file = os.path.basename(self.traj_parser.auxilliary_files[0])
         sec_input_output_files.x_gromacs_inout_file_trajtrr = trajectory_file
 
         edr_file = os.path.basename(self.energy_parser.mainfile)
@@ -983,7 +862,7 @@ class GromacsParser(FairdiParser):
         # I have no idea if output trajectory file can be specified in input
         trajectory_file = self.get_gromacs_file('trr')
         self.traj_parser.mainfile = topology_file
-        self.traj_parser.trajectory_file = trajectory_file
+        self.traj_parser.auxilliary_files = [trajectory_file]
 
         self.parse_method()
 

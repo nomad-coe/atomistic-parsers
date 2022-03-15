@@ -1,0 +1,31 @@
+DL_POLY BENCHMARK2: AMBER 15-PEPTIDE IN 1247 WATERS
+
+temperature             10
+equilibration         2000
+steps                 5000
+timestep             0.001
+
+cutoff                 8.0
+rvdw                   8.0
+delr                   1.0
+
+reaction field
+eps                     78
+ensemble nvt berendsen 1.0
+cap                10000.0
+
+rdf                     10
+print rdf
+print                  100
+
+stats                  100
+scale                    5
+
+job time              3600
+close time             100
+
+finish
+
+
+
+

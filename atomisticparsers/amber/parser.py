@@ -21,13 +21,11 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import BasicParser
 
 
-class AmberParser(BasicParser):
+class AmberParser:
     def __init__(self):
         re_f = r'\-*\d+\.\d+E*\-*\+*\d*'
-        super().__init__(
-            specifications=dict(
-                name='parsers/amber', code_name='Amber', domain='dft',
-                mainfile_contents_re=r'\s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+'),
+        self._parser = BasicParser(
+            'Amber',
             units_mapping=dict(length=ureg.angstrom, energy=ureg.eV),
             program_version=r'Amber\s*(\d+)\s*(\w+)\s*(\d+)',
             # will only read initial coordinates
@@ -36,4 +34,8 @@ class AmberParser(BasicParser):
                 rf'\d+\s+({re_f} +{re_f} +{re_f} +{re_f} +{re_f} +{re_f}[\s\S]+)',
                 lambda x: x.strip().split()),
             atom_atom_number=r'\%FLAG ATOMIC_NUMBER\s*\%FORMAT\(.+\)\s*([\d\s]+)',
-            energy_total=rf'NSTEP\s*ENERGY.+\s*\d+\s*({re_f})')
+            energy_total=rf'NSTEP\s*ENERGY.+\s*\d+\s*({re_f})'
+        )
+
+    def parse(self, mainfile, archive, logger=None):
+        self._parser.parse(mainfile, archive, logger=None)

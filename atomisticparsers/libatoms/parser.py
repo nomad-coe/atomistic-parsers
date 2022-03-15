@@ -21,16 +21,18 @@ from nomad.parsing.file_parser import BasicParser
 from nomad.units import ureg
 
 
-class LibAtomsParser(BasicParser):
+class LibAtomsParser:
     def __init__(self):
         re_f = r'\-*\d+\.\d+E*e*\-*\+*\d*'
 
-        super().__init__(
-            specifications=dict(
-                name='parsers/lib-atoms', code_name='libAtoms', code_homepage='https://libatoms.github.io/',
-                mainfile_contents_re=(r'\s*<GAP_params\s')),
+        self._parser = BasicParser(
+            'libAtoms',
             units_mapping=dict(length=ureg.angstrom, energy=ureg.eV),
             # necessary to include version due to auto type conversion
             program_version=r'(svn\_version\=\"\d+\")',
             atom_labels_atom_positions_atom_forces=r'(\<\!\[CDATA\[[A-Z][a-z]* +[\s\S]+?)(?:\<\!\[CDATA\[\d+\]\]\>|\Z)',
-            energy_total=rf'slice\_sample energy\=({re_f})')
+            energy_total=rf'slice\_sample energy\=({re_f})'
+        )
+
+    def parse(self, mainfile, archive, logger=None):
+        self._parser.parse(mainfile, archive, logger=None)

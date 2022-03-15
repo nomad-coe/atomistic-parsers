@@ -1,0 +1,14 @@
+DL_POLY BENCHMARK 8: MAGNESIUM OXIDE MICROCRYSTAL                               
+UNITS ev
+MOLECULES 1
+MgO crystallite
+NUMMOLS 2708
+ATOMS 2
+Mg+          24.0000       2.000
+O2-          16.0000      -2.000
+FINISH
+VDW 3
+Mg+     Mg+     lj            0.0         0.0
+Mg+     O2-     buck        821.6      0.3242         0.0
+O2-     O2-     buck      22764.4      0.1490       20.37
+CLOSE

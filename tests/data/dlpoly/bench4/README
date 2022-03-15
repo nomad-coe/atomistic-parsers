@@ -1,0 +1,5 @@
+Benchmark 4:
+
+Simulation of a sodium chloride melt with Ewald sum electrostatics and
+a multiple timestep algorithm to enhance performance. The system is
+comprised of 27000 atoms and runs on 8-512 processors.

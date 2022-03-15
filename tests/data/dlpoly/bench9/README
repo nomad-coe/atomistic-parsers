@@ -1,0 +1,6 @@
+Benchmark 9 
+
+Simulation of a model membrane with 196 41-unit membrane chains, 8
+valinomycin molecules and 3144 water molecules using an adapted AMBER
+potential, multiple timestep algorithm and Ewald sum electrostatics. 
+The system is comprised of 18866 atoms and runs on 8-512 processors.

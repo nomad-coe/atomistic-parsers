@@ -1,0 +1,32 @@
+DL_POLY BENCHMARK 8: MAGNESIUM OXIDE MICROCRYSTAL                               
+
+temperature            2000.0
+steps                    5000
+equilibration            2000
+timestep                0.001
+
+ensemble  nvt hoover    0.5
+
+cutoff                  50.0
+rvdw                    10.0
+delr                    10.0
+
+coulombic potential
+scale                   10
+
+print                   10
+stats                   10
+collect
+
+job time                6000 seconds
+close time              100 seconds
+
+
+finish
+
+
+
+
+
+
+

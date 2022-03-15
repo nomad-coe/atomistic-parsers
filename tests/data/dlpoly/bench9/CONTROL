@@ -1,0 +1,33 @@
+DL_POLY BENCHMARK 9: MODEL MEMBRANE/VALINOMYCIN SYSTEM
+
+temperature    310
+pressure       0.001
+steps          5000
+equilibration  2000
+timestep       0.001
+multiple           4
+
+restart scale
+cap            100000
+collect
+print          10
+stats          10
+scale          10
+
+ensemble nst berendsen 0.50 10.0
+
+cutoff          14.0
+primary         10.7
+rvdw            10.0
+delr            0.90
+ewald precision 5d-6
+
+rdf             5
+zden        
+print rdf
+
+job time      7200
+close time    200
+finish
+
+

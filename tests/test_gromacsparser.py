@@ -60,13 +60,36 @@ def test_md_verbose(parser):
     assert sec_systems[1].atoms.positions[800][1].magnitude == approx(2.4740036e-09)
     assert sec_systems[0].atoms.velocities[500][0].magnitude == approx(869.4773)
     assert sec_systems[1].atoms.lattice_vectors[2][2].magnitude == approx(2.469158e-09)
-    # assert len(sec_systems[0].atoms_group) == 2
-    # assert len(sec_systems[0].atoms_group[1].atoms_group) == 500
-    # assert sec_systems[0].atoms_group[0].label == 'seg_0_Protein'
-    # assert sec_systems[0].atoms_group[0].atom_indices[13] == 13
-    # assert sec_systems[0].atoms_group[1].atoms_group[400].index == 401
-    # assert sec_systems[0].atoms_group[1].atoms_group[250].type == 'SOL'
-    # assert sec_systems[0].atoms_group[1].atoms_group[330].atom_indices[2] == 1008
+    assert len(sec_systems[0].atoms_group) == 2
+    assert len(sec_systems[0].atoms_group[1].atoms_group) == 500
+    assert sec_systems[0].atoms_group[0].label == 'seg_0_Protein'
+    assert sec_systems[0].atoms_group[0].type == 'molecule_group'
+    assert sec_systems[0].atoms_group[0].index == 0
+    assert sec_systems[0].atoms_group[0].composition_formula == 'Protein(1)'
+    assert sec_systems[0].atoms_group[0].n_atoms == 16
+    assert sec_systems[0].atoms_group[0].atom_indices[5] == 5
+    assert sec_systems[0].atoms_group[0].is_molecule == False
+    assert sec_systems[0].atoms_group[0].atoms_group[0].label == 'Protein'
+    assert sec_systems[0].atoms_group[0].atoms_group[0].type == 'molecule'
+    assert sec_systems[0].atoms_group[0].atoms_group[0].index == 0
+    assert sec_systems[0].atoms_group[0].atoms_group[0].composition_formula == 'C(9)H(6)N(1)'
+    assert sec_systems[0].atoms_group[0].atoms_group[0].n_atoms == 16
+    assert sec_systems[0].atoms_group[0].atoms_group[0].atom_indices[8] == 8
+    assert sec_systems[0].atoms_group[0].atoms_group[0].is_molecule == True
+    assert sec_systems[0].atoms_group[1].label == 'seg_1_SOL'
+    assert sec_systems[0].atoms_group[1].type == 'molecule_group'
+    assert sec_systems[0].atoms_group[1].index == 1
+    assert sec_systems[0].atoms_group[1].composition_formula == 'SOL(500)'
+    assert sec_systems[0].atoms_group[1].n_atoms == 1500
+    assert sec_systems[0].atoms_group[1].atom_indices[132] == 148
+    assert sec_systems[0].atoms_group[1].is_molecule == False
+    assert sec_systems[0].atoms_group[1].atoms_group[65].label == 'SOL'
+    assert sec_systems[0].atoms_group[1].atoms_group[403].type == 'molecule'
+    assert sec_systems[0].atoms_group[1].atoms_group[271].index == 271
+    assert sec_systems[0].atoms_group[1].atoms_group[83].composition_formula == 'H(2)O(1)'
+    assert sec_systems[0].atoms_group[1].atoms_group[312].n_atoms == 3
+    assert sec_systems[0].atoms_group[1].atoms_group[154].atom_indices[1] == 479
+    assert sec_systems[0].atoms_group[1].atoms_group[138].is_molecule == True
 
     sec_methods = sec_run.method
     assert len(sec_methods) == 1

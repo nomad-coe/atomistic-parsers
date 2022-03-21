@@ -50,6 +50,8 @@ thermo_modify   flush yes
 dump          2 all custom 10 pos_vel.xyz id type xu yu zu fx fy fz vx vy vz #dumping positions 
 dump_modify   2 sort 2             #sorting by particle type(typeA/B in my case); use sort 1 if want to sort by particle id
 
+write_data      1_xyz_files.data
+
 #dump           3 all custom 10 vel.xyz id type vx vy vz #dumping velocities
 #dump_modify    3 sort 2
 

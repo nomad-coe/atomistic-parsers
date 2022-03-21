@@ -490,9 +490,8 @@ class LogParser(TextParser):
             data_files = os.listdir(self.maindir)
             data_files = [f for f in data_files if f.endswith('data') or f.startswith('data')]
             if len(data_files) > 1:
-                prefix = os.path.basename(self.mainfile).rsplit('.', 1)[0]
+                prefix = os.path.basename(self.mainfile).rsplit('.', 1)[1]  # JFR- @Alvin Please check this - changed from [0] to [1] for case that filename is leading with log
                 data_files = [f for f in data_files if prefix in f]
-
         else:
             data_files = read_data
 
@@ -803,18 +802,20 @@ class LammpsParser:
         sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
         sec_RDFs = sec_molecular_dynamics.m_create(EnsembleProperties)
         RDF_results = self.traj_parsers._parsers[0]._calc_molecular_RDF()
-        sec_RDFs.label = "molecular radial distribution functions"
-        sec_RDFs.types = RDF_results['types']
-        sec_RDFs.n_smooth = RDF_results['n_smooth']
-        sec_RDFs.variables_name = RDF_results['variables_name']
-        sec_RDFs.bins = RDF_results['bins']
-        sec_RDFs.values = RDF_results['values']
+        if RDF_results is not None:
+            sec_RDFs.label = "molecular radial distribution functions"
+            sec_RDFs.types = RDF_results['types']
+            sec_RDFs.n_smooth = RDF_results['n_smooth']
+            sec_RDFs.variables_name = RDF_results['variables_name']
+            sec_RDFs.bins = RDF_results['bins']
+            sec_RDFs.values = RDF_results['values']
 
     def _add_residues(self, sec_molecule, atomsgroup_info, mol_resids):
         for i_res, res_id in enumerate(mol_resids):
             sec_residue = sec_molecule.m_create(AtomsGroup)
             sec_residue.index = i_res
-            sec_residue.atom_indices = np.where(atomsgroup_info['resids'] == res_id)[0]
+            atom_indices = np.where(atomsgroup_info['resids'] == res_id)[0]
+            sec_residue.atom_indices = np.intersect1d(atom_indices, sec_molecule.atom_indices)
             sec_residue.n_atoms = len(sec_residue.atom_indices)
             res_names = atomsgroup_info['resnames'][sec_residue.atom_indices]
             sec_residue.label = str(res_names[0])
@@ -950,7 +951,12 @@ class LammpsParser:
             #     traj_parser = XYZTrajParser()
             #     traj_parser.mainfile = traj_file
             elif file_type == 'custom':
-                traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP')
+                custom_options = self.log_parser.get('dump')[n][5:]
+                custom_options = [option.replace('xu', 'x') for option in custom_options]
+                custom_options = [option.replace('yu', 'y') for option in custom_options]
+                custom_options = [option.replace('zu', 'z') for option in custom_options]
+                custom_options = ' '.join(custom_options)
+                traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP', atom_style=custom_options)
                 if data_files:
                     traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]

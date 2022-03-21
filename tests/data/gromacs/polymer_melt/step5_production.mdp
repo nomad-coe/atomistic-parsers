@@ -1,0 +1,33 @@
+integrator              = md
+dt                      = 0.002
+nsteps                  = 500000
+nstxtcout               = 50000
+nstvout                 = 50000
+nstfout                 = 50000
+nstcalcenergy           = 100
+nstenergy               = 1000
+nstlog                  = 1000
+;
+cutoff-scheme           = Verlet
+nstlist                 = 20
+vdwtype                 = Cut-off
+vdw-modifier            = Force-switch
+rvdw_switch             = 1.0
+rvdw                    = 1.2
+rlist                   = 1.2
+rcoulomb                = 1.2
+coulombtype             = PME
+;
+tcoupl                  = Nose-Hoover
+tc_grps                 = SYSTEM
+tau_t                   = 1.0
+ref_t                   = 285
+;
+constraints             = h-bonds
+constraint_algorithm    = LINCS
+continuation            = yes
+;
+nstcomm                 = 100
+comm_mode               = linear
+comm_grps               = SYSTEM
+;

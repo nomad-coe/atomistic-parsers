@@ -52,6 +52,7 @@ dump_modify   2 sort 2
 dump           3 all custom 10 vel.xyz id type vx vy vz #dumping velocities
 dump_modify    3 sort 2
 
+write_data      2_xyz_files.data
 
 restart    1000 restart1.dat restart_8.00.dat      #binary file used for next simulation
 timestep         0.001                    #timestep

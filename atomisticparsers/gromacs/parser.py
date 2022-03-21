@@ -756,18 +756,20 @@ class GromacsParser:
         sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
         sec_RDFs = sec_molecular_dynamics.m_create(EnsembleProperties)
         RDF_results = self.traj_parser._calc_molecular_RDF()
-        sec_RDFs.label = "molecular radial distribution functions"
-        sec_RDFs.types = RDF_results['types']
-        sec_RDFs.n_smooth = RDF_results['n_smooth']
-        sec_RDFs.variables_name = RDF_results['variables_name']
-        sec_RDFs.bins = RDF_results['bins']
-        sec_RDFs.values = RDF_results['values']
+        if RDF_results is not None:
+            sec_RDFs.label = "molecular radial distribution functions"
+            sec_RDFs.types = RDF_results['types']
+            sec_RDFs.n_smooth = RDF_results['n_smooth']
+            sec_RDFs.variables_name = RDF_results['variables_name']
+            sec_RDFs.bins = RDF_results['bins']
+            sec_RDFs.values = RDF_results['values']
 
     def _add_residues(self, sec_molecule, atomsgroup_info, mol_resids):
         for i_res, res_id in enumerate(mol_resids):
             sec_residue = sec_molecule.m_create(AtomsGroup)
             sec_residue.index = i_res
-            sec_residue.atom_indices = np.where(atomsgroup_info['resids'] == res_id)[0]
+            atom_indices = np.where(atomsgroup_info['resids'] == res_id)[0]
+            sec_residue.atom_indices = np.intersect1d(atom_indices, sec_molecule.atom_indices)
             sec_residue.n_atoms = len(sec_residue.atom_indices)
             res_names = atomsgroup_info['resnames'][sec_residue.atom_indices]
             sec_residue.label = res_names[0]

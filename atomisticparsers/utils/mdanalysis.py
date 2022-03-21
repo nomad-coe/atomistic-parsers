@@ -218,6 +218,9 @@ class MDAnalysisParser(FileParser):
             return ts
 
     def _calc_molecular_RDF(self):
+        if self.universe.trajectory[0].dimensions is None:
+            return
+
         moltypes = np.unique(self.atomsgroup_info['moltypes'])
         BeadGroups = {}
         for moltype in moltypes:

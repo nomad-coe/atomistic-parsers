@@ -123,13 +123,13 @@ def test_multiple_dump(parser):
 
 def test_md_atomsgroup(parser):
     archive = EntryArchive()
-    parser.parse('tests/data/lammps/polymer_melt/step4.0_minimization.log', archive, None)  # JFR - problem reading data file only with pytest!
+    parser.parse('tests/data/lammps/polymer_melt/log.step4.0_minimization', archive, None)  # JFR - problem reading data file only with pytest!
 
     sec_run = archive.run[0]
     sec_systems = sec_run.system
 
     assert len(sec_systems[0].atoms_group) == 1
-    assert len(sec_systems[0].atoms_group[1].atoms_group) == 100
+    assert len(sec_systems[0].atoms_group[0].atoms_group) == 100
 
     assert sec_systems[0].atoms_group[0].label == 'seg_0_0'
     assert sec_systems[0].atoms_group[0].type == 'molecule_group'

@@ -144,19 +144,20 @@ class MDAnalysisParser(FileParser):
         return atoms_fragtypes
 
     def calc_molecular_rdf(self):
-        """Calculates the radial distribution functions between for each unique pair of
-            molecule types as a function of their center of mass distance.
-        """
+        '''
+        Calculates the radial distribution functions between for each unique pair of
+        molecule types as a function of their center of mass distance.
+        '''
         if self.universe.trajectory[0].dimensions is None:
             return
 
-        moltypes = np.unique(self._results['atom_info']['moltypes'])
+        moltypes = np.unique(self.get('atom_info', {}).get('moltypes', []))
         bead_groups = {}
         for moltype in moltypes:
             if hasattr(self.universe.atoms, 'moltypes'):
                 AGs_by_moltype = self.universe.select_atoms('moltype ' + moltype)
             else:  # this is easier than adding something to the universe
-                selection = ' '.join([str(i) for i in np.where(self._results['atom_info']['moltypes'] == moltype)[0]])
+                selection = ' '.join([str(i) for i in np.where(moltypes == moltype)[0]])
                 selection = f'index {selection}'
                 AGs_by_moltype = self.universe.select_atoms(selection)
             bead_groups[moltype] = BeadGroup(AGs_by_moltype, compound="fragments")

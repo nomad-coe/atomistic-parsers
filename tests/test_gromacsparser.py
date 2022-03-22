@@ -60,36 +60,6 @@ def test_md_verbose(parser):
     assert sec_systems[1].atoms.positions[800][1].magnitude == approx(2.4740036e-09)
     assert sec_systems[0].atoms.velocities[500][0].magnitude == approx(869.4773)
     assert sec_systems[1].atoms.lattice_vectors[2][2].magnitude == approx(2.469158e-09)
-    assert len(sec_systems[0].atoms_group) == 2
-    assert len(sec_systems[0].atoms_group[1].atoms_group) == 500
-    assert sec_systems[0].atoms_group[0].label == 'seg_0_Protein'
-    assert sec_systems[0].atoms_group[0].type == 'molecule_group'
-    assert sec_systems[0].atoms_group[0].index == 0
-    assert sec_systems[0].atoms_group[0].composition_formula == 'Protein(1)'
-    assert sec_systems[0].atoms_group[0].n_atoms == 16
-    assert sec_systems[0].atoms_group[0].atom_indices[5] == 5
-    assert sec_systems[0].atoms_group[0].is_molecule is False
-    assert sec_systems[0].atoms_group[0].atoms_group[0].label == 'Protein'
-    assert sec_systems[0].atoms_group[0].atoms_group[0].type == 'molecule'
-    assert sec_systems[0].atoms_group[0].atoms_group[0].index == 0
-    assert sec_systems[0].atoms_group[0].atoms_group[0].composition_formula == 'C(9)H(6)N(1)'
-    assert sec_systems[0].atoms_group[0].atoms_group[0].n_atoms == 16
-    assert sec_systems[0].atoms_group[0].atoms_group[0].atom_indices[8] == 8
-    assert sec_systems[0].atoms_group[0].atoms_group[0].is_molecule is True
-    assert sec_systems[0].atoms_group[1].label == 'seg_1_SOL'
-    assert sec_systems[0].atoms_group[1].type == 'molecule_group'
-    assert sec_systems[0].atoms_group[1].index == 1
-    assert sec_systems[0].atoms_group[1].composition_formula == 'SOL(500)'
-    assert sec_systems[0].atoms_group[1].n_atoms == 1500
-    assert sec_systems[0].atoms_group[1].atom_indices[132] == 148
-    assert sec_systems[0].atoms_group[1].is_molecule is False
-    assert sec_systems[0].atoms_group[1].atoms_group[65].label == 'SOL'
-    assert sec_systems[0].atoms_group[1].atoms_group[403].type == 'molecule'
-    assert sec_systems[0].atoms_group[1].atoms_group[271].index == 271
-    assert sec_systems[0].atoms_group[1].atoms_group[83].composition_formula == 'H(2)O(1)'
-    assert sec_systems[0].atoms_group[1].atoms_group[312].n_atoms == 3
-    assert sec_systems[0].atoms_group[1].atoms_group[154].atom_indices[1] == 479
-    assert sec_systems[0].atoms_group[1].atoms_group[138].is_molecule is True
 
     sec_methods = sec_run.method
     assert len(sec_methods) == 1
@@ -121,7 +91,7 @@ def test_md_atomsgroup(parser):
     assert sec_systems[0].atoms_group[0].composition_formula == 'S1P1(100)'
     assert sec_systems[0].atoms_group[0].n_atoms == 7200
     assert sec_systems[0].atoms_group[0].atom_indices[5] == 5
-    assert sec_systems[0].atoms_group[0].is_molecule  is False
+    assert sec_systems[0].atoms_group[0].is_molecule is False
 
     assert sec_systems[0].atoms_group[0].atoms_group[52].label == 'S1P1'
     assert sec_systems[0].atoms_group[0].atoms_group[52].type == 'molecule'
@@ -159,5 +129,3 @@ def test_RDF(parser):
     assert section_MD.ensemble_properties.variables_name[1][0] == 'distance'
     assert section_MD.ensemble_properties.bins[1][0][102] == approx(8.68381058692932)
     assert section_MD.ensemble_properties.values[1][55] == approx(1.0763463135639966)
-
-

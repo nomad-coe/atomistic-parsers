@@ -54,7 +54,7 @@ def test_nvt(parser):
     assert len(sec_system) == 201
     assert sec_system[5].atoms.lattice_vectors[1][1].magnitude == approx(2.24235e-09)
     assert False not in sec_system[0].atoms.periodic
-    assert sec_system[80].atoms.labels[91:96] == ['H', 'H', 'H', 'C', 'C']
+    assert sec_system[80].atoms.labels[91:96] == ['H', 'H', 'H', 'C', 'C']  # JFR - not reading labels correctly
 
     sec_scc = sec_run.calculation
     assert len(sec_scc) == 201
@@ -107,8 +107,8 @@ def test_unwrapped_pos(parser):
 
     assert len(archive.run[0].calculation) == 101
     sec_systems = archive.run[0].system
-    assert sec_systems[1].atoms.positions[452][2].magnitude == approx(5.99898)
-    assert sec_systems[2].atoms.velocities[457][-2].magnitude == approx(-0.928553)
+    assert sec_systems[1].atoms.positions[452][2].magnitude == approx(5.99898)  # JFR - units are incorrect?!
+    assert sec_systems[2].atoms.velocities[457][-2].magnitude == approx(-0.928553)  # JFR - velocities are not being read!!
 
 
 def test_multiple_dump(parser):
@@ -118,18 +118,18 @@ def test_multiple_dump(parser):
     sec_systems = archive.run[0].system
     assert len(sec_systems) == 101
     assert sec_systems[2].atoms.positions[468][0].magnitude == approx(3.00831)
-    assert sec_systems[-1].atoms.velocities[72][1].magnitude == approx(-4.61496)
+    assert sec_systems[-1].atoms.velocities[72][1].magnitude == approx(-4.61496)  # JFR - universe cannot be built without positions
 
 
 def test_md_atomsgroup(parser):
     archive = EntryArchive()
-    parser.parse('tests/data/lammps/polymer_melt/step4.0_minimization.log', archive, None)
+    parser.parse('tests/data/lammps/polymer_melt/log.step4.0_minimization', archive, None)
 
     sec_run = archive.run[0]
     sec_systems = sec_run.system
 
     assert len(sec_systems[0].atoms_group) == 1
-    assert len(sec_systems[0].atoms_group[1].atoms_group) == 100
+    assert len(sec_systems[0].atoms_group[0].atoms_group) == 100
 
     assert sec_systems[0].atoms_group[0].label == 'seg_0_0'
     assert sec_systems[0].atoms_group[0].type == 'molecule_group'
@@ -139,13 +139,13 @@ def test_md_atomsgroup(parser):
     assert sec_systems[0].atoms_group[0].atom_indices[5] == 5
     assert sec_systems[0].atoms_group[0].is_molecule is False
 
-    assert sec_systems[0].atoms_group[0].atoms_group[5].label == '0'
-    assert sec_systems[0].atoms_group[0].atoms_group[5].type == 'molecule'
-    assert sec_systems[0].atoms_group[0].atoms_group[5].index == 52
-    assert sec_systems[0].atoms_group[0].atoms_group[5].composition_formula == '1(1)10(1)2(1)3(1)4(1)5(1)6(1)7(1)8(1)9(1)'
-    assert sec_systems[0].atoms_group[0].atoms_group[5].n_atoms == 72
-    assert sec_systems[0].atoms_group[0].atoms_group[5].atom_indices[8] == 3752
-    assert sec_systems[0].atoms_group[0].atoms_group[5].is_molecule is True
+    assert sec_systems[0].atoms_group[0].atoms_group[52].label == '0'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].type == 'molecule'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].index == 52
+    assert sec_systems[0].atoms_group[0].atoms_group[52].composition_formula == '1(1)2(1)3(1)4(1)5(1)6(1)7(1)8(1)9(1)10(1)'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].n_atoms == 72
+    assert sec_systems[0].atoms_group[0].atoms_group[52].atom_indices[8] == 3752
+    assert sec_systems[0].atoms_group[0].atoms_group[52].is_molecule is True
 
     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].label == '8'
     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].type == 'monomer'
@@ -156,7 +156,7 @@ def test_md_atomsgroup(parser):
     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].is_molecule is False
 
 
-def test_RDF(parser):
+def test_rdf(parser):
     archive = EntryArchive()
     parser.parse('tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt', archive, None)
 

@@ -25,7 +25,6 @@ from .gromos.parser import GromosParser
 from .gulp.parser import GulpParser
 from .lammps.parser import LammpsParser
 from .libatoms.parser import LibAtomsParser
-from .mopac.parser import MopacParser
 from .namd.parser import NAMDParser
 from .openkim.parser import OpenKIMParser
 from .tinker.parser import TinkerParser

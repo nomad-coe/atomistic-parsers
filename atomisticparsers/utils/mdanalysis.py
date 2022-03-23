@@ -87,8 +87,6 @@ class MDAnalysisParser(FileParser):
             self._results['atom_info']['names'] = ['X'] * self.universe.atoms.n_atoms
         self._results['n_atoms'] = self.universe.atoms.n_atoms
         self._results['n_frames'] = len(self.universe.trajectory)
-        # self._results['atom_labels'] = [
-        #     guess_atom_element(name) for name in self._results['atom_info'].get('names', [])]
 
         # make substitutions based on available atom info
         if self._results['atom_info'].get('moltypes') is None:
@@ -121,11 +119,13 @@ class MDAnalysisParser(FileParser):
                 pass
 
     def get_fragtypes(self):
+        # TODO put description otherwise, make private or put under parse method
+        '''
+        '''
         atoms_fragtypes = np.empty(self.universe.atoms.types.shape, dtype=str)
         ctr_fragtype = 0
         atoms_fragtypes[self.universe.atoms.fragments[0].ix] = ctr_fragtype
-        frag_unique_atomtypes = []
-        frag_unique_atomtypes.append(self.universe.atoms.types[self.universe.atoms.fragments[0].ix])
+        frag_unique_atomtypes = [self.universe.atoms.types[self.universe.atoms.fragments[0].ix]]
         ctr_fragtype += 1
         for i_frag in range(1, self.universe.atoms.n_fragments):
             types_i_frag = self.universe.atoms.types[self.universe.atoms.fragments[i_frag].ix]
@@ -327,7 +327,7 @@ class BeadGroup(object):
             self.__last_frame = self.universe.trajectory.frame
         return self._cache["positions"]
 
-    @property
+    @property  # type: ignore
     @MDAnalysis.lib.util.cached("universe")
     def universe(self):
         return self._atoms.universe

@@ -971,7 +971,7 @@ class LammpsParser:
                 # try to check if MDAnalysis can construct the universe or at least parse
                 # the atoms, otherwise will fall back to TrajParser
                 if traj_parser.universe is None or 'X' in traj_parser.get('atom_info', {}).get('names', []):
-                    # print(traj_parser.get('atom_info', {}).get('names', []))
+                    # mda necessary to calculate rdf and atomsgroup
                     if n == 0:
                         self._mdanalysistraj_parser = traj_parser
                     traj_parser = TrajParser()

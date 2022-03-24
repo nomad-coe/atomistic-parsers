@@ -29,12 +29,12 @@ from nomad.datamodel.metainfo.simulation.method import (
     ForceField, Method, Interaction, Model
 )
 from nomad.datamodel.metainfo.simulation.system import (
-    System, Atoms
+    System, Atoms, AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics
 )
-from nomad.datamodel.metainfo.workflow import Workflow, MolecularDynamics
+from nomad.datamodel.metainfo.workflow import EnsembleProperties, Workflow, MolecularDynamics
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
 from atomisticparsers.utils import MDAnalysisParser
 
@@ -490,9 +490,8 @@ class LogParser(TextParser):
             data_files = os.listdir(self.maindir)
             data_files = [f for f in data_files if f.endswith('data') or f.startswith('data')]
             if len(data_files) > 1:
-                prefix = os.path.basename(self.mainfile).rsplit('.', 1)[0]
+                prefix = os.path.basename(self.mainfile).rsplit('.', 1)[1]  # JFR- @Alvin Please check this - changed from [0] to [1] for case that filename is leading with log
                 data_files = [f for f in data_files if prefix in f]
-
         else:
             data_files = read_data
 
@@ -604,7 +603,7 @@ class LammpsParser:
         self.log_parser = LogParser()
         self._traj_parser = TrajParser()
         self._xyztraj_parser = XYZTrajParser()
-        self._mdanalysistraj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPS')
+        self._mdanalysistraj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP')
         self.data_parser = DataParser()
         self.aux_log_parser = LogParser()
         self._energy_mapping = {
@@ -737,6 +736,11 @@ class LammpsParser:
                 value = value * units.get(unit, 1)
             return value
 
+        def get_composition(children_names):
+            children_count_tup = np.unique(children_names, return_counts=True)
+            formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
+            return formula
+
         for i in range(n_frames):
             if (i % self.frame_rate) > 0:
                 continue
@@ -761,6 +765,93 @@ class LammpsParser:
             if forces is not None:
                 sec_scc = sec_run.m_create(Calculation)
                 sec_scc.forces = Forces(total=ForcesEntry(value=apply_unit(forces, 'force')))
+
+        # parse atomsgroup (moltypes --> molecules --> residues)
+        atom_info = self.traj_parsers.eval('atom_info')
+        if atom_info is None:
+            atom_info = self._mdanalysistraj_parser.get('atom_info', {})
+        if atom_info is not None:
+            atoms_moltypes = np.array(atom_info.get('moltypes', []))
+            atoms_molnums = np.array(atom_info.get('molnums', []))
+            atoms_resids = np.array(atom_info.get('resids', []))
+            atoms_elements = np.array(atom_info.get('elements', []))
+            atoms_types = np.array(atom_info.get('types', []))
+            if 'X' in atoms_elements:
+                atoms_elements = np.array(sec_system.atoms.labels)
+            if 'X' in atoms_elements:
+                atoms_elements = atoms_types
+            atoms_resnames = np.array(atom_info.get('resnames', []))
+            moltypes = np.unique(atoms_moltypes)
+            for i_moltype, moltype in enumerate(moltypes):
+                # Only add atomsgroup for initial system for now
+                sec_molecule_group = sec_run.system[0].m_create(AtomsGroup)
+                sec_molecule_group.label = f'seg_{i_moltype}_{moltype}'
+                sec_molecule_group.type = 'molecule_group'
+                sec_molecule_group.index = i_moltype
+                sec_molecule_group.atom_indices = np.where(atoms_moltypes == moltype)[0]
+                sec_molecule_group.n_atoms = len(sec_molecule_group.atom_indices)
+                sec_molecule_group.is_molecule = False
+                # mol_nums is the molecule identifier for each atom
+                mol_nums = atoms_molnums[sec_molecule_group.atom_indices]
+                moltype_count = np.unique(mol_nums).shape[0]
+                sec_molecule_group.composition_formula = f'{moltype}({moltype_count})'
+
+                molecules = atoms_molnums
+                for i_molecule, molecule in enumerate(np.unique(molecules[sec_molecule_group.atom_indices])):
+                    sec_molecule = sec_molecule_group.m_create(AtomsGroup)
+                    sec_molecule.index = i_molecule
+                    sec_molecule.atom_indices = np.where(molecules == molecule)[0]
+                    sec_molecule.n_atoms = len(sec_molecule.atom_indices)
+                    # use first particle to get the moltype
+                    # not sure why but this value is being cast to int, cast back to str
+                    sec_molecule.label = str(atoms_moltypes[sec_molecule.atom_indices[0]])
+                    sec_molecule.type = 'molecule'
+                    sec_molecule.is_molecule = True
+
+                    mol_resids = np.unique(atoms_resids[sec_molecule.atom_indices])
+                    n_res = mol_resids.shape[0]
+                    if n_res == 1:
+                        elements = atoms_elements[sec_molecule.atom_indices]
+                        sec_molecule.composition_formula = get_composition(elements)
+                    else:
+                        for i_res, res_id in enumerate(mol_resids):
+                            sec_residue = sec_molecule.m_create(AtomsGroup)
+                            sec_residue.index = i_res
+                            atom_indices = np.where(atoms_resids == res_id)[0]
+                            sec_residue.atom_indices = np.intersect1d(atom_indices, sec_molecule.atom_indices)
+                            sec_residue.n_atoms = len(sec_residue.atom_indices)
+                            res_names = atoms_resnames[sec_residue.atom_indices]
+                            sec_residue.label = str(res_names[0])
+                            sec_residue.type = 'monomer'
+                            sec_residue.is_molecule = False
+                            elements = atoms_elements[sec_residue.atom_indices]
+                            sec_residue.composition_formula = get_composition(elements)
+
+                        names = atoms_resnames[sec_molecule.atom_indices]
+                        ids = atoms_resids[sec_molecule.atom_indices]
+                        # filter for the first instance of each residue, as to not overcount
+                        __, ids_count = np.unique(ids, return_counts=True)
+                        # get the index of the first atom of each residue
+                        ids_firstatom = np.cumsum(ids_count)[:-1]
+                        # add the 0th index manually
+                        ids_firstatom = np.insert(ids_firstatom, 0, 0)
+                        names_firstatom = names[ids_firstatom]
+                        sec_molecule.composition_formula = get_composition(names_firstatom)
+
+        rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
+        rdf_results = rdf_results() if rdf_results is not None else None
+        if rdf_results is None:
+            rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
+        # calculate molecular radial distribution functions
+        if rdf_results is not None:
+            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+            sec_rdfs = sec_molecular_dynamics.m_create(EnsembleProperties)
+            sec_rdfs.label = 'molecular radial distribution functions'
+            sec_rdfs.types = rdf_results['types']
+            sec_rdfs.n_smooth = rdf_results['n_smooth']
+            sec_rdfs.variables_name = rdf_results['variables_name']
+            sec_rdfs.bins = rdf_results['bins']
+            sec_rdfs.values = rdf_results['values']
 
     def parse_method(self):
         sec_run = self.archive.run[-1]
@@ -854,19 +945,40 @@ class LammpsParser:
         for n, traj_file in enumerate(traj_files):
             # parser initialization for each traj file cannot be avoided as there are
             # cases where traj files can share the same parser
-            traj_parser = TrajParser()
-            traj_parser.mainfile = traj_file
             file_type = self.log_parser.get('dump', [[1, 'all', traj_file[-3:]]] * (n + 1))[n][2]
             if file_type == 'dcd':
-                traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPS')
+                traj_parser = MDAnalysisParser(topology_format='DATA', format='DCD')
                 if data_files:
                     traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
+                self._mdanalysistraj_parser = traj_parser
             elif file_type == 'xyz':
-                traj_parser = XYZTrajParser()
-                traj_parser.mainfile = traj_file
+                traj_parser = MDAnalysisParser(topology_format='DATA', format='XYZ')
+                if data_files:
+                    traj_parser.mainfile = data_files[0]
+                traj_parser.auxilliary_files = [traj_file]
+                self._mdanalysistraj_parser = traj_parser
+            elif file_type == 'custom':
+                custom_options = self.log_parser.get('dump')[n][5:]
+                custom_options = [option.replace('xu', 'x') for option in custom_options]
+                custom_options = [option.replace('yu', 'y') for option in custom_options]
+                custom_options = [option.replace('zu', 'z') for option in custom_options]
+                custom_options = ' '.join(custom_options)
+                traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP', atom_style=custom_options)
+                if data_files:
+                    traj_parser.mainfile = data_files[0]
+                traj_parser.auxilliary_files = [traj_file]
+                # try to check if MDAnalysis can construct the universe or at least parse
+                # the atoms, otherwise will fall back to TrajParser
+                if traj_parser.universe is None or 'X' in traj_parser.get('atom_info', {}).get('names', []):
+                    # mda necessary to calculate rdf and atomsgroup
+                    if n == 0:
+                        self._mdanalysistraj_parser = traj_parser
+                    traj_parser = TrajParser()
+                    traj_parser.mainfile = traj_file
             else:
-                pass
+                traj_parser = TrajParser()
+                traj_parser.mainfile = traj_file
                 # TODO provide support for other file types
             parsers.append(traj_parser)
 
@@ -881,6 +993,8 @@ class LammpsParser:
 
         self.parse_method()
 
+        self.parse_workflow()
+
         self.parse_system()
 
         # parse thermodynamic data from log file
@@ -888,5 +1002,3 @@ class LammpsParser:
 
         # include input controls from log file
         self.parse_input()
-
-        self.parse_workflow()

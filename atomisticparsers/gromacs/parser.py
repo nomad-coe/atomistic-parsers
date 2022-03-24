@@ -37,12 +37,12 @@ from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, Interaction, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.system import (
-    System, Atoms,  # AtomsGroup
+    System, Atoms, AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics
 )
-from nomad.datamodel.metainfo.workflow import Workflow, MolecularDynamics
+from nomad.datamodel.metainfo.workflow import EnsembleProperties, Workflow, MolecularDynamics
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser
 
@@ -689,6 +689,11 @@ class GromacsParser:
 
         n_frames = self.traj_parser.get('n_frames', 0)
 
+        def get_composition(children_names):
+            children_count_tup = np.unique(children_names, return_counts=True)
+            formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
+            return formula
+
         pbc = self.log_parser.get_pbc()
         for n in range(n_frames):
             if (n % self.frame_rate) > 0:
@@ -709,21 +714,85 @@ class GromacsParser:
             if velocities is not None:
                 sec_atoms.velocities = velocities
 
-        # parse atom groups (segments and residues)
-        # we only create atomsgroup in the initial system
-        # TODO merge this with md branch
-        # for segment in self.traj_parser.universe.segments:
-        #     sec_segment = sec_run.system[0].m_create(AtomsGroup)
-        #     sec_segment.label = segment.segid
-        #     sec_segment.index = int(segment.segindex)
-        #     sec_segment.atom_indices = [atom.index for atom in segment.atoms]
-        #     for residue in segment.residues:
-        #         sec_residue = sec_segment.m_create(AtomsGroup)
-        #         sec_residue.label = residue.resname
-        #         sec_residue.type = residue.moltype
-        #         sec_residue.index = int(residue.resindex)
-        #         sec_residue.n_atoms = len(residue.atoms)
-        #         sec_residue.atom_indices = [atom.index for atom in residue.atoms]
+        # parse atomsgroup (segments --> molecules --> residues)
+        atoms_info = self.traj_parser._results['atom_info']
+        atoms_moltypes = np.array(atoms_info['moltypes'])
+        atoms_molnums = np.array(atoms_info['molnums'])
+        atoms_resids = np.array(atoms_info['resids'])
+        atoms_elements = np.array(atoms_info['elements'])
+        atoms_resnames = np.array(atoms_info['resnames'])
+        for segment in self.traj_parser.universe.segments:
+            # we only create atomsgroup in the initial system
+            sec_segment = sec_run.system[0].m_create(AtomsGroup)
+            sec_segment.label = segment.segid
+            sec_segment.type = 'molecule_group'
+            sec_segment.index = int(segment.segindex)
+            sec_segment.atom_indices = segment.atoms.ix
+            sec_segment.n_atoms = len(sec_segment.atom_indices)
+            sec_segment.is_molecule = False
+
+            moltypes = np.unique(atoms_moltypes[sec_segment.atom_indices])
+            moltypes_count = {}
+            for moltype in moltypes:
+                atom_indices = np.where(atoms_moltypes == moltype)[0]
+                # mol_nums is the molecule identifier for each atom
+                mol_nums = atoms_molnums[atom_indices]
+                moltypes_count[moltype] = np.unique(mol_nums).shape[0]
+            formula = ''.join([f'{moltype}({moltypes_count[moltype]})' for moltype in moltypes_count])
+            sec_segment.composition_formula = formula
+
+            for i_molecule, molecule in enumerate(np.unique(atoms_molnums[sec_segment.atom_indices])):
+                sec_molecule = sec_segment.m_create(AtomsGroup)
+                sec_molecule.index = i_molecule
+                sec_molecule.atom_indices = np.where(atoms_molnums == molecule)[0]
+                sec_molecule.n_atoms = len(sec_molecule.atom_indices)
+                # use first particle to get the moltype
+                # not sure why but this value is being cast to int, cast back to str
+                sec_molecule.label = str(atoms_moltypes[sec_molecule.atom_indices[0]])
+                sec_molecule.type = 'molecule'
+                sec_molecule.is_molecule = True
+
+                mol_resids = np.unique(atoms_resids[sec_molecule.atom_indices])
+                n_res = mol_resids.shape[0]
+                if n_res == 1:
+                    elements = atoms_elements[sec_molecule.atom_indices]
+                    sec_molecule.composition_formula = get_composition(elements)
+                else:
+                    for i_res, res_id in enumerate(mol_resids):
+                        sec_residue = sec_molecule.m_create(AtomsGroup)
+                        sec_residue.index = i_res
+                        atom_indices = np.where(atoms_resids == res_id)[0]
+                        sec_residue.atom_indices = np.intersect1d(atom_indices, sec_molecule.atom_indices)
+                        sec_residue.n_atoms = len(sec_residue.atom_indices)
+                        res_names = atoms_resnames[sec_residue.atom_indices]
+                        sec_residue.label = str(res_names[0])
+                        sec_residue.type = 'monomer'
+                        sec_residue.is_molecule = False
+                        elements = atoms_elements[sec_residue.atom_indices]
+                        sec_residue.composition_formula = get_composition(elements)
+
+                    names = atoms_resnames[sec_molecule.atom_indices]
+                    ids = atoms_resids[sec_molecule.atom_indices]
+                    # filter for the first instance of each residue, as to not overcount
+                    __, ids_count = np.unique(ids, return_counts=True)
+                    # get the index of the first atom of each residue
+                    ids_firstatom = np.cumsum(ids_count)[:-1]
+                    # add the 0th index manually
+                    ids_firstatom = np.insert(ids_firstatom, 0, 0)
+                    names_firstatom = names[ids_firstatom]
+                    sec_molecule.composition_formula = get_composition(names_firstatom)
+
+        # calculate molecular radial distribution functions
+        sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+        sec_rdfs = sec_molecular_dynamics.m_create(EnsembleProperties)
+        rdf_results = self.traj_parser.calc_molecular_rdf()
+        if rdf_results is not None:
+            sec_rdfs.label = 'molecular radial distribution functions'
+            sec_rdfs.types = rdf_results['types']
+            sec_rdfs.n_smooth = rdf_results['n_smooth']
+            sec_rdfs.variables_name = rdf_results['variables_name']
+            sec_rdfs.bins = rdf_results['bins']
+            sec_rdfs.values = rdf_results['values']
 
     def parse_method(self):
         sec_method = self.archive.run[-1].m_create(Method)

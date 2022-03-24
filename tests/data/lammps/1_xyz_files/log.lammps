@@ -31,7 +31,7 @@ Created orthogonal box = (0 0 0) to (7.46901 7.46901 7.46901)
   1 by 1 by 1 MPI processor grid
 create_atoms    1 box
 Created 500 atoms
-  Time spent = 0.000458147 secs
+  Time spent = 0.000422243 secs
 
 mass             1 1
 mass             2 1
@@ -66,13 +66,7 @@ thermo_modify   flush yes
 dump          2 all custom 10 pos_vel.xyz id type xu yu zu fx fy fz vx vy vz #dumping positions
 dump_modify   2 sort 2             #sorting by particle type(typeA/B in my case); use sort 1 if want to sort by particle id
 
-#dump           3 all custom 10 vel.xyz id type vx vy vz #dumping velocities
-#dump_modify    3 sort 2
-
-
-restart    1000 restart1.dat restart_8.00.dat      #binary file used for next simulation
-timestep         0.001                    #timestep
-run            1000                     #run length
+write_data      1_xyz_files.data
 Neighbor list info ...
   update every 5 steps, delay 0 steps, check no
   max neighbors/atom: 2000, page size: 100000
@@ -85,6 +79,14 @@ Neighbor list info ...
       pair build: half/bin/atomonly/newton
       stencil: half/bin/3d/newton
       bin: standard
+
+#dump           3 all custom 10 vel.xyz id type vx vy vz #dumping velocities
+#dump_modify    3 sort 2
+
+
+restart    1000 restart1.dat restart_8.00.dat      #binary file used for next simulation
+timestep         0.001                    #timestep
+run            1000                     #run length
 Per MPI rank memory allocation (min/avg/max) = 3.979 | 3.979 | 3.979 Mbytes
 Step Temp Press PotEng KinEng TotEng Volume Enthalpy 
        0            8    12.538831   -6.4149238       11.976    5.5610762    416.66667    16.010102 
@@ -188,20 +190,20 @@ Step Temp Press PotEng KinEng TotEng Volume Enthalpy
      980    8.1957656    56.000632   0.56057844    12.269061     12.82964    416.66667    59.496833 
      990    8.1877931    56.080143   0.56818286    12.257126    12.825309    416.66667    59.558762 
     1000    8.3325373     55.08156   0.34011117    12.473808     12.81392    416.66667     58.71522 
-Loop time of 0.573952 on 1 procs for 1000 steps with 500 atoms
+Loop time of 0.578956 on 1 procs for 1000 steps with 500 atoms
 
-Performance: 150535.190 tau/day, 1742.305 timesteps/s
-99.5% CPU use with 1 MPI tasks x 1 OpenMP threads
+Performance: 149234.145 tau/day, 1727.247 timesteps/s
+93.1% CPU use with 1 MPI tasks x 1 OpenMP threads
 
 MPI task timing breakdown:
 Section |  min time  |  avg time  |  max time  |%varavg| %total
 ---------------------------------------------------------------
-Pair    | 0.26159    | 0.26159    | 0.26159    |   0.0 | 45.58
-Neigh   | 0.15447    | 0.15447    | 0.15447    |   0.0 | 26.91
-Comm    | 0.013194   | 0.013194   | 0.013194   |   0.0 |  2.30
-Output  | 0.13645    | 0.13645    | 0.13645    |   0.0 | 23.77
-Modify  | 0.0061593  | 0.0061593  | 0.0061593  |   0.0 |  1.07
-Other   |            | 0.002092   |            |       |  0.36
+Pair    | 0.25051    | 0.25051    | 0.25051    |   0.0 | 43.27
+Neigh   | 0.14171    | 0.14171    | 0.14171    |   0.0 | 24.48
+Comm    | 0.011488   | 0.011488   | 0.011488   |   0.0 |  1.98
+Output  | 0.16786    | 0.16786    | 0.16786    |   0.0 | 28.99
+Modify  | 0.005474   | 0.005474   | 0.005474   |   0.0 |  0.95
+Other   |            | 0.001913   |            |       |  0.33
 
 Nlocal:    500 ave 500 max 500 min
 Histogram: 1 0 0 0 0 0 0 0 0 0

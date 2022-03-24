@@ -54,7 +54,7 @@ def test_nvt(parser):
     assert len(sec_system) == 201
     assert sec_system[5].atoms.lattice_vectors[1][1].magnitude == approx(2.24235e-09)
     assert False not in sec_system[0].atoms.periodic
-    assert sec_system[80].atoms.labels[91:96] == ['H', 'H', 'H', 'C', 'C']
+    assert sec_system[80].atoms.labels[91:96] == ['H', 'H', 'H', 'C', 'C']  # JFR - not reading labels correctly
 
     sec_scc = sec_run.calculation
     assert len(sec_scc) == 201
@@ -107,8 +107,8 @@ def test_unwrapped_pos(parser):
 
     assert len(archive.run[0].calculation) == 101
     sec_systems = archive.run[0].system
-    assert sec_systems[1].atoms.positions[452][2].magnitude == approx(5.99898)
-    assert sec_systems[2].atoms.velocities[457][-2].magnitude == approx(-0.928553)
+    assert sec_systems[1].atoms.positions[452][2].magnitude == approx(5.99898)  # JFR - units are incorrect?!
+    assert sec_systems[2].atoms.velocities[457][-2].magnitude == approx(-0.928553)  # JFR - velocities are not being read!!
 
 
 def test_multiple_dump(parser):
@@ -118,4 +118,60 @@ def test_multiple_dump(parser):
     sec_systems = archive.run[0].system
     assert len(sec_systems) == 101
     assert sec_systems[2].atoms.positions[468][0].magnitude == approx(3.00831)
-    assert sec_systems[-1].atoms.velocities[72][1].magnitude == approx(-4.61496)
+    assert sec_systems[-1].atoms.velocities[72][1].magnitude == approx(-4.61496)  # JFR - universe cannot be built without positions
+
+
+def test_md_atomsgroup(parser):
+    archive = EntryArchive()
+    parser.parse('tests/data/lammps/polymer_melt/log.step4.0_minimization', archive, None)
+
+    sec_run = archive.run[0]
+    sec_systems = sec_run.system
+
+    assert len(sec_systems[0].atoms_group) == 1
+    assert len(sec_systems[0].atoms_group[0].atoms_group) == 100
+
+    assert sec_systems[0].atoms_group[0].label == 'seg_0_0'
+    assert sec_systems[0].atoms_group[0].type == 'molecule_group'
+    assert sec_systems[0].atoms_group[0].index == 0
+    assert sec_systems[0].atoms_group[0].composition_formula == '0(100)'
+    assert sec_systems[0].atoms_group[0].n_atoms == 7200
+    assert sec_systems[0].atoms_group[0].atom_indices[5] == 5
+    assert sec_systems[0].atoms_group[0].is_molecule is False
+
+    assert sec_systems[0].atoms_group[0].atoms_group[52].label == '0'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].type == 'molecule'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].index == 52
+    assert sec_systems[0].atoms_group[0].atoms_group[52].composition_formula == '1(1)2(1)3(1)4(1)5(1)6(1)7(1)8(1)9(1)10(1)'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].n_atoms == 72
+    assert sec_systems[0].atoms_group[0].atoms_group[52].atom_indices[8] == 3752
+    assert sec_systems[0].atoms_group[0].atoms_group[52].is_molecule is True
+
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].label == '8'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].type == 'monomer'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].index == 7
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].composition_formula == '1(4)4(2)6(1)'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].n_atoms == 7
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].atom_indices[5] == 5527
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].is_molecule is False
+
+
+def test_rdf(parser):
+    archive = EntryArchive()
+    parser.parse('tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt', archive, None)
+
+    sec_workflow = archive.workflow[0]
+    section_MD = sec_workflow.molecular_dynamics
+
+    assert section_MD.ensemble_properties.label == 'molecular radial distribution functions'
+    assert section_MD.ensemble_properties.n_smooth == 6
+
+    assert section_MD.ensemble_properties.types[0] == '0-0'
+    assert section_MD.ensemble_properties.variables_name[1][0] == 'distance'
+    assert section_MD.ensemble_properties.bins[0][0][122] == approx(9.380497525533041)
+    assert section_MD.ensemble_properties.values[0][96] == approx(3.0716656057349994)
+
+    assert section_MD.ensemble_properties.types[1] == '1-0'
+    assert section_MD.ensemble_properties.variables_name[1][0] == 'distance'
+    assert section_MD.ensemble_properties.bins[1][0][102] == approx(7.88559752146403)
+    assert section_MD.ensemble_properties.values[1][55] == approx(0.053701564112436415)

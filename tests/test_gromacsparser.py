@@ -60,13 +60,6 @@ def test_md_verbose(parser):
     assert sec_systems[1].atoms.positions[800][1].magnitude == approx(2.4740036e-09)
     assert sec_systems[0].atoms.velocities[500][0].magnitude == approx(869.4773)
     assert sec_systems[1].atoms.lattice_vectors[2][2].magnitude == approx(2.469158e-09)
-    # assert len(sec_systems[0].atoms_group) == 2
-    # assert len(sec_systems[0].atoms_group[1].atoms_group) == 500
-    # assert sec_systems[0].atoms_group[0].label == 'seg_0_Protein'
-    # assert sec_systems[0].atoms_group[0].atom_indices[13] == 13
-    # assert sec_systems[0].atoms_group[1].atoms_group[400].index == 401
-    # assert sec_systems[0].atoms_group[1].atoms_group[250].type == 'SOL'
-    # assert sec_systems[0].atoms_group[1].atoms_group[330].atom_indices[2] == 1008
 
     sec_methods = sec_run.method
     assert len(sec_methods) == 1
@@ -80,3 +73,59 @@ def test_md_edr(parser):
     parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
 
     assert len(archive.run[0].calculation) == 7
+
+
+def test_md_atomsgroup(parser):
+    archive = EntryArchive()
+    parser.parse('tests/data/gromacs/polymer_melt/step4.0_minimization.log', archive, None)
+
+    sec_run = archive.run[0]
+    sec_systems = sec_run.system
+
+    assert len(sec_systems[0].atoms_group) == 1
+    assert len(sec_systems[0].atoms_group[0].atoms_group) == 100
+
+    assert sec_systems[0].atoms_group[0].label == 'seg_0_S1P1'
+    assert sec_systems[0].atoms_group[0].type == 'molecule_group'
+    assert sec_systems[0].atoms_group[0].index == 0
+    assert sec_systems[0].atoms_group[0].composition_formula == 'S1P1(100)'
+    assert sec_systems[0].atoms_group[0].n_atoms == 7200
+    assert sec_systems[0].atoms_group[0].atom_indices[5] == 5
+    assert sec_systems[0].atoms_group[0].is_molecule is False
+
+    assert sec_systems[0].atoms_group[0].atoms_group[52].label == 'S1P1'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].type == 'molecule'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].index == 52
+    assert sec_systems[0].atoms_group[0].atoms_group[52].composition_formula == 'ETHOX(10)'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].n_atoms == 72
+    assert sec_systems[0].atoms_group[0].atoms_group[52].atom_indices[8] == 3752
+    assert sec_systems[0].atoms_group[0].atoms_group[52].is_molecule is True
+
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].label == 'ETHOX'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].type == 'monomer'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].index == 7
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].composition_formula == 'C(2)H(4)O(1)'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].n_atoms == 7
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].atom_indices[5] == 5527
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].is_molecule is False
+
+
+def test_RDF(parser):
+    archive = EntryArchive()
+    parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
+
+    sec_workflow = archive.workflow[0]
+    section_MD = sec_workflow.molecular_dynamics
+
+    assert section_MD.ensemble_properties.label == 'molecular radial distribution functions'
+    assert section_MD.ensemble_properties.n_smooth == 6
+
+    assert section_MD.ensemble_properties.types[0] == 'SOL-Protein'
+    assert section_MD.ensemble_properties.variables_name[1][0] == 'distance'
+    assert section_MD.ensemble_properties.bins[0][0][122] == approx(10.330030603408813)
+    assert section_MD.ensemble_properties.values[0][96] == approx(1.098907565374127)
+
+    assert section_MD.ensemble_properties.types[1] == 'SOL-SOL'
+    assert section_MD.ensemble_properties.variables_name[1][0] == 'distance'
+    assert section_MD.ensemble_properties.bins[1][0][102] == approx(8.68381058692932)
+    assert section_MD.ensemble_properties.values[1][55] == approx(1.0763463135639966)

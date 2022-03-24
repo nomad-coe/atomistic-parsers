@@ -31,7 +31,7 @@ Created orthogonal box = (0 0 0) to (7.46901 7.46901 7.46901)
   1 by 1 by 1 MPI processor grid
 create_atoms    1 box
 Created 500 atoms
-  Time spent = 0.000476565 secs
+  Time spent = 0.000427921 secs
 
 mass             1 1
 mass             2 1
@@ -68,10 +68,7 @@ dump_modify   2 sort 2
 dump           3 all custom 10 vel.xyz id type vx vy vz #dumping velocities
 dump_modify    3 sort 2
 
-
-restart    1000 restart1.dat restart_8.00.dat      #binary file used for next simulation
-timestep         0.001                    #timestep
-run            1000                     #run length
+write_data      2_xyz_files.data
 Neighbor list info ...
   update every 5 steps, delay 0 steps, check no
   max neighbors/atom: 2000, page size: 100000
@@ -84,6 +81,10 @@ Neighbor list info ...
       pair build: half/bin/atomonly/newton
       stencil: half/bin/3d/newton
       bin: standard
+
+restart    1000 restart1.dat restart_8.00.dat      #binary file used for next simulation
+timestep         0.001                    #timestep
+run            1000                     #run length
 Per MPI rank memory allocation (min/avg/max) = 5.223 | 5.223 | 5.223 Mbytes
 Step Temp Press PotEng KinEng TotEng Volume Enthalpy 
        0            8    12.538831   -6.4149238       11.976    5.5610762    416.66667    16.010102 
@@ -187,20 +188,20 @@ Step Temp Press PotEng KinEng TotEng Volume Enthalpy
      980    8.1957656    56.000632   0.56057844    12.269061     12.82964    416.66667    59.496833 
      990    8.1877931    56.080143   0.56818286    12.257126    12.825309    416.66667    59.558762 
     1000    8.3325373     55.08156   0.34011117    12.473808     12.81392    416.66667     58.71522 
-Loop time of 0.506308 on 1 procs for 1000 steps with 500 atoms
+Loop time of 0.496747 on 1 procs for 1000 steps with 500 atoms
 
-Performance: 170646.971 tau/day, 1975.081 timesteps/s
-98.9% CPU use with 1 MPI tasks x 1 OpenMP threads
+Performance: 173931.517 tau/day, 2013.096 timesteps/s
+99.4% CPU use with 1 MPI tasks x 1 OpenMP threads
 
 MPI task timing breakdown:
 Section |  min time  |  avg time  |  max time  |%varavg| %total
 ---------------------------------------------------------------
-Pair    | 0.24971    | 0.24971    | 0.24971    |   0.0 | 49.32
-Neigh   | 0.14673    | 0.14673    | 0.14673    |   0.0 | 28.98
-Comm    | 0.012171   | 0.012171   | 0.012171   |   0.0 |  2.40
-Output  | 0.089978   | 0.089978   | 0.089978   |   0.0 | 17.77
-Modify  | 0.0057548  | 0.0057548  | 0.0057548  |   0.0 |  1.14
-Other   |            | 0.001966   |            |       |  0.39
+Pair    | 0.24923    | 0.24923    | 0.24923    |   0.0 | 50.17
+Neigh   | 0.14134    | 0.14134    | 0.14134    |   0.0 | 28.45
+Comm    | 0.011448   | 0.011448   | 0.011448   |   0.0 |  2.30
+Output  | 0.085729   | 0.085729   | 0.085729   |   0.0 | 17.26
+Modify  | 0.0070274  | 0.0070274  | 0.0070274  |   0.0 |  1.41
+Other   |            | 0.001968   |            |       |  0.40
 
 Nlocal:    500 ave 500 max 500 min
 Histogram: 1 0 0 0 0 0 0 0 0 0

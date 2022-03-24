@@ -17,8 +17,10 @@
 # limitations under the License.
 #
 
+import numpy as np
 try:
     import MDAnalysis
+    import MDAnalysis.analysis.rdf as MDA_RDF
     from MDAnalysis.topology.guessers import guess_atom_element
 except Exception:
     MDAnalysis = None
@@ -34,6 +36,7 @@ class MDAnalysisParser(FileParser):
         super().__init__()
         self._args = args
         self._kwargs = kwargs
+        self._atomsgroup_info = None
 
     @property
     def auxilliary_files(self):
@@ -71,7 +74,7 @@ class MDAnalysisParser(FileParser):
         name_map = {'mass': 'masses'}
         unit_map = {'mass': ureg.amu, 'charge': ureg.elementary_charge}
         self._results['atom_info'] = dict()
-        for key in ['name', 'charge', 'mass', 'resid', 'resname', 'molnum', 'moltype', 'type']:
+        for key in ['name', 'charge', 'mass', 'resid', 'resname', 'molnum', 'moltype', 'type', 'segid', 'element']:
             try:
                 value = [getattr(atom, key) for atom in atoms]
             except Exception:
@@ -84,8 +87,118 @@ class MDAnalysisParser(FileParser):
             self._results['atom_info']['names'] = ['X'] * self.universe.atoms.n_atoms
         self._results['n_atoms'] = self.universe.atoms.n_atoms
         self._results['n_frames'] = len(self.universe.trajectory)
-        # self._results['atom_labels'] = [
-        #     guess_atom_element(name) for name in self._results['atom_info'].get('names', [])]
+
+        # make substitutions based on available atom info
+        if self._results['atom_info'].get('moltypes') is None:
+            if hasattr(self.universe.atoms, 'fragments'):
+                self._results['atom_info']['moltypes'] = self.get_fragtypes()
+
+        if self._results['atom_info'].get('molnums') is None:
+            try:
+                value = getattr(self.universe.atoms, 'fragindices')
+                self._results['atom_info']['molnums'] = value
+            except Exception:
+                pass
+
+        if self._results['atom_info'].get('resnames') is None:
+            try:
+                self._results['atom_info']['resnames'] = self._results['atom_info']['resids']
+            except Exception:
+                pass
+
+        if self._results['atom_info'].get('names') is None:
+            try:
+                self._results['atom_info']['names'] = self._results['atom_info']['types']
+            except Exception:
+                pass
+
+        if self._results['atom_info'].get('elements') is None:
+            try:
+                self._results['atom_info']['elements'] = self._results['atom_info']['names']
+            except Exception:
+                pass
+
+    def get_fragtypes(self):
+        # TODO put description otherwise, make private or put under parse method
+        '''
+        '''
+        atoms_fragtypes = np.empty(self.universe.atoms.types.shape, dtype=str)
+        ctr_fragtype = 0
+        atoms_fragtypes[self.universe.atoms.fragments[0].ix] = ctr_fragtype
+        frag_unique_atomtypes = [self.universe.atoms.types[self.universe.atoms.fragments[0].ix]]
+        ctr_fragtype += 1
+        for i_frag in range(1, self.universe.atoms.n_fragments):
+            types_i_frag = self.universe.atoms.types[self.universe.atoms.fragments[i_frag].ix]
+            flag_fragtype_exists = False
+            for j_frag in range(len(frag_unique_atomtypes) - 1, -1, -1):
+                types_j_frag = frag_unique_atomtypes[j_frag]
+                if len(types_i_frag) != len(types_j_frag):
+                    continue
+                elif np.all(types_i_frag == types_j_frag):
+                    atoms_fragtypes[self.universe.atoms.fragments[i_frag].ix] = j_frag
+                    flag_fragtype_exists = True
+            if not flag_fragtype_exists:
+                atoms_fragtypes[self.universe.atoms.fragments[i_frag].ix] = ctr_fragtype
+                frag_unique_atomtypes.append(self.universe.atoms.types[self.universe.atoms.fragments[i_frag].ix])
+                ctr_fragtype += 1
+        return atoms_fragtypes
+
+    def calc_molecular_rdf(self):
+        '''
+        Calculates the radial distribution functions between for each unique pair of
+        molecule types as a function of their center of mass distance.
+        '''
+        if self.universe.trajectory[0].dimensions is None:
+            return
+
+        atoms_moltypes = self.get('atom_info', {}).get('moltypes', [])
+        moltypes = np.unique(atoms_moltypes)
+        bead_groups = {}
+        for moltype in moltypes:
+            if hasattr(self.universe.atoms, 'moltypes'):
+                AGs_by_moltype = self.universe.select_atoms('moltype ' + moltype)
+            else:  # this is easier than adding something to the universe
+                selection = ' '.join([str(i) for i in np.where(atoms_moltypes == moltype)[0]])
+                selection = f'index {selection}'
+                AGs_by_moltype = self.universe.select_atoms(selection)
+            bead_groups[moltype] = BeadGroup(AGs_by_moltype, compound="fragments")
+
+        min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
+        max_rdf_dist = min_box_dimension / 2
+        n_bins = 150
+        n_smooth = 6
+        rdf_types = []
+        rdf_variables_name = []
+        rdf_bins = []
+        rdf_values = []
+        for i, moltype_i in enumerate(moltypes):
+            for j, moltype_j in enumerate(moltypes):
+                if j > i:
+                    continue
+                elif i == j and bead_groups[moltype_i].positions.shape[0] == 1:  # skip if only 1 mol in group
+                    continue
+
+                if i == j:
+                    exclusion_block = (1, 1)  # remove self-distance
+                else:
+                    exclusion_block = None
+                pair_type = moltype_i + '-' + moltype_j
+                rdf = MDA_RDF.InterRDF(bead_groups[moltype_i], bead_groups[moltype_j],
+                                       range=(0, max_rdf_dist),
+                                       exclusion_block=exclusion_block, nbins=n_bins).run()
+                rdf_types.append(pair_type)
+                rdf_variables_name.append(['distance'])
+                rdf_bins.append([rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)]])
+                rdf_values.append(np.convolve(
+                    rdf.results.rdf, np.ones((n_smooth,)) / n_smooth,
+                    mode='same')[int(n_smooth / 2):-int(n_smooth / 2)])
+        rdf_results = {}
+        rdf_results['types'] = np.array(rdf_types)
+        rdf_results['n_smooth'] = n_smooth
+        rdf_results['variables_name'] = np.array(rdf_variables_name)
+        rdf_results['bins'] = np.array(rdf_bins)
+        rdf_results['values'] = np.array(rdf_values)
+        return rdf_results
 
     @property
     def with_trajectory(self):
@@ -185,3 +298,36 @@ class MDAnalysisParser(FileParser):
         self._results['interactions'] = interactions
 
         return interactions
+
+
+class BeadGroup(object):
+    # see https://github.com/MDAnalysis/mdanalysis/issues/1891#issuecomment-387138110
+    # by @richardjgowers with performance improvements
+    def __init__(self, atoms, compound="fragments"):
+        """Initialize with an AtomGroup instance.
+        Will split based on keyword 'compounds' (residues or fragments).
+        """
+        self._atoms = atoms
+        self.compound = compound
+        self._nbeads = len(getattr(self._atoms, self.compound))
+        # for caching
+        self._cache = {}
+        self._cache["positions"] = None
+        self.__last_frame = None
+
+    def __len__(self):
+        return self._nbeads
+
+    @property
+    def positions(self):
+        # cache positions for current frame
+        if self.universe.trajectory.frame != self.__last_frame:
+            self._cache["positions"] = self._atoms.center_of_mass(
+                unwrap=True, compound=self.compound)
+            self.__last_frame = self.universe.trajectory.frame
+        return self._cache["positions"]
+
+    @property  # type: ignore
+    @MDAnalysis.lib.util.cached("universe")
+    def universe(self):
+        return self._atoms.universe

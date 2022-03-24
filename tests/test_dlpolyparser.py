@@ -18,7 +18,6 @@
 
 import pytest
 import numpy as np
-from sympy import sec
 
 from nomad.datamodel import EntryArchive
 from atomisticparsers.dlpoly import DLPolyParser

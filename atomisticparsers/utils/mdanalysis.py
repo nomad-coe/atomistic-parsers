@@ -148,6 +148,8 @@ class MDAnalysisParser(FileParser):
         Calculates the radial distribution functions between for each unique pair of
         molecule types as a function of their center of mass distance.
         '''
+        if self.universe is None:
+            return
         if self.universe.trajectory[0].dimensions is None:
             return
 

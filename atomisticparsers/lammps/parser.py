@@ -769,7 +769,7 @@ class LammpsParser:
         # parse atomsgroup (moltypes --> molecules --> residues)
         atom_info = self.traj_parsers.eval('atom_info')
         if atom_info is None:
-            atom_info = self._mdanalysistraj_parser.get('atom_info', {})
+            atom_info = self._mdanalysistraj_parser.get('atom_info', None)
         if atom_info is not None:
             atoms_moltypes = np.array(atom_info.get('moltypes', []))
             atoms_molnums = np.array(atom_info.get('molnums', []))
@@ -838,20 +838,20 @@ class LammpsParser:
                         names_firstatom = names[ids_firstatom]
                         sec_molecule.composition_formula = get_composition(names_firstatom)
 
-        rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
-        rdf_results = rdf_results() if rdf_results is not None else None
-        if rdf_results is None:
-            rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
-        # calculate molecular radial distribution functions
-        if rdf_results is not None:
-            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-            sec_rdfs = sec_molecular_dynamics.m_create(EnsembleProperties)
-            sec_rdfs.label = 'molecular radial distribution functions'
-            sec_rdfs.types = rdf_results['types']
-            sec_rdfs.n_smooth = rdf_results['n_smooth']
-            sec_rdfs.variables_name = rdf_results['variables_name']
-            sec_rdfs.bins = rdf_results['bins']
-            sec_rdfs.values = rdf_results['values']
+            rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
+            rdf_results = rdf_results() if rdf_results is not None else None
+            if rdf_results is None:
+                rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
+            # calculate molecular radial distribution functions
+            if rdf_results is not None:
+                sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+                sec_rdfs = sec_molecular_dynamics.m_create(EnsembleProperties)
+                sec_rdfs.label = 'molecular radial distribution functions'
+                sec_rdfs.types = rdf_results['types']
+                sec_rdfs.n_smooth = rdf_results['n_smooth']
+                sec_rdfs.variables_name = rdf_results['variables_name']
+                sec_rdfs.bins = rdf_results['bins']
+                sec_rdfs.values = rdf_results['values']
 
     def parse_method(self):
         sec_run = self.archive.run[-1]
@@ -946,19 +946,17 @@ class LammpsParser:
             # parser initialization for each traj file cannot be avoided as there are
             # cases where traj files can share the same parser
             file_type = self.log_parser.get('dump', [[1, 'all', traj_file[-3:]]] * (n + 1))[n][2]
-            if file_type == 'dcd':
+            if file_type == 'dcd' and data_files:
                 traj_parser = MDAnalysisParser(topology_format='DATA', format='DCD')
-                if data_files:
-                    traj_parser.mainfile = data_files[0]
+                traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
                 self._mdanalysistraj_parser = traj_parser
-            elif file_type == 'xyz':
+            elif file_type == 'xyz' and data_files:
                 traj_parser = MDAnalysisParser(topology_format='DATA', format='XYZ')
-                if data_files:
-                    traj_parser.mainfile = data_files[0]
+                traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
                 self._mdanalysistraj_parser = traj_parser
-            elif file_type == 'custom':
+            elif file_type == 'custom' and data_files:
                 custom_options = self.log_parser.get('dump')[n][5:]
                 custom_options = [option.replace('xu', 'x') for option in custom_options]
                 custom_options = [option.replace('yu', 'y') for option in custom_options]

@@ -1,0 +1,8 @@
+
+model = test
+
+task = energy   
+
+StrucFile = struc.bx
+
+

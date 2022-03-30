@@ -1,0 +1,247 @@
+ 
+ ------------------------------------
+  BOPfox (v 0.15) rev. 216 (collaan2)
+ ------------------------------------
+ 
+ mdkernel             : velocity-verlet       (     velocity-verlet )
+ mdtimestep           :         1.0000000000  (        1.0000000000 )
+ mdsteps              :                  200  (                1000 )
+ mdfixcom             :                    T  (                   T )
+ mdrestart            :          --           (                   F )
+ mdvrescale           :          --           (                   F )
+ mddohistogram        :          --           (                   F )
+ mdhistosize          :          --           (                1000 )
+ mdinitialt           :          --           (      100.0000000000 )
+ mdthermostat         :          --           (                none )
+ mdequilibrationsteps :          --           (                   0 )
+ mdtemperature        :          --           (      100.0000000000 )
+ mdcoupling           :          --           (        0.5000000000 )
+ mdchainlength1       :          --           (                   4 )
+ mdchainlength2       :          --           (                   7 )
+ mdbarostat           :          --           (                none )
+ mdpressure           :          --           (        0.0000000000 )
+ mdpistonmass         :          --           (        0.1000000000 )
+ mdvolume             :          --           (        0.0000000000 )
+ mdsaveframes         :                   50  (                   0 )
+ cvanalyze            :          --           (                   F )
+ rdfanalyze           :          --           (                   F )
+ rdfupdate            :          --           (                 100 )
+ rdfgridpoints        :          --           (                 100 )
+ rdflimit             :          --           (       10.0000000000 )
+ msdanalyze           :          --           (                   F )
+ msdinterval          :          --           (                   0 )
+ cvianalyze           :          --           (                   F )
+ cviupdate            :          --           (                 100 )
+ init: infox.bx  (ok)
+ init: no values for velocities given, set to zero.
+ init: no values for velocities_old given, set to zero.
+ init: no values for forces given, set to zero.
+ init: no values for forces_old given, set to zero.
+ init: structures.dimer.W.bx  (ok)
+ modelfile            :          --           (           models.bx )
+ model                : lin-2014              (                none )
+ version              : bop                   (                 bop )
+ magconfig            :          --           (                  nm )
+ screening            :          --           (                   F )
+ orthogonal           :          --           (                   T )
+ screeningversion     :          --           (                  v0 )
+ jijversion           :          --           (            diagonal )
+ moments              :                    9  (                   9 )
+ global_a_inf         :          --           (       11.2233440000 )
+ global_b_inf         :          --           (        3.2023751463 )
+ bandwidth            : findeminemax          (         gershogorin )
+ globalbandwidth      :          --           (                   F )
+ terminator           : constantabn           (         constantabn )
+ nexpmoments          :                  200  (                 100 )
+ bopkernel            : jackson               (             jackson )
+ maxpathradius        :          --           (        0.0000000000 )
+ efermitol            :          --           (        0.0000000100 )
+ efermisteps          :          --           (                 100 )
+ efermimixer          :          --           (           bisection )
+ scfsteps             :          --           (                  10 )
+ scftol               :          --           (        0.0010000000 )
+ scfmixer             :          --           (             broyden )
+ scflinearmixpara     :          --           (        0.1000000000 )
+ scfbroydenmixpara    :          --           (        0.1000000000 )
+ scfonsitemddtsq      :          --           (        0.0010000000 )
+ scfonsitemdmass      :          --           (        1.0000000000 )
+ scfonsitemddamping   :          --           (        0.9000000000 )
+ scffirenmin          :          --           (                   5 )
+ scffirefinc          :          --           (        1.1000000000 )
+ scffirefdec          :          --           (        0.1000000000 )
+ scffirefalpha        :          --           (        0.9900000000 )
+ scffirealphastart    :          --           (        0.1000000000 )
+ scffiredtinitial     :          --           (        0.1000000000 )
+ scffiredtmax         :          --           (        1.0000000000 )
+ scfdamping           :          --           (                   F )
+ scfdampinglimit      :          --           (        0.1000000000 )
+ scfreusehii          :          --           (                   T )
+ scfrigidhiishift     :          --           (                   T )
+ scffixmagcom         :          --           (                   F )
+ scffixmagdiff        :          --           (                   F )
+ scfrestart           :          --           (                   T )
+ scfsaveonsite        :          --           (                   F )
+ scftraj              :          --           (     onsite-traj.dat )
+ printdos             :          --           (                   F )
+ dosgrid              :          --           (                 200 )
+ dosvsn               :          --           (                   F )
+ partialdos           :          --           (                   F )
+ tbnbandstotal        :          --           (                  20 )
+ tbnsmear             :          --           (                  -5 )
+ tbdsmear             :          --           (        0.2000000000 )
+ tbkpointmesh         :          --           (      gamma-centered )
+ tbintegration        :          --           (         tetrahedron )
+ tbsolver             :          --           (              lapack )
+ tbkpointfile         :          --           (         kpoints.dat )
+ forces               : analytic              (            analytic )
+ numfdisp             :          --           (                   2 )
+ numfinc              :          --           (        0.0002000000 )
+ rskin                :          --           (        0.0000000000 )
+ rthickskin           :          --           (        1.0000000000 )
+ ecut                 :          --           (        0.0100000000 )
+ decut                :          --           (        0.0100000000 )
+ strucfile            : structures.dimer.W.b  (       structures.bx )
+ task                 : md                    (              energy )
+ fastbop              :          --           (                   T )
+ verbose              :                    T  (                   F )
+ verbosetime          :          --           (                   F )
+ verboseatom          :          --           (                   T )
+ printsc              :          --           (                   F )
+ ioutput              :          --           (                   1 )
+ printbonds           :          --           (                   F )
+ neighbourhistogram   :          --           (                   F )
+ printbetaparameters  :          --           (                   F )
+ printoverparameters  :          --           (                   F )
+ printrepparameters   :          --           (                   F )
+ printham             :          --           (                   F )
+ printxi              :          --           (                   F )
+ printxi_normed       :          --           (                   F )
+ printmu              :          --           (                   F )
+ printmu2             :          --           (                   F )
+ printmu_averaged     :          --           (                   F )
+ printmu_normed       :          --           (                   F )
+ printanbn            :          --           (                   F )
+ printanhxbnhx        :          --           (                   F )
+ printa_infb_inf      :          --           (                   F )
+ printsigma           :          --           (                   F )
+ printbo              :          --           (                   F )
+ printbotilde         :          --           (                   F )
+ printefermi          :          --           (                   F )
+ printefermifinal     :          --           (                   T )
+ printonsitelevels    :          --           (                   T )
+ printcharges         :          --           (                   T )
+ printmagmom          :          --           (                   T )
+ printenergies        :          --           (                   T )
+ printforces          :          --           (                   T )
+ printstress          :          --           (                   F )
+ printcfg             :          --           (                   F )
+ init: N(total) N(fixed) =            2           0
+ init: cell(:,1) :    35.000000    0.000000    0.000000
+       cell(:,2) :     0.000000   35.000000    0.000000
+       cell(:,3) :     0.000000    0.000000   35.000000
+       Vol(cell) =         42875.000000
+       Vol(cell)/atom =         21437.500000
+ init: external stress =  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+ init: bond W   - W   ddsigma      screenedpowerlaw_polynom5 ( 8 parameters)
+ init: bond W   - W      ddpi      screenedpowerlaw_polynom5 ( 8 parameters)
+ init: bond W   - W   dddelta      screenedpowerlaw_polynom5 ( 8 parameters)
+ WARNING: cutoffversion not specified, set to cosine.
+ init: bond W   - W   cutoff(short-range) :     4.400000    0.000000    cosine
+ init: bond W   - W      rep1                env_closedshell ( 9 parameters)
+ init: bond W   - W      rep2                     pp_spline5 (10 parameters)
+ WARNING: cutoff2version not specified, set to cosine.
+ init: bond W   - W   cutoff (long-range) :     4.400000    0.000000    cosine
+ Atoms in cell/cluster:           2          16
+ initializing log files
+ structures.dimer.W.erg.dat
+  col 1: time                   [fs]
+  col 2: total energy/atom      [eV]
+  col 3: potential energy/atom  [eV]
+  col 4: kinetic energy/atom    [eV]
+  thermodynamic quantities
+  col 5: temperature (run.avg.) [K]
+  col 6: temperature (inst.)    [K]
+  col 7: pressure (inst.)     [MPa]
+  col 8: volume/atom          [A^3]
+ starting MD: Velocity-Verlet
+ starting equilibration cycle.
+ MD : equilibration step        1 of        1 T[K] =     8.129899
+ equilibrating done (max steps reached). production cycle started
+ MD : production step          20 of      200 T[K] =   980.666955
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ MD : production step          40 of      200 T[K] =  1842.659542
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ MD : production step          60 of      200 T[K] =  1643.633842
+ MD : production step          80 of      200 T[K] =  1803.084958
+ MD : production step         100 of      200 T[K] =  1489.213548
+ MD : production step         120 of      200 T[K] =  1646.312384
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ MD : production step         140 of      200 T[K] =  1571.224905
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ MD : production step         160 of      200 T[K] =  1714.401560
+ MD : production step         180 of      200 T[K] =  1604.539322
+ MD : production step         200 of      200 T[K] =  1561.426763
+ MD cycle finished. cleanup ...
+ MD: Reached maximum number of steps.
+ BOPfox calculation is finished!
+ Note: warnings issued during calculation.
+  
+ timing BOPfox : 
+     initialisation              0.075s   8.15% 
+     neighbour lists             0.020s   2.17% 
+     hopping matrix              0.077s   8.37% 
+     interference paths          0.011s   1.20% 
+     expansion coeff.            0.607s  65.98% 
+     Fermi level                 0.039s   4.24% 
+     transfer matrices           0.034s   3.70% 
+     self-consistency            0.010s   1.09% 
+     repulsion                   0.010s   1.09% 
+     task kernel: md             0.005s   0.54% 
+     rest                        0.032s   3.48% 
+     total                       0.920s 
+     efficiency force calls               0.002 s/atom/forcecall
+ 
+ ============================================================================
+ 

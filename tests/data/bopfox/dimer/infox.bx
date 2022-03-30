@@ -1,0 +1,18 @@
+
+/model = Lim-1992
+model = Lin-2014
+
+StrucFile = structures.dimer.W.bx
+
+forces = analytic
+
+task = MD
+MDkernel             = velocity-verlet 
+MDtimestep           = 1.0
+MDsteps              = 200
+MDfixcom             = T
+MDsaveframes         = 50
+
+verbose = T
+
+

@@ -1,0 +1,9 @@
+codeLabel: BOPfox 
+codeLabelStyle: 'Capitals: B,O,P'
+codeName: bopfox
+codeUrl: http://bopfox.de/
+parserDirName: dependencies/parsers/atomistic/atomisticparsers/bopfox/
+parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

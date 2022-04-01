@@ -16,7 +16,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# from cProfile import label
+from optparse import Values
 import os
+from more_itertools import value_chain
 import numpy as np
 import logging
 import re
@@ -42,7 +45,9 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics
 )
-from nomad.datamodel.metainfo.workflow import EnsembleProperties, Workflow, MolecularDynamics
+from nomad.datamodel.metainfo.workflow import (
+    CorrelationFunctions, EnsembleProperties, Workflow, MolecularDynamics
+)
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser
 
@@ -792,7 +797,22 @@ class GromacsParser:
             sec_rdfs.n_smooth = rdf_results['n_smooth']
             sec_rdfs.variables_name = rdf_results['variables_name']
             sec_rdfs.bins = rdf_results['bins']
-            sec_rdfs.values = rdf_results['values']
+            sec_rdfs.value = rdf_results['values']
+
+        # calculate the molecular mean squared displacements
+        sec_msds = sec_molecular_dynamics.m_create(CorrelationFunctions)
+        msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()
+        if msd_results is not None:
+            sec_msds.label = 'molecular mean squared displacements'
+            sec_msds.types = msd_results['types']
+            sec_msds.times = msd_results['times']
+            sec_msds.value = msd_results['values']
+            sec_diffusion = sec_msds.m_create(EnsembleProperties)
+            sec_diffusion.label = 'diffusion constants'
+            sec_diffusion.types = msd_results['types']
+            sec_diffusion.value = msd_results['diffusion_constant']
+            sec_diffusion.errors_type = "Pearson correlation coefficient"
+            sec_diffusion.errors_value = msd_results['error_diffusion_constant']
 
     def parse_method(self):
         sec_method = self.archive.run[-1].m_create(Method)

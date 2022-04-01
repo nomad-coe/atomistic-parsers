@@ -21,9 +21,15 @@ import numpy as np
 try:
     import MDAnalysis
     import MDAnalysis.analysis.rdf as MDA_RDF
+    from MDAnalysis import transformations
     from MDAnalysis.topology.guessers import guess_atom_element
 except Exception:
     MDAnalysis = None
+from collections import namedtuple
+from collections import OrderedDict
+from array import array
+from scipy import sparse
+from itertools import chain
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import FileParser
@@ -167,8 +173,8 @@ class MDAnalysisParser(FileParser):
 
         min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
         max_rdf_dist = min_box_dimension / 2
-        n_bins = 150
-        n_smooth = 6
+        n_bins = 250
+        n_smooth = 2
         rdf_types = []
         rdf_variables_name = []
         rdf_bins = []
@@ -301,6 +307,102 @@ class MDAnalysisParser(FileParser):
 
         return interactions
 
+    def calc_molecular_mean_squard_displacements(self):
+        '''
+        Calculates the mean squared displacement for the center of mass of each
+        molecule type.
+        '''
+        if self.universe is None:
+            return
+        if self.universe.trajectory[0].dimensions is None:
+            return
+
+        atoms_moltypes = self.get('atom_info', {}).get('moltypes', [])
+        moltypes = np.unique(atoms_moltypes)
+        dt = self.universe.trajectory.dt
+        n_frames = self.universe.trajectory.n_frames
+        times = np.arange(n_frames) * dt
+
+        bead_groups = {}
+        msd_results = {}
+        msd_results['values'] = []
+        msd_results['diffusion_constant'] = []
+        msd_results['error_diffusion_constant'] = []
+        for moltype in moltypes:
+            if hasattr(self.universe.atoms, 'moltypes'):
+                AGs_by_moltype = self.universe.select_atoms('moltype ' + moltype)
+            else:  # this is easier than adding something to the universe
+                selection = ' '.join([str(i) for i in np.where(atoms_moltypes == moltype)[0]])
+                selection = f'index {selection}'
+                AGs_by_moltype = self.universe.select_atoms(selection)
+            bead_groups[moltype] = BeadGroup(AGs_by_moltype, compound="fragments")
+
+            positions = np.array([bead_groups[moltype].positions for _ in self.universe.trajectory])
+            positions = self.get_nojump_positions(bead_groups[moltype])
+            results = shifted_correlation(
+                mean_squared_displacement, times, positions, average=True
+            )
+            msd_results['values'].append(results[1])
+            diffusion_constant, error = calc_diffusion_constant(*results)
+            msd_results['diffusion_constant'].append(diffusion_constant)
+            msd_results['error_diffusion_constant'].append(error)
+
+        msd_results['types'] = moltypes
+        msd_results['times'] = results[0]
+        msd_results['values'] = np.array(msd_results['values'])
+        msd_results['diffusion_constant'] = np.array(msd_results['diffusion_constant'])
+        msd_results['error_diffusion_constant'] = np.array(msd_results['error_diffusion_constant'])
+
+        return msd_results
+
+    def parse_jumps(self, selection):
+        from copy import deepcopy
+        __ = self.universe.trajectory[0]
+        prev = deepcopy(selection.positions)
+        # prev = deepcopy(self.universe.trajectory[0].positions)
+        box = self.universe.trajectory[0].dimensions[:3]
+        SparseData = namedtuple('SparseData', ['data', 'row', 'col'])
+        jump_data = (
+            SparseData(data=array('b'), row=array('l'), col=array('l')),
+            SparseData(data=array('b'), row=array('l'), col=array('l')),
+            SparseData(data=array('b'), row=array('l'), col=array('l'))
+        )
+
+        for i_frame, _ in enumerate(self.universe.trajectory[1:]):
+            curr = deepcopy(selection.positions)
+            delta = ((curr - prev) / box).round().astype(np.int8)
+            prev = deepcopy(curr)
+            for d in range(3):
+                col, = np.where(delta[:, d] != 0)
+                jump_data[d].col.extend(col)
+                jump_data[d].row.extend([i_frame] * len(col))
+                jump_data[d].data.extend(delta[col, d])
+
+        return jump_data
+
+    def generate_nojump_matrices(self, selection):
+        jump_data = self.parse_jumps(selection)
+        N = len(self.universe.trajectory)
+        M = selection.positions.shape[0]
+
+        nojump_matrices = tuple(
+            sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(N, M)) for m in jump_data
+        )
+        return nojump_matrices
+
+    def get_nojump_positions(self, selection):
+        nojump_matrices = self.generate_nojump_matrices(selection)
+        box = self.universe.trajectory[0].dimensions[:3]
+
+        nojump_positions = []
+        for i_frame, __ in enumerate(self.universe.trajectory):
+            delta = np.array(np.vstack(
+                [m[:i_frame, :].sum(axis=0) for m in nojump_matrices]
+            ).T) * box
+            nojump_positions.append(selection.positions - delta)
+
+        return np.array(nojump_positions)
+
 
 class BeadGroup(object):
     # see https://github.com/MDAnalysis/mdanalysis/issues/1891#issuecomment-387138110
@@ -333,3 +435,184 @@ class BeadGroup(object):
     @MDAnalysis.lib.util.cached("universe")
     def universe(self):
         return self._atoms.universe
+
+
+class CoordinateTransform(object):
+    def __init__(self, atoms, compound="fragments"):
+        """Initialize with an AtomGroup instance.
+        Will split based on keyword 'compounds' (residues or fragments).
+        """
+        self._atoms = atoms
+        self.compound = compound
+        self._nbeads = len(getattr(self._atoms, self.compound))
+        # for caching
+        self._cache = {}
+        self._cache["positions"] = None
+        self.__last_frame = None
+
+    def __len__(self):
+        return self._nbeads
+
+    @property
+    def positions(self):
+        # cache positions for current frame
+        if self.universe.trajectory.frame != self.__last_frame:
+            self._cache["positions"] = self._atoms.center_of_mass(
+                unwrap=True, compound=self.compound)
+            self.__last_frame = self.universe.trajectory.frame
+        return self._cache["positions"]
+
+    @property  # type: ignore
+    @MDAnalysis.lib.util.cached("universe")
+    def universe(self):
+        return self._atoms.universe
+
+
+def set_has_counter(func):
+    func.has_counter = True
+    return func
+
+
+def log_indices(first, last, num=100):
+    ls = np.logspace(0, np.log10(last - first + 1), num=num)
+    return np.unique(np.int_(ls) - 1 + first)
+
+
+def correlation(function, positions):
+    iterator = iter(positions)
+    start_frame = next(iterator)
+    return map(lambda f: function(start_frame, f), chain([start_frame], iterator))
+
+
+def shifted_correlation(function, times, positions,
+                        index_distribution=log_indices, correlation=correlation,
+                        segments=10, window=0.5, skip=None,
+                        average=False, ):
+
+    """
+    Calculate the time series for a correlation function.
+
+    The times at which the correlation is calculated are determined automatically by the
+    function given as ``index_distribution``. The default is a logarithmic distribution.
+
+    Args:
+        function:   The function that should be correlated
+        frames:     The coordinates of the simulation data
+        index_distribution (opt.):
+                    A function that returns the indices for which the timeseries
+                    will be calculated
+        correlation (function, opt.):
+                    The correlation function
+        segments (int, opt.):
+                    The number of segments the time window will be shifted
+        window (float, opt.):
+                    The fraction of the simulation the time series will cover
+        skip (float, opt.):
+                    The fraction of the trajectory that will be skipped at the beginning,
+                    if this is None the start index of the frames slice will be used,
+                    which defaults to 0.
+        counter (bool, opt.):
+                    If True, returns length of frames (in general number of particles specified)
+        average (bool, opt.):
+                    If True, returns averaged correlation function
+    Returns:
+        tuple:
+            A list of length N that contains the indices of the frames at which
+            the time series was calculated and a numpy array of shape (segments, N)
+            that holds the (non-avaraged) correlation data
+
+            if has_counter == True: adds number of counts to output tupel.
+                                    if average is returned it will be weighted.
+
+    Example:
+        Calculating the mean square displacement of a coordinates object named ``coords``:
+
+        >>> indices, data = shifted_correlation(msd, coords)
+    """
+    # if skip is None:
+    #     try:
+    #         skip = frames._slice.start / len(frames)
+    #     except (TypeError, AttributeError):
+    #         skip = 0
+    skip = 0
+    assert window + skip < 1
+
+    start_frames = np.unique(np.linspace(
+        len(positions) * skip, len(positions) * (1 - window),
+        num=segments, endpoint=False, dtype=int
+    ))
+    num_frames = int(len(positions) * (window))
+
+    idx = index_distribution(0, num_frames)
+
+    def correlate(start_frame):
+        shifted_idx = idx + start_frame
+        return correlation(function, map(positions.__getitem__, shifted_idx))
+
+    correlation_times = np.array([times[i] for i in idx]) - times[0]
+
+    # if getattr(correlation, "has_counter", False):
+    #     if average:
+    #         for i, start_frame in enumerate(start_frames):
+    #             act_result, act_count = correlate(start_frame)
+    #             act_result = np.array(list(act_result))
+    #             act_count = np.array(act_count)
+    #             if i == 0:
+    #                 count = act_count
+    #                 cdim = act_count.ndim
+    #                 rdim = act_result.ndim
+    #                 bt = np.newaxis,
+    #                 for i in range(rdim - 1):
+    #                     if i >= cdim:
+    #                         bt +=  np.newaxis,
+    #                     else:
+    #                         bt += slice(None),
+    #                 result  = act_result * act_count[bt]
+    #             else:
+    #                 result += act_result * act_count[bt]
+    #                 count  += act_count
+    #         np.divide(result, count[bt], out = result, where = count[bt] != 0)
+    #         result = np.moveaxis(result,0,cdim)
+    #         count = count / len(start_frames)
+    #         output = correlation_times, result, count
+    #     else:
+    #         count = []
+    #         result = []
+    #         for i, start_frame in enumerate(start_frames):
+    #             act_result, act_count = correlate(start_frame)
+    #             act_result = list(act_result)
+    #             result.append(act_result)
+    #             count.append(act_count)
+    #         count = np.asarray(count)
+    #         cdim  = count.ndim
+    #         result = np.asarray(result)
+    #         result = np.moveaxis(result, 1, cdim)
+    #         output = correlation_times, result, count
+    # else:
+    result = 0 if average else []
+    for __, start_frame in enumerate(start_frames):
+        if average:
+            result += np.array(list(correlate(start_frame)))
+        else:
+            result.append(list(correlate(start_frame)))
+    result = np.array(result)
+    if average:
+        result = result / len(start_frames)
+    output = correlation_times, result
+    return output
+
+
+def mean_squared_displacement(start, current):
+    """
+    Mean square displacement
+    """
+    vec = start - current
+    return (vec ** 2).sum(axis=1).mean()
+
+
+def calc_diffusion_constant(times, values, dim=3):
+    from scipy.stats import linregress
+    linear_model = linregress(times, values)
+    slope = linear_model.slope
+    error = linear_model.rvalue
+    return slope * 1 / (2 * dim), error

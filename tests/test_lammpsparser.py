@@ -54,7 +54,7 @@ def test_nvt(parser):
     assert len(sec_system) == 201
     assert sec_system[5].atoms.lattice_vectors[1][1].magnitude == approx(2.24235e-09)
     assert False not in sec_system[0].atoms.periodic
-    assert sec_system[80].atoms.labels[91:96] == ['H', 'H', 'H', 'C', 'C']  # JFR - not reading labels correctly
+    assert sec_system[80].atoms.labels[91:96] == ['H', 'H', 'H', 'C', 'C']
 
     sec_scc = sec_run.calculation
     assert len(sec_scc) == 201
@@ -163,15 +163,38 @@ def test_rdf(parser):
     sec_workflow = archive.workflow[0]
     section_MD = sec_workflow.molecular_dynamics
 
-    assert section_MD.ensemble_properties.label == 'molecular radial distribution functions'
-    assert section_MD.ensemble_properties.n_smooth == 6
+    assert section_MD.radial_distribution_functions[0].label == 'molecular radial distribution functions'
+    assert section_MD.radial_distribution_functions[0].n_smooth == 2
+    assert section_MD.radial_distribution_functions[0].variables_name == 'distance'
 
-    assert section_MD.ensemble_properties.types[0] == '0-0'
-    assert section_MD.ensemble_properties.variables_name[1][0] == 'distance'
-    assert section_MD.ensemble_properties.bins[0][0][122] == approx(9.380497525533041)
-    assert section_MD.ensemble_properties.values[0][96] == approx(3.0716656057349994)
+    assert section_MD.radial_distribution_functions[0].rdf_values[0].type == '0-0'
+    assert section_MD.radial_distribution_functions[0].rdf_values[0].bins[0][122] == approx(6.9232556438446045)
+    assert section_MD.radial_distribution_functions[0].rdf_values[0].value[96] == approx(0.5017477701631716)
 
-    assert section_MD.ensemble_properties.types[1] == '1-0'
-    assert section_MD.ensemble_properties.variables_name[1][0] == 'distance'
-    assert section_MD.ensemble_properties.bins[1][0][102] == approx(7.88559752146403)
-    assert section_MD.ensemble_properties.values[1][55] == approx(0.053701564112436415)
+    assert section_MD.radial_distribution_functions[0].rdf_values[1].type == '1-0'
+    assert section_MD.radial_distribution_functions[0].rdf_values[1].bins[0][102] == approx(5.8020806407928465)
+    assert section_MD.radial_distribution_functions[0].rdf_values[1].value[55] == approx(0.0)
+
+
+def test_msd(parser):
+    archive = EntryArchive()
+    parser.parse('tests/data/lammps/1_xyz_files/log.lammps', archive, None)
+
+    sec_workflow = archive.workflow[0]
+    section_MD = sec_workflow.molecular_dynamics
+
+    assert section_MD.mean_squared_displacements[0].label == 'molecular mean squared displacements'
+
+    assert section_MD.mean_squared_displacements[0].msd_values[0].type == '0'
+    assert section_MD.mean_squared_displacements[0].msd_values[0].times[13] == approx(13.0)
+    assert section_MD.mean_squared_displacements[0].msd_values[0].value[32] == approx(0.4608079594680876)
+    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.value == approx(0.002425337637745065)
+    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
+    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.error_value == approx(0.9989207980765741)
+
+    assert section_MD.mean_squared_displacements[0].msd_values[1].type == '1'
+    assert section_MD.mean_squared_displacements[0].msd_values[1].times[13] == approx(13.0)
+    assert section_MD.mean_squared_displacements[0].msd_values[1].value[32] == approx(0.6809866201778795)
+    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.value == approx(0.003761006810836386)
+    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.error_type == 'Pearson correlation coefficient'
+    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.error_value == approx(0.996803829564569)

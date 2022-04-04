@@ -21,12 +21,10 @@ import numpy as np
 try:
     import MDAnalysis
     import MDAnalysis.analysis.rdf as MDA_RDF
-    from MDAnalysis import transformations
     from MDAnalysis.topology.guessers import guess_atom_element
 except Exception:
     MDAnalysis = None
 from collections import namedtuple
-from collections import OrderedDict
 from array import array
 from scipy import sparse
 from itertools import chain
@@ -173,7 +171,7 @@ class MDAnalysisParser(FileParser):
 
         min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
         max_rdf_dist = min_box_dimension / 2
-        n_bins = 250
+        n_bins = 200
         n_smooth = 2
         rdf_types = []
         rdf_variables_name = []
@@ -323,9 +321,13 @@ class MDAnalysisParser(FileParser):
         n_frames = self.universe.trajectory.n_frames
         times = np.arange(n_frames) * dt
 
+        if n_frames < 10:
+            return
+
         bead_groups = {}
         msd_results = {}
         msd_results['values'] = []
+        msd_results['times'] = []
         msd_results['diffusion_constant'] = []
         msd_results['error_diffusion_constant'] = []
         for moltype in moltypes:
@@ -337,18 +339,18 @@ class MDAnalysisParser(FileParser):
                 AGs_by_moltype = self.universe.select_atoms(selection)
             bead_groups[moltype] = BeadGroup(AGs_by_moltype, compound="fragments")
 
-            positions = np.array([bead_groups[moltype].positions for _ in self.universe.trajectory])
             positions = self.get_nojump_positions(bead_groups[moltype])
             results = shifted_correlation(
                 mean_squared_displacement, times, positions, average=True
             )
             msd_results['values'].append(results[1])
+            msd_results['times'].append(results[0])
             diffusion_constant, error = calc_diffusion_constant(*results)
             msd_results['diffusion_constant'].append(diffusion_constant)
             msd_results['error_diffusion_constant'].append(error)
 
         msd_results['types'] = moltypes
-        msd_results['times'] = results[0]
+        msd_results['times'] = np.array(msd_results['times'])
         msd_results['values'] = np.array(msd_results['values'])
         msd_results['diffusion_constant'] = np.array(msd_results['diffusion_constant'])
         msd_results['error_diffusion_constant'] = np.array(msd_results['error_diffusion_constant'])
@@ -359,7 +361,6 @@ class MDAnalysisParser(FileParser):
         from copy import deepcopy
         __ = self.universe.trajectory[0]
         prev = deepcopy(selection.positions)
-        # prev = deepcopy(self.universe.trajectory[0].positions)
         box = self.universe.trajectory[0].dimensions[:3]
         SparseData = namedtuple('SparseData', ['data', 'row', 'col'])
         jump_data = (
@@ -486,7 +487,7 @@ def correlation(function, positions):
 
 def shifted_correlation(function, times, positions,
                         index_distribution=log_indices, correlation=correlation,
-                        segments=10, window=0.5, skip=None,
+                        segments=10, window=0.5, skip=0,
                         average=False, ):
 
     """
@@ -529,12 +530,6 @@ def shifted_correlation(function, times, positions,
 
         >>> indices, data = shifted_correlation(msd, coords)
     """
-    # if skip is None:
-    #     try:
-    #         skip = frames._slice.start / len(frames)
-    #     except (TypeError, AttributeError):
-    #         skip = 0
-    skip = 0
     assert window + skip < 1
 
     start_frames = np.unique(np.linspace(
@@ -551,44 +546,6 @@ def shifted_correlation(function, times, positions,
 
     correlation_times = np.array([times[i] for i in idx]) - times[0]
 
-    # if getattr(correlation, "has_counter", False):
-    #     if average:
-    #         for i, start_frame in enumerate(start_frames):
-    #             act_result, act_count = correlate(start_frame)
-    #             act_result = np.array(list(act_result))
-    #             act_count = np.array(act_count)
-    #             if i == 0:
-    #                 count = act_count
-    #                 cdim = act_count.ndim
-    #                 rdim = act_result.ndim
-    #                 bt = np.newaxis,
-    #                 for i in range(rdim - 1):
-    #                     if i >= cdim:
-    #                         bt +=  np.newaxis,
-    #                     else:
-    #                         bt += slice(None),
-    #                 result  = act_result * act_count[bt]
-    #             else:
-    #                 result += act_result * act_count[bt]
-    #                 count  += act_count
-    #         np.divide(result, count[bt], out = result, where = count[bt] != 0)
-    #         result = np.moveaxis(result,0,cdim)
-    #         count = count / len(start_frames)
-    #         output = correlation_times, result, count
-    #     else:
-    #         count = []
-    #         result = []
-    #         for i, start_frame in enumerate(start_frames):
-    #             act_result, act_count = correlate(start_frame)
-    #             act_result = list(act_result)
-    #             result.append(act_result)
-    #             count.append(act_count)
-    #         count = np.asarray(count)
-    #         cdim  = count.ndim
-    #         result = np.asarray(result)
-    #         result = np.moveaxis(result, 1, cdim)
-    #         output = correlation_times, result, count
-    # else:
     result = 0 if average else []
     for __, start_frame in enumerate(start_frames):
         if average:
@@ -604,13 +561,17 @@ def shifted_correlation(function, times, positions,
 
 def mean_squared_displacement(start, current):
     """
-    Mean square displacement
+    Calculates mean square displacement between current and initial (start) coordinates.
     """
     vec = start - current
     return (vec ** 2).sum(axis=1).mean()
 
 
 def calc_diffusion_constant(times, values, dim=3):
+    """
+    Determines the diffusion constant from a fit of the mean squared displacement
+    vs. time according to the Einstein relation.
+    """
     from scipy.stats import linregress
     linear_model = linregress(times, values)
     slope = linear_model.slope

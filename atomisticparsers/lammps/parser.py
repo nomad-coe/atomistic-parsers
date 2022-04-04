@@ -34,7 +34,9 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics
 )
-from nomad.datamodel.metainfo.workflow import EnsembleProperties, Workflow, MolecularDynamics
+from nomad.datamodel.metainfo.workflow import (
+    DiffusionConstantValues, Msd, MsdValues, Rdf, RdfValues, Workflow, MolecularDynamics
+)
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
 from atomisticparsers.utils import MDAnalysisParser
 
@@ -838,20 +840,40 @@ class LammpsParser:
                         names_firstatom = names[ids_firstatom]
                         sec_molecule.composition_formula = get_composition(names_firstatom)
 
+            # calculate molecular radial distribution functions
+            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
             rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
             rdf_results = rdf_results() if rdf_results is not None else None
             if rdf_results is None:
                 rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
-            # calculate molecular radial distribution functions
             if rdf_results is not None:
-                sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-                sec_rdfs = sec_molecular_dynamics.m_create(EnsembleProperties)
+                sec_rdfs = sec_molecular_dynamics.m_create(Rdf)
                 sec_rdfs.label = 'molecular radial distribution functions'
-                sec_rdfs.types = rdf_results['types']
                 sec_rdfs.n_smooth = rdf_results['n_smooth']
-                sec_rdfs.variables_name = rdf_results['variables_name']
-                sec_rdfs.bins = rdf_results['bins']
-                sec_rdfs.values = rdf_results['values']
+                sec_rdfs.variables_name = 'distance'
+                for i_pair, pair_type in enumerate(rdf_results['types']):
+                    sec_rdf_values = sec_rdfs.m_create(RdfValues)
+                    sec_rdf_values.type = str(pair_type)
+                    sec_rdf_values.bins = rdf_results['bins'][i_pair]
+                    sec_rdf_values.value = rdf_results['values'][i_pair]
+
+            # calculate the molecular mean squared displacements
+            msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')
+            msd_results = msd_results() if msd_results is not None else None
+            if msd_results is None:
+                msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squard_displacements()
+            if msd_results is not None:
+                sec_msds = sec_molecular_dynamics.m_create(Msd)
+                sec_msds.label = 'molecular mean squared displacements'
+                for i_type, moltype in enumerate(msd_results['types']):
+                    sec_msd_values = sec_msds.m_create(MsdValues)
+                    sec_msd_values.type = moltype
+                    sec_msd_values.times = msd_results['times'][i_type]
+                    sec_msd_values.value = msd_results['values'][i_type]
+                    sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
+                    sec_diffusion.value = msd_results['diffusion_constant'][i_type]
+                    sec_diffusion.error_type = 'Pearson correlation coefficient'
+                    sec_diffusion.error_value = msd_results['error_diffusion_constant'][i_type]
 
     def parse_method(self):
         sec_run = self.archive.run[-1]

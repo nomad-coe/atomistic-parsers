@@ -202,7 +202,7 @@ class MDAnalysisParser(FileParser):
         rdf_results['types'] = np.array(rdf_types)
         rdf_results['n_smooth'] = n_smooth
         rdf_results['variables_name'] = np.array(rdf_variables_name)
-        rdf_results['bins'] = np.array(rdf_bins)
+        rdf_results['bins'] = np.array(rdf_bins) * 10**(-10)  # convert from angstroms to meters
         rdf_results['values'] = np.array(rdf_values)
         return rdf_results
 
@@ -350,10 +350,13 @@ class MDAnalysisParser(FileParser):
             msd_results['error_diffusion_constant'].append(error)
 
         msd_results['types'] = moltypes
-        msd_results['times'] = np.array(msd_results['times'])
-        msd_results['values'] = np.array(msd_results['values'])
-        msd_results['diffusion_constant'] = np.array(msd_results['diffusion_constant'])
-        msd_results['error_diffusion_constant'] = np.array(msd_results['error_diffusion_constant'])
+        msd_results['times'] = np.array(msd_results['times']) * 10**(-12)  # convert from picoseconds to seconds
+        msd_results['values'] = (np.array(msd_results['values'])
+                                 * 10**(-20))  # convert from nanometer^2 to meter^2
+        msd_results['diffusion_constant'] = (np.array(msd_results['diffusion_constant'])
+                                             * 10**(-8))  # convert from angstroms^2/picosecond to meter^2/second
+        msd_results['error_diffusion_constant'] = (np.array(msd_results['error_diffusion_constant'])
+                                                   * 10**(-8))  # convert from angstroms^2/picosecond to meter^2/second
 
         return msd_results
 

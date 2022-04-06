@@ -168,13 +168,13 @@ def test_rdf(parser):
     assert section_MD.radial_distribution_functions[0].variables_name == 'distance'
 
     assert section_MD.radial_distribution_functions[0].rdf_values[0].type == '0-0'
-    assert section_MD.radial_distribution_functions[0].rdf_values[0].bins[0][122].magnitude == approx(6.9232556438446045)
-    assert section_MD.radial_distribution_functions[0].rdf_values[0].bins[0][122].units == 'angstrom'
+    assert section_MD.radial_distribution_functions[0].rdf_values[0].bins[0][122].magnitude == approx(6.9232556438446045 * 10**(-10))
+    assert section_MD.radial_distribution_functions[0].rdf_values[0].bins[0][122].units == 'meter'
     assert section_MD.radial_distribution_functions[0].rdf_values[0].value[96] == approx(0.5017477701631716)
 
     assert section_MD.radial_distribution_functions[0].rdf_values[1].type == '1-0'
-    assert section_MD.radial_distribution_functions[0].rdf_values[1].bins[0][102].magnitude == approx(5.8020806407928465)
-    assert section_MD.radial_distribution_functions[0].rdf_values[1].bins[0][102].units == 'angstrom'
+    assert section_MD.radial_distribution_functions[0].rdf_values[1].bins[0][102].magnitude == approx(5.8020806407928465 * 10**(-10))
+    assert section_MD.radial_distribution_functions[0].rdf_values[1].bins[0][102].units == 'meter'
     assert section_MD.radial_distribution_functions[0].rdf_values[1].value[55] == approx(0.0)
 
 
@@ -188,23 +188,23 @@ def test_msd(parser):
     assert section_MD.mean_squared_displacements[0].label == 'molecular mean squared displacements'
 
     assert section_MD.mean_squared_displacements[0].msd_values[0].type == '0'
-    assert section_MD.mean_squared_displacements[0].msd_values[0].times[13].magnitude == approx(13.0)
-    assert section_MD.mean_squared_displacements[0].msd_values[0].times[13].units == 'picosecond'
-    assert section_MD.mean_squared_displacements[0].msd_values[0].value[32].magnitude == approx(0.4608079594680876)
-    assert section_MD.mean_squared_displacements[0].msd_values[0].value[32].units == 'nanometer^2'
-    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.value.magnitude == approx(0.002425337637745065)
-    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.value.units == 'nanometer^2/picosecond'
+    assert section_MD.mean_squared_displacements[0].msd_values[0].times[13].magnitude == approx(13.0 * 10**(-12))
+    assert section_MD.mean_squared_displacements[0].msd_values[0].times[13].units == 'second'
+    assert section_MD.mean_squared_displacements[0].msd_values[0].value[32].magnitude == approx(0.4608079594680876 * 10**(-20))
+    assert section_MD.mean_squared_displacements[0].msd_values[0].value[32].units == 'meter^2'
+    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.value.magnitude == approx(0.002425337637745065 * 10**(-8))
+    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.value.units == 'meter^2/second'
     assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
-    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.error_value.magnitude == approx(0.9989207980765741)
-    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.error_value.units == 'nanometer^2/picosecond'
+    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.error_value.magnitude == approx(0.9989207980765741 * 10**(-8))
+    assert section_MD.mean_squared_displacements[0].msd_values[0].diffusion_constant.error_value.units == 'meter^2/second'
 
     assert section_MD.mean_squared_displacements[0].msd_values[1].type == '1'
-    assert section_MD.mean_squared_displacements[0].msd_values[1].times[13].magnitude == approx(13.0)
-    assert section_MD.mean_squared_displacements[0].msd_values[1].times[13].units == 'picosecond'
-    assert section_MD.mean_squared_displacements[0].msd_values[1].value[32].magnitude == approx(0.6809866201778795)
-    assert section_MD.mean_squared_displacements[0].msd_values[1].value[32].units == 'nanometer^2'
-    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.value.magnitude == approx(0.003761006810836386)
-    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.value.units == 'nanometer^2/picosecond'
+    assert section_MD.mean_squared_displacements[0].msd_values[1].times[13].magnitude == approx(13.0 * 10**(-12))
+    assert section_MD.mean_squared_displacements[0].msd_values[1].times[13].units == 'second'
+    assert section_MD.mean_squared_displacements[0].msd_values[1].value[32].magnitude == approx(0.6809866201778795 * 10**(-20))
+    assert section_MD.mean_squared_displacements[0].msd_values[1].value[32].units == 'meter^2'
+    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.value.magnitude == approx(0.003761006810836386 * 10**(-8))
+    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.value.units == 'meter^2/second'
     assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.error_type == 'Pearson correlation coefficient'
-    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.error_value.magnitude == approx(0.996803829564569)
-    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.error_value.units == 'nanometer^2/picosecond'
+    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.error_value.magnitude == approx(0.996803829564569 * 10**(-8))
+    assert section_MD.mean_squared_displacements[0].msd_values[1].diffusion_constant.error_value.units == 'meter^2/second'

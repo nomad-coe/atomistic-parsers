@@ -352,8 +352,8 @@ class MDAnalysisParser(FileParser):
         msd_results['types'] = moltypes
         msd_results['times'] = np.array(msd_results['times']) * ureg.picosecond
         msd_results['value'] = np.array(msd_results['value']) * ureg.angstrom**2
-        msd_results['diffusion_constant'] = (np.array(msd_results['diffusion_constant'])
-                                             * ureg.angstrom**2 / ureg.picosecond)
+        msd_results['diffusion_constant'] = (np.array(
+            msd_results['diffusion_constant']) * ureg.angstrom**2 / ureg.picosecond)
         msd_results['error_diffusion_constant'] = np.array(msd_results['error_diffusion_constant'])
 
         return msd_results

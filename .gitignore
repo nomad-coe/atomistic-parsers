@@ -56,4 +56,4 @@ env/
 *parsers.egg-info/
 
 # gromacs files created on run
-*.traj.trr_offsets.npz
+.*.npz

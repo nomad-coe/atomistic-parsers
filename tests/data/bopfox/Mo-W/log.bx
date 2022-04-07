@@ -1,0 +1,243 @@
+ 
+ ------------------------------------
+  BOPfox (v 0.15) rev. 216 (collaan2)
+ ------------------------------------
+ 
+ init: infox.bx  (ok)
+ init: struc.bx  (ok)
+ modelfile            :          --           (           models.bx )
+ model                : test                  (                none )
+ version              : bop                   (                 bop )
+ magconfig            :          --           (                  nm )
+ screening            :                    F  (                   F )
+ orthogonal           :          --           (                   T )
+ screeningversion     :          --           (                  v0 )
+ jijversion           :          --           (            diagonal )
+ moments              :                    9  (                   9 )
+ global_a_inf         :          --           (       11.2233440000 )
+ global_b_inf         :          --           (        3.2023751463 )
+ bandwidth            : findeminemax          (         gershogorin )
+ globalbandwidth      :          --           (                   F )
+ terminator           : constantabn           (         constantabn )
+ nexpmoments          :                  200  (                 100 )
+ bopkernel            : jackson               (             jackson )
+ maxpathradius        :          --           (        0.0000000000 )
+ efermitol            :          --           (        0.0000000100 )
+ efermisteps          :          --           (                 100 )
+ efermimixer          :          --           (           bisection )
+ scfsteps             :          --           (                  10 )
+ scftol               :          --           (        0.0010000000 )
+ scfmixer             :          --           (             broyden )
+ scflinearmixpara     :          --           (        0.1000000000 )
+ scfbroydenmixpara    :          --           (        0.1000000000 )
+ scfonsitemddtsq      :          --           (        0.0010000000 )
+ scfonsitemdmass      :          --           (        1.0000000000 )
+ scfonsitemddamping   :          --           (        0.9000000000 )
+ scffirenmin          :          --           (                   5 )
+ scffirefinc          :          --           (        1.1000000000 )
+ scffirefdec          :          --           (        0.1000000000 )
+ scffirefalpha        :          --           (        0.9900000000 )
+ scffirealphastart    :          --           (        0.1000000000 )
+ scffiredtinitial     :          --           (        0.1000000000 )
+ scffiredtmax         :          --           (        1.0000000000 )
+ scfdamping           :          --           (                   F )
+ scfdampinglimit      :          --           (        0.1000000000 )
+ scfreusehii          :          --           (                   T )
+ scfrigidhiishift     :          --           (                   T )
+ scffixmagcom         :          --           (                   F )
+ scffixmagdiff        :          --           (                   F )
+ scfrestart           :          --           (                   T )
+ scfsaveonsite        :          --           (                   F )
+ scftraj              :          --           (     onsite-traj.dat )
+ printdos             :          --           (                   F )
+ dosgrid              :          --           (                 200 )
+ dosvsn               :          --           (                   F )
+ partialdos           :          --           (                   F )
+ tbnbandstotal        :          --           (                  20 )
+ tbnsmear             :          --           (                  -5 )
+ tbdsmear             :          --           (        0.2000000000 )
+ tbkpointmesh         :          --           (      gamma-centered )
+ tbintegration        :          --           (         tetrahedron )
+ tbsolver             :          --           (              lapack )
+ tbkpointfile         :          --           (         kpoints.dat )
+ forces               :          --           (            analytic )
+ numfdisp             :          --           (                   2 )
+ numfinc              :          --           (        0.0002000000 )
+ rskin                :          --           (        0.0000000000 )
+ rthickskin           :          --           (        1.0000000000 )
+ ecut                 :          --           (        0.0100000000 )
+ decut                :          --           (        0.0100000000 )
+ strucfile            : struc.bx              (       structures.bx )
+ task                 : energy                (              energy )
+ fastbop              :          --           (                   T )
+ verbose              :          --           (                   F )
+ verbosetime          :          --           (                   F )
+ verboseatom          :          --           (                   T )
+ printsc              :          --           (                   F )
+ ioutput              :          --           (                   1 )
+ printbonds           :          --           (                   F )
+ neighbourhistogram   :          --           (                   F )
+ printbetaparameters  :          --           (                   F )
+ printoverparameters  :          --           (                   F )
+ printrepparameters   :          --           (                   F )
+ printham             :          --           (                   F )
+ printxi              :          --           (                   F )
+ printxi_normed       :          --           (                   F )
+ printmu              :          --           (                   F )
+ printmu2             :          --           (                   F )
+ printmu_averaged     :          --           (                   F )
+ printmu_normed       :          --           (                   F )
+ printanbn            :          --           (                   F )
+ printanhxbnhx        :          --           (                   F )
+ printa_infb_inf      :          --           (                   F )
+ printsigma           :          --           (                   F )
+ printbo              :          --           (                   F )
+ printbotilde         :          --           (                   F )
+ printefermi          :          --           (                   F )
+ printefermifinal     :          --           (                   T )
+ printonsitelevels    :          --           (                   T )
+ printcharges         :          --           (                   T )
+ printmagmom          :          --           (                   T )
+ printenergies        :          --           (                   T )
+ printforces          :          --           (                   T )
+ printstress          :          --           (                   F )
+ printcfg             :          --           (                   F )
+ init: N(total) N(fixed) =            2           0
+ init: cell(:,1) :     3.100000    0.000000    0.000000
+       cell(:,2) :     0.000000    3.100000    0.000000
+       cell(:,3) :     0.000000    0.000000    3.100000
+       Vol(cell) =            29.791000
+       Vol(cell)/atom =            14.895500
+ init: external stress =  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+ init: bond W   - W   ddsigma               screenedpowerlaw ( 7 parameters)
+ init: bond W   - W      ddpi               screenedpowerlaw ( 7 parameters)
+ init: bond W   - W   dddelta               screenedpowerlaw ( 7 parameters)
+ WARNING: cutoffversion not specified, set to cosine.
+ init: bond W   - W   cutoff(short-range) :     4.400000    1.300000    cosine
+ init: bond Mo  - Mo  ddsigma               screenedpowerlaw ( 7 parameters)
+ init: bond Mo  - Mo     ddpi               screenedpowerlaw ( 7 parameters)
+ init: bond Mo  - Mo  dddelta               screenedpowerlaw ( 7 parameters)
+ WARNING: cutoffversion not specified, set to cosine.
+ init: bond Mo  - Mo  cutoff(short-range) :     4.400000    1.300000    cosine
+ init: bond W   - Mo  ddsigma               screenedpowerlaw ( 7 parameters)
+ init: bond W   - Mo     ddpi               screenedpowerlaw ( 7 parameters)
+ init: bond W   - Mo  dddelta               screenedpowerlaw ( 7 parameters)
+ WARNING: cutoffversion not specified, set to cosine.
+ init: bond W   - Mo  cutoff(short-range) :     4.400000    1.300000    cosine
+ init: bond W   - W      rep1                     env_yukawa ( 8 parameters)
+ init: bond W   - W      rep2                     pp_spline4 ( 8 parameters)
+ WARNING: cutoff2version not specified, set to cosine.
+ init: bond W   - W   cutoff (long-range) :     5.000000    0.000000    cosine
+ init: bond Mo  - Mo     rep1                     env_yukawa ( 8 parameters)
+ init: bond Mo  - Mo     rep2                     pp_spline4 ( 8 parameters)
+ init: bond Mo  - Mo     rep3               pp_powerfraction ( 4 parameters)
+ WARNING: cutoff2version not specified, set to cosine.
+ init: bond Mo  - Mo  cutoff (long-range) :     5.000000    0.000000    cosine
+ init: bond W   - Mo     rep1                     env_yukawa ( 8 parameters)
+ init: bond W   - Mo     rep2                     pp_spline4 ( 8 parameters)
+ WARNING: cutoff2version not specified, set to cosine.
+ init: bond W   - Mo  cutoff (long-range) :     5.000000    0.000000    cosine
+ Atoms in cell/cluster:           2        7471
+ 
+ ============================================================================
+ Output for struc.bx
+ ============================================================================
+  
+ ============================================================================
+ Fermi level
+ ============================================================================
+ E_Fermi   -2.648682294003913E-002
+ ----------------------------------------------------------------------------
+  
+ ============================================================================
+ Charges
+ ============================================================================
+ Nelec ( atom =         1 )          4.7941141257888971
+ Nelec ( atom =         2 )          4.2058858813722590
+ ----------------------------------------------------------------------------
+ Charge ( atom =         1 )         -0.2058858742111029
+ Charge ( atom =         2 )          0.2058858813722590
+ ----------------------------------------------------------------------------
+ Nd ( atom =         1, spin = 1 )          4.7941141257888971
+ Nd ( atom =         2, spin = 1 )          4.2058858813722590
+ ----------------------------------------------------------------------------
+  
+ ============================================================================
+ Onsite levels
+ ============================================================================
+ Ed ( atom =         1, spin = 1 )         -0.2068902284569173
+ Ed ( atom =         2, spin = 1 )          0.2068902284569132
+ ----------------------------------------------------------------------------
+ 
+ ============================================================================
+ Energies
+ ============================================================================
+ U_bond     ( atom =         1 )        -15.3415642954
+ U_bond     ( atom =         2 )        -15.0452071403
+ U_bond/atom                            -15.1933857178
+ U_bond_total                           -30.3867714356
+ U_bond_active                          -30.3867714356
+ ----------------------------------------------------------------------------
+ U_prom     ( atom =         1 )          0.0000000000
+ U_prom     ( atom =         2 )          0.0000000000
+ U_prom/atom                              0.0000000000
+ U_prom_total                             0.0000000000
+ U_prom_active                            0.0000000000
+ ----------------------------------------------------------------------------
+ U_ionic    ( atom =         1 )          0.0211944966
+ U_ionic    ( atom =         2 )          0.0211944981
+ U_ionic/atom                             0.0211944973
+ U_ionic_total                            0.0423889947
+ U_ionic_active                           0.0423889947
+ ----------------------------------------------------------------------------
+ U_coulomb  ( atom =         1 )          0.0000000000
+ U_coulomb  ( atom =         2 )          0.0000000000
+ U_coulomb/atom                           0.0000000000
+ U_coulomb_total                          0.0000000000
+ U_coulomb_active                         0.0000000000
+ ----------------------------------------------------------------------------
+ U_rep1     ( atom =         1 )          1.0670183428
+ U_rep1     ( atom =         2 )          1.0735937852
+ U_rep1/atom                              1.0703060640
+ U_rep1_total                             2.1406121280
+ U_rep1_active                            2.1406121280
+ ----------------------------------------------------------------------------
+ U_rep2     ( atom =         1 )          5.2330833861
+ U_rep2     ( atom =         2 )          5.8785936276
+ U_rep2/atom                              5.5558385069
+ U_rep2_total                            11.1116770137
+ U_rep2_active                           11.1116770137
+ ----------------------------------------------------------------------------
+ U_rep3     ( atom =         1 )          0.0000000000
+ U_rep3     ( atom =         2 )          0.0000000000
+ U_rep3/atom                              0.0000000000
+ U_rep3_total                             0.0000000000
+ U_rep3_active                            0.0000000000
+ ----------------------------------------------------------------------------
+ U_binding  ( atom =         1 )         -9.0202680698
+ U_binding  ( atom =         2 )         -8.0718252294
+ U_binding/atom                          -8.5460466496
+ U_binding_total                        -17.0920932992
+ U_binding_active                       -17.0920932992
+ ----------------------------------------------------------------------------
+ 
+ ============================================================================
+ 
+ BOPfox calculation is finished!
+ Note: warnings issued during calculation.
+  
+ timing BOPfox : 
+     initialisation              0.128s  38.91% 
+     neighbour lists             0.009s   2.74% 
+     hopping matrix              0.018s   5.47% 
+     interference paths          0.044s  13.37% 
+     expansion coeff.            0.004s   1.22% 
+     transfer matrices           0.121s  36.78% 
+     Jij                         0.001s   0.30% 
+     output                      0.001s   0.30% 
+     rest                        0.003s   0.91% 
+     total                       0.329s 
+     efficiency force calls               0.164 s/atom/forcecall
+ 
+ ============================================================================
+ 

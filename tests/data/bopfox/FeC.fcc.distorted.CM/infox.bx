@@ -1,0 +1,21 @@
+model = test
+
+efermitol   =   0.0000000000000001
+scfsteps    =  1
+scfmixer    =   broyden
+scfbroydenmixpara  = 0.001
+scftol      = 0.0001
+
+task        = force
+rxsaveframes = 1
+printSC     = T
+printDOS    = F
+printefermi = F
+printstress = T
+
+StrucFile  = structure.bx
+forces     = analytic 
+magconfig  = CM
+
+!printHam = T
+

@@ -16,16 +16,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from .amber.parser import AmberParser
-from .asap.parser import AsapParser
-from .bopfox.parser import BOPfoxParser
-from .dftbplus.parser import DFTBPlusParser
-from .dlpoly.parser import DLPolyParser
-from .gromacs.parser import GromacsParser
-from .gromos.parser import GromosParser
-from .gulp.parser import GulpParser
-from .lammps.parser import LammpsParser
-from .libatoms.parser import LibAtomsParser
-from .namd.parser import NAMDParser
-from .openkim.parser import OpenKIMParser
-from .tinker.parser import TinkerParser
+import sys
+import json
+import logging
+
+from nomad.utils import configure_logging
+from nomad.datamodel import EntryArchive
+from atomisticparsers.bopfox import BOPfoxParser
+
+if __name__ == "__main__":
+    configure_logging(console_log_level=logging.DEBUG)
+    archive = EntryArchive()
+    BOPfoxParser().parse(sys.argv[1], archive, logging)
+    json.dump(archive.m_to_dict(), sys.stdout, indent=2)

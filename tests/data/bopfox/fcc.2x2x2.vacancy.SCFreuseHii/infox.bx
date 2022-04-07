@@ -1,0 +1,21 @@
+
+model = Lin-2014
+
+StrucFile = structures.fcc.2x2x2.vacancy.bx
+
+forces = analytic
+
+scfSteps = 100
+scfreuseHii = T
+
+printSC = T
+
+task = relax
+
+verbose = F
+
+rxfconv       = 0.1
+rxmaxsteps    = 100
+dndamping     = 0.50
+dnrecmass     = 0.020
+rxsaveframes = 100

@@ -1,0 +1,19 @@
+
+model = Lin-2014
+
+StrucFile = structures.fcc.1x1x1.distorted.0.05.bx
+
+forces = analytic
+
+scfSteps = 100
+scfreuseHii = F
+
+task = relax
+
+verbose = F
+
+rxfconv       = 0.001
+rxmaxsteps    = 100
+dndamping     = 0.50
+dnrecmass     = 0.05
+

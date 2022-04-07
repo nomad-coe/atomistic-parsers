@@ -16,16 +16,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from .amber.parser import AmberParser
-from .asap.parser import AsapParser
-from .bopfox.parser import BOPfoxParser
-from .dftbplus.parser import DFTBPlusParser
-from .dlpoly.parser import DLPolyParser
-from .gromacs.parser import GromacsParser
-from .gromos.parser import GromosParser
-from .gulp.parser import GulpParser
-from .lammps.parser import LammpsParser
-from .libatoms.parser import LibAtomsParser
-from .namd.parser import NAMDParser
-from .openkim.parser import OpenKIMParser
-from .tinker.parser import TinkerParser
+from .parser import BOPfoxParser

@@ -1,0 +1,84 @@
+
+/=======================================================================
+model = test
+/=======================================================================
+/ N. Hatcher, G.K.H. Madsen, R. Drautz
+/ Phys. Rev. B 86 (2012) 155115 
+/=======================================================================
+
+version     = bop      
+screening   = false
+moments     = 9
+!bopkernel   = jackson
+!nexpmoments = 100
+terminator  = constantabn
+bandwidth   = averaged 
+bopkernel = none
+
+!terminator  = constantabn
+!bandwidth   = findeminemax
+!bopkernel   = jackson
+!nexpmoments = 200
+
+/-----------------------------------------------------------------------
+Atom = Fe
+/-----------------------------------------------------------------------
+Mass             = 55.845
+ValenceOrbitals  = 5
+ValenceElectrons = 6.80
+onsitelevels     = 0.0 
+StonerIntegral   = 0.76 0.76 0.76
+/-----------------------------------------------------------------------
+Atom = C
+/-----------------------------------------------------------------------
+Mass             = 12.011
+ValenceOrbitals  = 3
+ValenceElectrons = 3.0
+onsitelevels     = 0.0
+
+/-----------------------------------------------------------------------
+bond  = Fe Fe
+/-----------------------------------------------------------------------
+
+valence        = d d
+ddSigma        = exponential -34.811 1.625
+ddPi           = exponential  63.512 2.014
+ddDelta        = exponential -50.625 2.597
+rep1           = pp_exponential 2026.0 3.250
+rep2           = emb_sqrt_gaussian -3.70  0.230 
+chargeTransfer = 0.100 -5.000 4.000 0.000
+rcut           = 3.5
+dcut           = 0.5
+r2cut          = 5.5
+d2cut          = 0.5
+
+
+/-----------------------------------------------------------------------
+bond  = Fe C
+/-----------------------------------------------------------------------
+
+valence        = d p
+dpSigma        = exponential  20.611  1.302
+dpPi           = exponential -46.371  1.936
+rep1           = pp_exponential 23437.692 5.217  0.000
+chargeTransfer = 0.100 -5.000 4.000 0.000
+rcut           = 3.5
+dcut           = 0.5
+r2cut          = 5.5
+d2cut          = 0.5
+
+
+/-----------------------------------------------------------------------
+bond  = C C
+/-----------------------------------------------------------------------
+
+valence        = p p
+ppSigma        = exponential_inwardcos  44.539  1.359 2.000 1.200
+ppPi           = exponential_inwardcos -36.574  1.783 2.000 1.200
+rep1           = pp_exponential 441.34 2.586
+chargeTransfer = 0.100 -5.000 4.000 0.000
+rcut           = 3.5
+dcut           = 0.5
+r2cut          = 5.5
+d2cut          = 0.5
+

@@ -1,0 +1,339 @@
+ 
+ ------------------------------------
+  BOPfox (v 0.15) rev. 216 (collaan2)
+ ------------------------------------
+ 
+ init: infox.bx  (ok)
+ init: structure.bx  (ok)
+ modelfile            :          --           (           models.bx )
+ model                : test                  (                none )
+ version              : bop                   (                 bop )
+ magconfig            : cm                    (                  nm )
+ screening            :                    F  (                   F )
+ orthogonal           :          --           (                   T )
+ screeningversion     :          --           (                  v0 )
+ jijversion           :          --           (            diagonal )
+ moments              :                    9  (                   9 )
+ global_a_inf         :          --           (       11.2233440000 )
+ global_b_inf         :          --           (        3.2023751463 )
+ bandwidth            : averaged              (         gershogorin )
+ globalbandwidth      :          --           (                   F )
+ terminator           : constantabn           (         constantabn )
+ nexpmoments          :          --           (                 100 )
+ bopkernel            : none                  (             jackson )
+ maxpathradius        :          --           (        0.0000000000 )
+ efermitol            :         0.0000000000  (        0.0000000100 )
+ efermisteps          :          --           (                 100 )
+ efermimixer          :          --           (           bisection )
+ scfsteps             :                    1  (                  10 )
+ scftol               :         0.0001000000  (        0.0010000000 )
+ scfmixer             : broyden               (             broyden )
+ scflinearmixpara     :          --           (        0.1000000000 )
+ scfbroydenmixpara    :         0.0010000000  (        0.1000000000 )
+ scfonsitemddtsq      :          --           (        0.0010000000 )
+ scfonsitemdmass      :          --           (        1.0000000000 )
+ scfonsitemddamping   :          --           (        0.9000000000 )
+ scffirenmin          :          --           (                   5 )
+ scffirefinc          :          --           (        1.1000000000 )
+ scffirefdec          :          --           (        0.1000000000 )
+ scffirefalpha        :          --           (        0.9900000000 )
+ scffirealphastart    :          --           (        0.1000000000 )
+ scffiredtinitial     :          --           (        0.1000000000 )
+ scffiredtmax         :          --           (        1.0000000000 )
+ scfdamping           :          --           (                   F )
+ scfdampinglimit      :          --           (        0.1000000000 )
+ scfreusehii          :          --           (                   T )
+ scfrigidhiishift     :          --           (                   T )
+ scffixmagcom         :          --           (                   F )
+ scffixmagdiff        :          --           (                   F )
+ scfrestart           :          --           (                   T )
+ scfsaveonsite        :          --           (                   F )
+ scftraj              :          --           (     onsite-traj.dat )
+ printdos             :                    F  (                   F )
+ dosgrid              :          --           (                 200 )
+ dosvsn               :          --           (                   F )
+ partialdos           :          --           (                   F )
+ tbnbandstotal        :          --           (                  20 )
+ tbnsmear             :          --           (                  -5 )
+ tbdsmear             :          --           (        0.2000000000 )
+ tbkpointmesh         :          --           (      gamma-centered )
+ tbintegration        :          --           (         tetrahedron )
+ tbsolver             :          --           (              lapack )
+ tbkpointfile         :          --           (         kpoints.dat )
+ forces               : analytic              (            analytic )
+ numfdisp             :          --           (                   2 )
+ numfinc              :          --           (        0.0002000000 )
+ rskin                :          --           (        0.0000000000 )
+ rthickskin           :          --           (        1.0000000000 )
+ ecut                 :          --           (        0.0100000000 )
+ decut                :          --           (        0.0100000000 )
+ strucfile            : structure.bx          (       structures.bx )
+ task                 : force                 (              energy )
+ fastbop              :          --           (                   T )
+ verbose              :          --           (                   F )
+ verbosetime          :          --           (                   F )
+ verboseatom          :          --           (                   T )
+ printsc              :                    T  (                   F )
+ ioutput              :          --           (                   1 )
+ printbonds           :          --           (                   F )
+ neighbourhistogram   :          --           (                   F )
+ printbetaparameters  :          --           (                   F )
+ printoverparameters  :          --           (                   F )
+ printrepparameters   :          --           (                   F )
+ printham             :          --           (                   F )
+ printxi              :          --           (                   F )
+ printxi_normed       :          --           (                   F )
+ printmu              :          --           (                   F )
+ printmu2             :          --           (                   F )
+ printmu_averaged     :          --           (                   F )
+ printmu_normed       :          --           (                   F )
+ printanbn            :          --           (                   F )
+ printanhxbnhx        :          --           (                   F )
+ printa_infb_inf      :          --           (                   F )
+ printsigma           :          --           (                   F )
+ printbo              :          --           (                   F )
+ printbotilde         :          --           (                   F )
+ printefermi          :                    F  (                   F )
+ printefermifinal     :          --           (                   T )
+ printonsitelevels    :          --           (                   T )
+ printcharges         :          --           (                   T )
+ printmagmom          :          --           (                   T )
+ printenergies        :          --           (                   T )
+ printforces          :          --           (                   T )
+ printstress          :                    T  (                   F )
+ printcfg             :          --           (                   F )
+ init: N(total) N(fixed) =            4           0
+ init: cell(:,1) :     4.080000    0.000000    0.000000
+       cell(:,2) :     0.000000    4.080000    0.000000
+       cell(:,3) :     0.000000    0.000000    4.080000
+       Vol(cell) =            67.917312
+       Vol(cell)/atom =            16.979328
+ init: external stress =  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+ WARNING: Jii not set, using Jii = 8.0 (default for magnetic systems)
+ WARNING: Jii not set, using Jii = 8.0 (default for magnetic systems)
+ WARNING: Jii not set, using Jii = 8.0 (default for magnetic systems)
+ init: bond Fe  - Fe  ddsigma                    exponential ( 2 parameters)
+ init: bond Fe  - Fe     ddpi                    exponential ( 2 parameters)
+ init: bond Fe  - Fe  dddelta                    exponential ( 2 parameters)
+ WARNING: cutoffversion not specified, set to cosine.
+ init: bond Fe  - Fe  cutoff(short-range) :     3.500000    0.500000    cosine
+ init: bond Fe  - C   dpsigma                    exponential ( 2 parameters)
+ init: bond Fe  - C      dppi                    exponential ( 2 parameters)
+ WARNING: cutoffversion not specified, set to cosine.
+ init: bond Fe  - C   cutoff(short-range) :     3.500000    0.500000    cosine
+ init: bond C   - C   ppsigma          exponential_inwardcos ( 4 parameters)
+ init: bond C   - C      pppi          exponential_inwardcos ( 4 parameters)
+ WARNING: cutoffversion not specified, set to cosine.
+ init: bond C   - C   cutoff(short-range) :     3.500000    0.500000    cosine
+ init: bond Fe  - Fe     rep1                 pp_exponential ( 2 parameters)
+ init: bond Fe  - Fe     rep2              emb_sqrt_gaussian ( 2 parameters)
+ WARNING: cutoff2version not specified, set to cosine.
+ init: bond Fe  - Fe  cutoff (long-range) :     5.500000    0.500000    cosine
+ init: bond Fe  - C      rep1                 pp_exponential ( 3 parameters)
+ WARNING: cutoff2version not specified, set to cosine.
+ init: bond Fe  - C   cutoff (long-range) :     5.500000    0.500000    cosine
+ init: bond C   - C      rep1                 pp_exponential ( 2 parameters)
+ WARNING: cutoff2version not specified, set to cosine.
+ init: bond C   - C   cutoff (long-range) :     5.500000    0.500000    cosine
+ Atoms in cell/cluster:           4        4630
+ SC (init):   N_tot(e)/atoms =     4.9000000000
+ SC (onsite): it/max(Fm)/sum(abs(Fm))/max(dFm)/index(max(Fm)):     1        8.0726828406       32.8966319083        0.0000000000     6
+ SC (onsite): WARNING: step limit for SCF exceeded.
+ 
+ ============================================================================
+ Output for structure.bx
+ ============================================================================
+  
+ ============================================================================
+ Fermi level
+ ============================================================================
+ E_Fermi    0.598969270362632     
+ ----------------------------------------------------------------------------
+  
+ ============================================================================
+ Charges
+ ============================================================================
+ Nelec ( atom =         1 )          6.2922892645815960
+ Nelec ( atom =         2 )          3.5085784922557020
+ Nelec ( atom =         3 )          6.2921239398439361
+ Nelec ( atom =         4 )          3.5070083033187656
+ ----------------------------------------------------------------------------
+ Charge ( atom =         1 )         -0.5077107354184038
+ Charge ( atom =         2 )          0.5085784922557020
+ Charge ( atom =         3 )         -0.5078760601560637
+ Charge ( atom =         4 )          0.5070083033187656
+ ----------------------------------------------------------------------------
+ Nd ( atom =         1, spin = 1 )          4.7220171218173768
+ Nd ( atom =         1, spin = 2 )          1.5702721427642194
+ Np ( atom =         2, spin = 1 )          1.7239850460488007
+ Np ( atom =         2, spin = 2 )          1.7845934462069011
+ Nd ( atom =         3, spin = 1 )          4.7225551535631602
+ Nd ( atom =         3, spin = 2 )          1.5695687862807761
+ Np ( atom =         4, spin = 1 )          1.7228369982810121
+ Np ( atom =         4, spin = 2 )          1.7841713050377537
+ ----------------------------------------------------------------------------
+  
+ ============================================================================
+ Magnetic moments
+ ============================================================================
+ Mag_mom ( atom =         1, orbital =  d )          0.0000000000        0.0000000000        3.1517449791
+ Mag_mom ( atom =         2, orbital =  p )          0.0000000000        0.0000000000       -0.0606084002
+ Mag_mom ( atom =         3, orbital =  d )          0.0000000000        0.0000000000        3.1529863673
+ Mag_mom ( atom =         4, orbital =  p )          0.0000000000        0.0000000000       -0.0613343068
+ ----------------------------------------------------------------------------
+  
+ ============================================================================
+ Onsite levels
+ ============================================================================
+ Ed ( atom =         1, spin = 1 )         -0.7600000000000000
+ Ed ( atom =         1, spin = 2 )          0.7600000000000000
+ Ep ( atom =         2, spin = 1 )          0.0000000000000000
+ Ep ( atom =         2, spin = 2 )          0.0000000000000000
+ Ed ( atom =         3, spin = 1 )         -0.7600000000000000
+ Ed ( atom =         3, spin = 2 )          0.7600000000000000
+ Ep ( atom =         4, spin = 1 )          0.0000000000000000
+ Ep ( atom =         4, spin = 2 )          0.0000000000000000
+ ----------------------------------------------------------------------------
+ 
+ ============================================================================
+ Energies
+ ============================================================================
+ U_bond     ( atom =         1 )         -1.9284998814
+ U_bond     ( atom =         2 )         -3.4666557591
+ U_bond     ( atom =         3 )         -1.9265509652
+ U_bond     ( atom =         4 )         -3.4692904863
+ U_bond/atom                             -2.6977492730
+ U_bond_total                           -10.7909970920
+ U_bond_active                          -10.7909970920
+ ----------------------------------------------------------------------------
+ U_prom     ( atom =         1 )          0.0000000000
+ U_prom     ( atom =         2 )          0.0000000000
+ U_prom     ( atom =         3 )          0.0000000000
+ U_prom     ( atom =         4 )          0.0000000000
+ U_prom/atom                              0.0000000000
+ U_prom_total                             0.0000000000
+ U_prom_active                            0.0000000000
+ ----------------------------------------------------------------------------
+ U_ionic    ( atom =         1 )          1.0310807634
+ U_ionic    ( atom =         2 )          1.0346083311
+ U_ionic    ( atom =         3 )          1.0317523699
+ U_ionic    ( atom =         4 )          1.0282296785
+ U_ionic/atom                             1.0314177858
+ U_ionic_total                            4.1256711430
+ U_ionic_active                           4.1256711430
+ ----------------------------------------------------------------------------
+ U_coulomb  ( atom =         1 )          0.0000000000
+ U_coulomb  ( atom =         2 )          0.0000000000
+ U_coulomb  ( atom =         3 )          0.0000000000
+ U_coulomb  ( atom =         4 )          0.0000000000
+ U_coulomb/atom                           0.0000000000
+ U_coulomb_total                          0.0000000000
+ U_coulomb_active                         0.0000000000
+ ----------------------------------------------------------------------------
+ U_exchange ( atom =         1 )         -1.8873643185
+ U_exchange ( atom =         2 )          0.0000000000
+ U_exchange ( atom =         3 )         -1.8888513761
+ U_exchange ( atom =         4 )          0.0000000000
+ U_exchange/atom                         -0.9440539236
+ U_exchange_total                        -3.7762156946
+ U_exchange_activ                        -3.7762156946
+ ----------------------------------------------------------------------------
+ U_rep1     ( atom =         1 )          0.3832942061
+ U_rep1     ( atom =         2 )          0.5740120554
+ U_rep1     ( atom =         3 )          0.3831704465
+ U_rep1     ( atom =         4 )          0.5741767894
+ U_rep1/atom                              0.4786633744
+ U_rep1_total                             1.9146534975
+ U_rep1_active                            1.9146534975
+ ----------------------------------------------------------------------------
+ U_rep2     ( atom =         1 )         -3.1957867060
+ U_rep2     ( atom =         2 )          0.0000000000
+ U_rep2     ( atom =         3 )         -3.1957867060
+ U_rep2     ( atom =         4 )          0.0000000000
+ U_rep2/atom                             -1.5978933530
+ U_rep2_total                            -6.3915734121
+ U_rep2_active                           -6.3915734121
+ ----------------------------------------------------------------------------
+ U_binding  ( atom =         1 )         -5.5972759363
+ U_binding  ( atom =         2 )         -1.8580353725
+ U_binding  ( atom =         3 )         -5.5962662310
+ U_binding  ( atom =         4 )         -1.8668840183
+ U_binding/atom                          -3.7296153896
+ U_binding_total                        -14.9184615582
+ U_binding_active                       -14.9184615582
+ ----------------------------------------------------------------------------
+  
+ ============================================================================
+ Forces (Fx,Fy,Fz,x,y,z)
+ ============================================================================
+ FBOP (analytic)        1        0.7611335986        0.0000000000        0.0000000000        0.0408000000        0.0000000000        0.0000000000
+ FBOP (analytic)        2       -0.0203571000       -0.0000000002        0.0000000010        0.0000000000        2.0400000000        2.0400000000
+ FBOP (analytic)        3       -0.5845293043        0.0000000020        0.0000000000        2.0400000000        0.0000000000        2.0400000000
+ FBOP (analytic)        4       -0.1562472018        0.0000000014       -0.0000000016        2.0400000000        2.0400000000        0.0000000000
+ ----------------------------------------------------------------------------
+ FBOP (rep1    )        1       -0.1443514604        0.0000000000        0.0000000000        0.0408000000        0.0000000000        0.0000000000
+ FBOP (rep1    )        2       -0.0020069337        0.0000000000        0.0000000000        0.0000000000        2.0400000000        2.0400000000
+ FBOP (rep1    )        3        0.1322005881        0.0000000000        0.0000000000        2.0400000000        0.0000000000        2.0400000000
+ FBOP (rep1    )        4        0.0141578060        0.0000000000        0.0000000000        2.0400000000        2.0400000000        0.0000000000
+ ----------------------------------------------------------------------------
+ FBOP (rep2    )        1        0.0393563617        0.0000000000        0.0000000000        0.0408000000        0.0000000000        0.0000000000
+ FBOP (rep2    )        2        0.0000000000        0.0000000000        0.0000000000        0.0000000000        2.0400000000        2.0400000000
+ FBOP (rep2    )        3       -0.0393563617        0.0000000000        0.0000000000        2.0400000000        0.0000000000        2.0400000000
+ FBOP (rep2    )        4        0.0000000000        0.0000000000        0.0000000000        2.0400000000        2.0400000000        0.0000000000
+ ----------------------------------------------------------------------------
+ FBOP (coulomb )        1        0.0000000000        0.0000000000        0.0000000000        0.0408000000        0.0000000000        0.0000000000
+ FBOP (coulomb )        2        0.0000000000        0.0000000000        0.0000000000        0.0000000000        2.0400000000        2.0400000000
+ FBOP (coulomb )        3        0.0000000000        0.0000000000        0.0000000000        2.0400000000        0.0000000000        2.0400000000
+ FBOP (coulomb )        4        0.0000000000        0.0000000000        0.0000000000        2.0400000000        2.0400000000        0.0000000000
+ ----------------------------------------------------------------------------
+ FBOP (total   )        1        0.6561384999        0.0000000000        0.0000000000        0.0408000000        0.0000000000        0.0000000000
+ FBOP (total   )        2       -0.0223640338       -0.0000000002        0.0000000010        0.0000000000        2.0400000000        2.0400000000
+ FBOP (total   )        3       -0.4916850779        0.0000000020        0.0000000000        2.0400000000        0.0000000000        2.0400000000
+ FBOP (total   )        4       -0.1420893958        0.0000000014       -0.0000000016        2.0400000000        2.0400000000        0.0000000000
+ ----------------------------------------------------------------------------
+ 
+ ============================================================================
+ stresses (11,22,33,23,13,12)
+ ============================================================================
+ stress (bond        )        1        7.2232663042        3.7293772960        7.8074071611        0.0000000000        0.0000000000        0.0000000000
+ stress (bond        )        2       11.1580331720        3.7827294308       11.8245958039        0.0486819032       -0.0024534217       -0.0024534217
+ stress (bond        )        3        7.4876843469        3.8896046105        7.7975822452        0.0000000000       -0.0000000084       -0.2559910399
+ stress (bond        )        4       11.4163970943        3.9539062923       11.8143296825       -0.0485248089       -0.0004629020        0.2757673232
+ ----------------------------------------------------------------------------
+ stress (rep1        )        1       -1.7631681848       -0.2610654388       -1.7683777209        0.0000000000        0.0000000000        0.0000000000
+ stress (rep1        )        2       -2.1280526995       -0.3639473193       -2.1278469692        0.0000000000        0.0000000000        0.0000000000
+ stress (rep1        )        3       -1.7625004005       -0.2599842303       -1.7685418519        0.0000000000        0.0000000000        0.0000000000
+ stress (rep1        )        4       -2.1286376922       -0.3653571970       -2.1280115073        0.0000000000        0.0000000000        0.0000000000
+ ----------------------------------------------------------------------------
+ stress (rep2        )        1        3.2405006446        1.1571640679        3.2431184032        0.0000000000        0.0000000000        0.0000000000
+ stress (rep2        )        2        0.0000000000        0.0000000000        0.0000000000        0.0000000000        0.0000000000        0.0000000000
+ stress (rep2        )        3        3.2405006446        1.1571640679        3.2431184032        0.0000000000        0.0000000000        0.0000000000
+ stress (rep2        )        4        0.0000000000        0.0000000000        0.0000000000        0.0000000000        0.0000000000        0.0000000000
+ ----------------------------------------------------------------------------
+ stress (total       )        1        8.7005987640        4.6254759251        9.2821478434        0.0000000000        0.0000000000        0.0000000000
+ stress (total       )        2        9.0299804725        3.4187821114        9.6967488348        0.0486819032       -0.0024534217       -0.0024534217
+ stress (total       )        3        8.9656845910        4.7867844482        9.2721587964        0.0000000000       -0.0000000084       -0.2559910399
+ stress (total       )        4        9.2877594020        3.5885490954        9.6863181752       -0.0485248089       -0.0004629020        0.2757673232
+ ----------------------------------------------------------------------------
+ sum(stress)/volume                  0.5298210746        0.2417585605        0.5585817891        0.0000023130       -0.0000429395        0.0002550581
+ external stress                     0.0000000000        0.0000000000        0.0000000000        0.0000000000        0.0000000000        0.0000000000
+ hydrostatic pressure =              0.4433871414 eV/A^3    71038.4452602158 MPa
+ ----------------------------------------------------------------------------
+ 
+ ============================================================================
+ 
+ BOPfox calculation is finished!
+ Note: warnings issued during calculation.
+  
+ timing BOPfox : 
+     initialisation              0.113s  63.48% 
+     neighbour lists             0.007s   3.93% 
+     hopping matrix              0.013s   7.30% 
+     interference paths          0.014s   7.87% 
+     transfer matrices           0.023s  12.92% 
+     rest                        0.008s   4.49% 
+     total                       0.178s 
+     efficiency force calls               0.045 s/atom/forcecall
+ 
+ ============================================================================
+ 

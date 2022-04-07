@@ -1,0 +1,23 @@
+
+model = Cak-2014
+
+TASK = relax
+
+scfreusehii = T
+scfsteps = 20
+
+ioutput = 20
+
+forces    = analytic
+
+StrucFile = struc.bcc.bx
+
+rxtype = cell
+rxeconv = 0
+rxfconv = 1e-3
+rxkernel = damped-newton
+rxmaxsteps = 5000   
+dndamping  = 0.00 
+dnrecmass  = 0.01 
+printstress = T
+

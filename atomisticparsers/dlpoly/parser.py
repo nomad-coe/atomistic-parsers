@@ -409,7 +409,7 @@ class DLPolyParser:
             'eng_ang': 'energy_contribution_angle',
             'eng_dih': 'energy_contribution_dihedral',
             'eng_tet': 'energy_contribution_tethering',
-            'eng_pv': 'energy_enthalpy',
+            'eng_pv': 'enthalpy',
             'temp_rot': 'x_dl_poly_temperature_rotational',
             # TODO include virial to nomad metainfo
             'vir_cfg': 'x_dl_poly_virial_configurational',
@@ -538,6 +538,8 @@ class DLPolyParser:
                     sec_energy.enthalpy = instantaneous[n] * energy_unit
                 elif name.startswith('energy_'):
                     setattr(sec_energy, name.replace('energy_', ''), EnergyEntry(value=instantaneous[n] * energy_unit))
+                elif name == 'enthalpy':
+                    sec_calc.enthalpy = instantaneous[n] * energy_unit
                 elif 'temperature' in name:
                     setattr(sec_calc, name, instantaneous[n] * ureg.kelvin)
                 elif 'pressure' in name:

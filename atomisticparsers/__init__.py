@@ -18,6 +18,7 @@
 #
 from .amber.parser import AmberParser
 from .asap.parser import AsapParser
+from .bopfox.parser import BOPfoxParser
 from .dftbplus.parser import DFTBPlusParser
 from .dlpoly.parser import DLPolyParser
 from .gromacs.parser import GromacsParser

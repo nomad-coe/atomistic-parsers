@@ -45,7 +45,8 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics
 )
 from nomad.datamodel.metainfo.workflow import (
-    DiffusionConstantValues, Msd, MsdValues, Rdf, RdfValues,
+    DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
+    RadialDistributionFunction, RadialDistributionFunctionValues,
     Workflow, MolecularDynamics
 )
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
@@ -791,30 +792,41 @@ class GromacsParser:
         sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
         rdf_results = self.traj_parser.calc_molecular_rdf()
         if rdf_results is not None:
-            sec_rdfs = sec_molecular_dynamics.m_create(Rdf)
-            sec_rdfs.label = 'molecular radial distribution functions'
-            sec_rdfs.n_smooth = rdf_results['n_smooth']
-            sec_rdfs.variables_name = 'distance'
-            for i_pair, pair_type in enumerate(rdf_results['types']):
-                sec_rdf_values = sec_rdfs.m_create(RdfValues)
-                sec_rdf_values.type = str(pair_type)
-                sec_rdf_values.bins = rdf_results['bins'][i_pair]
-                sec_rdf_values.value = rdf_results['values'][i_pair]
+            sec_rdfs = sec_molecular_dynamics.m_create(RadialDistributionFunction)
+            sec_rdfs.type = 'Molecular'
+            sec_rdfs.n_smooth = rdf_results.get('n_smooth')
+            sec_rdfs.n_variables = 1
+            sec_rdfs.variables_name = np.array(['distance'])
+            for i_pair, pair_type in enumerate(rdf_results.get('types')):
+                sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
+                sec_rdf_values.label = str(pair_type)
+                sec_rdf_values.n_bins = len(rdf_results['bins'][i_pair]) if rdf_results.get(
+                    'bins') is not None else []
+                sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
+                    'bins') is not None else []
+                sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
+                    'value') is not None else []
 
         # calculate the molecular mean squared displacements
         msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()
         if msd_results is not None:
-            sec_msds = sec_molecular_dynamics.m_create(Msd)
-            sec_msds.label = 'molecular mean squared displacements'
-            for i_type, moltype in enumerate(msd_results['types']):
-                sec_msd_values = sec_msds.m_create(MsdValues)
-                sec_msd_values.type = moltype
-                sec_msd_values.times = msd_results['times'][i_type]
-                sec_msd_values.value = msd_results['values'][i_type]
+            sec_msds = sec_molecular_dynamics.m_create(MeanSquaredDisplacement)
+            sec_msds.type = 'Molecular'
+            for i_type, moltype in enumerate(msd_results.get('types')):
+                sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
+                sec_msd_values.label = str(moltype)
+                sec_msd_values.n_times = len(msd_results['times'][i_type]) if msd_results.get(
+                    'times') is not None else []
+                sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
+                    'times') is not None else []
+                sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
+                    'value') is not None else []
                 sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-                sec_diffusion.value = msd_results['diffusion_constant'][i_type]
+                sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
+                    'diffusion_constant') is not None else []
                 sec_diffusion.error_type = 'Pearson correlation coefficient'
-                sec_diffusion.error_value = msd_results['error_diffusion_constant'][i_type]
+                sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
+                    'error_diffusion_constant') is not None else []
 
     def parse_method(self):
         sec_method = self.archive.run[-1].m_create(Method)

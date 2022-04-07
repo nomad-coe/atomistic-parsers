@@ -194,7 +194,7 @@ class MDAnalysisParser(FileParser):
                                        exclusion_block=exclusion_block, nbins=n_bins).run()
                 rdf_types.append(pair_type)
                 rdf_variables_name.append(['distance'])
-                rdf_bins.append([rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)]])
+                rdf_bins.append(rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)])
                 rdf_values.append(np.convolve(
                     rdf.results.rdf, np.ones((n_smooth,)) / n_smooth,
                     mode='same')[int(n_smooth / 2):-int(n_smooth / 2)])
@@ -202,8 +202,8 @@ class MDAnalysisParser(FileParser):
         rdf_results['types'] = np.array(rdf_types)
         rdf_results['n_smooth'] = n_smooth
         rdf_results['variables_name'] = np.array(rdf_variables_name)
-        rdf_results['bins'] = np.array(rdf_bins) * 10**(-10)  # convert from angstroms to meters
-        rdf_results['values'] = np.array(rdf_values)
+        rdf_results['bins'] = np.array(rdf_bins) * ureg.angstrom
+        rdf_results['value'] = np.array(rdf_values)
         return rdf_results
 
     @property
@@ -326,7 +326,7 @@ class MDAnalysisParser(FileParser):
 
         bead_groups = {}
         msd_results = {}
-        msd_results['values'] = []
+        msd_results['value'] = []
         msd_results['times'] = []
         msd_results['diffusion_constant'] = []
         msd_results['error_diffusion_constant'] = []
@@ -343,20 +343,18 @@ class MDAnalysisParser(FileParser):
             results = shifted_correlation(
                 mean_squared_displacement, times, positions, average=True
             )
-            msd_results['values'].append(results[1])
+            msd_results['value'].append(results[1])
             msd_results['times'].append(results[0])
             diffusion_constant, error = calc_diffusion_constant(*results)
             msd_results['diffusion_constant'].append(diffusion_constant)
             msd_results['error_diffusion_constant'].append(error)
 
         msd_results['types'] = moltypes
-        msd_results['times'] = np.array(msd_results['times']) * 10**(-12)  # convert from picoseconds to seconds
-        msd_results['values'] = (np.array(msd_results['values'])
-                                 * 10**(-20))  # convert from nanometer^2 to meter^2
+        msd_results['times'] = np.array(msd_results['times']) * ureg.picosecond
+        msd_results['value'] = np.array(msd_results['value']) * ureg.angstrom**2
         msd_results['diffusion_constant'] = (np.array(msd_results['diffusion_constant'])
-                                             * 10**(-8))  # convert from angstroms^2/picosecond to meter^2/second
-        msd_results['error_diffusion_constant'] = (np.array(msd_results['error_diffusion_constant'])
-                                                   * 10**(-8))  # convert from angstroms^2/picosecond to meter^2/second
+                                             * ureg.angstrom**2 / ureg.picosecond)
+        msd_results['error_diffusion_constant'] = np.array(msd_results['error_diffusion_constant'])
 
         return msd_results
 
@@ -365,11 +363,11 @@ class MDAnalysisParser(FileParser):
         __ = self.universe.trajectory[0]
         prev = deepcopy(selection.positions)
         box = self.universe.trajectory[0].dimensions[:3]
-        SparseData = namedtuple('SparseData', ['data', 'row', 'col'])
+        sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])
         jump_data = (
-            SparseData(data=array('b'), row=array('l'), col=array('l')),
-            SparseData(data=array('b'), row=array('l'), col=array('l')),
-            SparseData(data=array('b'), row=array('l'), col=array('l'))
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
+            sparse_data(data=array('b'), row=array('l'), col=array('l'))
         )
 
         for i_frame, _ in enumerate(self.universe.trajectory[1:]):
@@ -441,40 +439,35 @@ class BeadGroup(object):
         return self._atoms.universe
 
 
-class CoordinateTransform(object):
-    def __init__(self, atoms, compound="fragments"):
-        """Initialize with an AtomGroup instance.
-        Will split based on keyword 'compounds' (residues or fragments).
-        """
-        self._atoms = atoms
-        self.compound = compound
-        self._nbeads = len(getattr(self._atoms, self.compound))
-        # for caching
-        self._cache = {}
-        self._cache["positions"] = None
-        self.__last_frame = None
+# class CoordinateTransform(object):
+#     def __init__(self, atoms, compound="fragments"):
+#         """Initialize with an AtomGroup instance.
+#         Will split based on keyword 'compounds' (residues or fragments).
+#         """
+#         self._atoms = atoms
+#         self.compound = compound
+#         self._nbeads = len(getattr(self._atoms, self.compound))
+#         # for caching
+#         self._cache = {}
+#         self._cache["positions"] = None
+#         self.__last_frame = None
 
-    def __len__(self):
-        return self._nbeads
+#     def __len__(self):
+#         return self._nbeads
 
-    @property
-    def positions(self):
-        # cache positions for current frame
-        if self.universe.trajectory.frame != self.__last_frame:
-            self._cache["positions"] = self._atoms.center_of_mass(
-                unwrap=True, compound=self.compound)
-            self.__last_frame = self.universe.trajectory.frame
-        return self._cache["positions"]
+#     @property
+#     def positions(self):
+#         # cache positions for current frame
+#         if self.universe.trajectory.frame != self.__last_frame:
+#             self._cache["positions"] = self._atoms.center_of_mass(
+#                 unwrap=True, compound=self.compound)
+#             self.__last_frame = self.universe.trajectory.frame
+#         return self._cache["positions"]
 
-    @property  # type: ignore
-    @MDAnalysis.lib.util.cached("universe")
-    def universe(self):
-        return self._atoms.universe
-
-
-def set_has_counter(func):
-    func.has_counter = True
-    return func
+#     @property  # type: ignore
+#     @MDAnalysis.lib.util.cached("universe")
+#     def universe(self):
+#         return self._atoms.universe
 
 
 def log_indices(first, last, num=100):
@@ -494,6 +487,8 @@ def shifted_correlation(function, times, positions,
                         average=False, ):
 
     """
+    Code adapted from MDevaluate module: https://github.com/mdevaluate/mdevaluate.git
+
     Calculate the time series for a correlation function.
 
     The times at which the correlation is calculated are determined automatically by the

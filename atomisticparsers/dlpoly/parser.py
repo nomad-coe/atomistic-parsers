@@ -534,6 +534,8 @@ class DLPolyParser:
                 if name.startswith('energy_contribution_'):
                     sec_energy.contributions.append(EnergyEntry(
                         kind=name.replace('energy_contribution_', ''), value=instantaneous[n] * energy_unit))
+                elif name == 'energy_enthalpy':
+                    sec_energy.enthalpy = instantaneous[n] * energy_unit
                 elif name.startswith('energy_'):
                     setattr(sec_energy, name.replace('energy_', ''), EnergyEntry(value=instantaneous[n] * energy_unit))
                 elif 'temperature' in name:

@@ -32,7 +32,7 @@ from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics, Vibrations
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics, VibrationalFrequencies
 )
 from nomad.datamodel.metainfo.workflow import (
     Workflow, GeometryOptimization, MolecularDynamics
@@ -406,7 +406,7 @@ class TinkerParser:
                 # reference structure
                 sec_system = self.parse_system(0, get_reference_filename(program))
                 sec_scc = sec_run.m_create(Calculation)
-                sec_vibrations = sec_scc.m_create(Vibrations)
+                sec_vibrations = sec_scc.m_create(VibrationalFrequencies)
                 sec_vibrations.value = [run.vibrate.frequencies[n] for n in range(len(
                     run.vibrate.get('frequencies', []))) if n % 2 == 1] * (1 / ureg.cm)
                 sec_vibrations.x_tinker_eigenvalues = [run.vibrate.eigenvalues[n] for n in range(len(

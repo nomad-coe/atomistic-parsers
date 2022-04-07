@@ -1196,7 +1196,7 @@ class Calculation(simulation.calculation.Calculation):
         repeats=True)
 
 
-class Vibrations(simulation.calculation.Vibrations):
+class VibrationalFrequencies(simulation.calculation.VibrationalFrequencies):
 
     m_def = Section(validate=False, extends_base_section=True)
 

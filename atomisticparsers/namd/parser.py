@@ -202,7 +202,7 @@ class NAMDParser:
         self.traj_parser.mainfile = os.path.join(self.maindir, parameters.get('coordinate_file'))
         initial_system = parse_system()
         # energy unit is kcal / mol
-        energy_unit = ureg.kcal * self.traj_parser.get('n_atoms') / MOL
+        energy_unit = ureg.J * 4184.0 * self.traj_parser.get('n_atoms') / MOL
 
         # trajectories
         # TODO other formats

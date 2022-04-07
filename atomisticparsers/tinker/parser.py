@@ -156,12 +156,12 @@ class OutParser(TextParser):
                             Quantity(
                                 'potential',
                                 rf'Current Potential +({re_f}) Kcal/mole',
-                                dtype=np.float64, unit=ureg.kcal / mol
+                                dtype=np.float64, unit=ureg.J * 4184.0 / mol
                             ),
                             Quantity(
                                 'kinetic',
                                 rf'Current Kinetic +({re_f}) Kcal/mole',
-                                dtype=np.float64, unit=ureg.kcal / mol
+                                dtype=np.float64, unit=ureg.J * 4184.0 / mol
                             ),
                             Quantity(
                                 'lattice_lengths',
@@ -190,17 +190,17 @@ class OutParser(TextParser):
                             Quantity(
                                 'energy_total',
                                 rf'Total Energy +({re_f}) Kcal/mole',
-                                dtype=np.float64, unit=ureg.kcal / mol
+                                dtype=np.float64, unit=ureg.J * 4184.0 / mol
                             ),
                             Quantity(
                                 'potential',
                                 rf'Potential Energy +({re_f}) Kcal/mole',
-                                dtype=np.float64, unit=ureg.kcal / mol
+                                dtype=np.float64, unit=ureg.J * 4184.0 / mol
                             ),
                             Quantity(
                                 'kinetic',
                                 rf'Kinetic Energy +({re_f}) Kcal/mole',
-                                dtype=np.float64, unit=ureg.kcal / mol
+                                dtype=np.float64, unit=ureg.J * 4184.0 / mol
                             ),
                             Quantity(
                                 'temperature',
@@ -423,7 +423,7 @@ class TinkerParser:
                 for n, step in enumerate(run.minimize.get('iteration', {}).get('step', [])):
                     sec_scc = sec_run.m_create(Calculation)
                     sec_scc.energy = Energy(total=EnergyEntry(
-                        value=step[0] * len(sec_system.atoms.positions) * ureg.kcal / mol))
+                        value=step[0] * len(sec_system.atoms.positions) * ureg.J * 4184.0 / mol))
                     if n == 0:
                         sec_scc.system_ref = initial_system
                 # only the optimized structure is printed, corresponding to the last scc

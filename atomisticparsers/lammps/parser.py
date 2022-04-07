@@ -50,8 +50,8 @@ def get_unit(units_type, property_type=None, dimension=3):
     if units_type == 'real':
         units = dict(
             mass=ureg.g / mole, distance=ureg.angstrom, time=ureg.fs,
-            energy=ureg.kcal / mole, velocity=ureg.angstrom / ureg.fs,
-            force=ureg.kcal / ureg.angstrom / mole, torque=ureg.kcal / mole,
+            energy=ureg.J * 4184.0 / mole, velocity=ureg.angstrom / ureg.fs,
+            force=ureg.J * 4184.0 / ureg.angstrom / mole, torque=ureg.J * 4184.0 / mole,
             temperature=ureg.K, pressure=ureg.atm, dynamic_viscosity=ureg.poise, charge=ureg.elementary_charge,
             dipole=ureg.elementary_charge * ureg.angstrom, electric_field=ureg.V / ureg.angstrom,
             density=ureg.g / ureg.cm ** dimension)

@@ -394,8 +394,8 @@ class DLPolyParser:
             'kj/mol': ureg.kJ / MOL,
             'kj': ureg.kJ / MOL,
             'ev': ureg.eV,
-            'kcal/mol': ureg.kcal / MOL,
-            'kcal': ureg.kcal / MOL,
+            'kcal/mol': ureg.J * 4184.0 / MOL,
+            'kcal': ureg.J * 4184.0 / MOL,
             'dl_poly internal units (10 j/mol)': 10 * ureg.J / MOL
         }
         self._metainfo_map = {

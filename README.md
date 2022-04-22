@@ -9,7 +9,6 @@ This is a collection of the NOMAD parsers for the following atomistic codes.
 7. [GULP](http://gulp.curtin.edu.au/gulp/)
 8. [LAMMPS](https://lammps.sandia.gov/)
 9. [libAtoms](http://libatoms.github.io/)
-10. [MOPAC](http://openmopac.net/)
 11. [NAMD](http://www.ks.uiuc.edu/Research/namd/)
 12. [openKIM](https://openkim.org/)
 13. [Tinker](https://dasher.wustl.edu/tinker/)

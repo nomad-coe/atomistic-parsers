@@ -17,12 +17,14 @@
 # limitations under the License.
 #
 import numpy as np            # pylint: disable=unused-import
-import typing                 # pylint: disable=unused-import
+from nomad.datamodel.metainfo.simulation.calculation import EnergyEntry
+
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference
 )
 from nomad.datamodel.metainfo import simulation
+from nomad.datamodel.metainfo import workflow
 
 
 m_package = Package()
@@ -340,6 +342,24 @@ class Run(simulation.run.Run):
         Title of GULP calculation
         ''')
 
+    x_gulp_n_cpu = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_host_name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_total_n_configurations_input = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        ''')
+
     x_gulp_section_main_keyword = SubSection(
         sub_section=SectionProxy('x_gulp_section_main_keyword'),
         repeats=True)
@@ -368,198 +388,348 @@ class Method(simulation.method.Method):
         repeats=True)
 
 
-class Calculation(simulation.calculation.Calculation):
+class AtomParameters(simulation.method.AtomParameters):
 
     m_def = Section(validate=False, extends_base_section=True)
 
-    x_gulp_energy_attachment_energy = Quantity(
+    x_gulp_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_covalent_radius = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='m',
+        description='''
+        ''')
+
+    x_gulp_ionic_radius = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m',
+        description='''
+        ''')
+
+    x_gulp_vdw_radius = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m',
+        description='''
+        ''')
+
+
+class Energy(simulation.calculation.Energy):
+
+    m_def = Section(validate=False, extends_base_section=True)
+
+    x_gulp_attachment_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
         description='''
         GULP energy term for attachment_energy
         ''')
 
-    x_gulp_energy_attachment_energy_unit = Quantity(
+    x_gulp_attachment_unit = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for attachment_energy_unit
         ''')
 
-    x_gulp_energy_bond_order_potentials = Quantity(
+    x_gulp_bond_order_potentials = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for bond_order_potentials
         ''')
 
-    x_gulp_energy_brenner_potentials = Quantity(
+    x_gulp_brenner_potentials = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for brenner_potentials
         ''')
 
-    x_gulp_energy_bulk_energy = Quantity(
+    x_gulp_bulk = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for bulk_energy
         ''')
 
-    x_gulp_energy_dispersion_real_recip = Quantity(
+    x_gulp_dispersion_real_recip = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for dispersion_real_recip
         ''')
 
-    x_gulp_energy_electric_field_times_distance = Quantity(
+    x_gulp_electric_field_times_distance = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for electric_field_times_distance
         ''')
 
-    x_gulp_energy_energy_shift = Quantity(
+    x_gulp_shift = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for energy_shift
         ''')
 
-    x_gulp_energy_four_body_potentials = Quantity(
+    x_gulp_four_body_potentials = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for four_body_potentials
         ''')
 
-    x_gulp_energy_improper_torsions = Quantity(
+    x_gulp_improper_torsions = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for improper_torsions
         ''')
 
-    x_gulp_energy_interatomic_potentials = Quantity(
+    x_gulp_interatomic_potentials = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for interatomic_potentials
         ''')
 
-    x_gulp_energy_many_body_potentials = Quantity(
+    x_gulp_many_body_potentials = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for many_body_potentials
         ''')
 
-    x_gulp_energy_monopole_monopole_real = Quantity(
+    x_gulp_monopole_monopole_real = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for monopole_monopole_real
         ''')
 
-    x_gulp_energy_monopole_monopole_recip = Quantity(
+    x_gulp_monopole_monopole_recip = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for monopole_monopole_recip
         ''')
 
-    x_gulp_energy_monopole_monopole_total = Quantity(
+    x_gulp_monopole_monopole_total = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for monopole_monopole_total
         ''')
 
-    x_gulp_energy_neutralising_energy = Quantity(
+    x_gulp_neutralising = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for neutralising_energy
         ''')
 
-    x_gulp_energy_non_primitive_unit_cell = Quantity(
+    x_gulp_non_primitive_unit_cell = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for non_primitive_unit_cell
         ''')
 
-    x_gulp_energy_out_of_plane_potentials = Quantity(
+    x_gulp_out_of_plane_potentials = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for out_of_plane_potentials
         ''')
 
-    x_gulp_energy_primitive_unit_cell = Quantity(
+    x_gulp_primitive_unit_cell = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for primitive_unit_cell
         ''')
 
-    x_gulp_energy_reaxff_force_field = Quantity(
+    x_gulp_reaxff_force_field = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for reaxff_force_field
         ''')
 
-    x_gulp_energy_region_1_2_interaction = Quantity(
+    x_gulp_region_1_2_interaction = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for region_1_2_interaction
         ''')
 
-    x_gulp_energy_region_2_2_interaction = Quantity(
+    x_gulp_region_2_2_interaction = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for region_2_2_interaction
         ''')
 
-    x_gulp_energy_self_energy_eem_qeq_sm = Quantity(
+    x_gulp_self_eem_qeq_sm = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for self_energy_eem_qeq_sm
         ''')
 
-    x_gulp_energy_sm_coulomb_correction = Quantity(
+    x_gulp_sm_coulomb_correction = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for sm_coulomb_correction
         ''')
 
-    x_gulp_energy_solvation_energy = Quantity(
+    x_gulp_solvation = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for solvation_energy
         ''')
 
-    x_gulp_energy_three_body_potentials = Quantity(
+    x_gulp_three_body_potentials = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         GULP energy term for three_body_potentials
         ''')
 
-    x_gulp_energy_total_lattice_energy = Quantity(
+    x_gulp_total_averaged = SubSection(sub_section=EnergyEntry.m_def)
+
+
+class x_gulp_bulk_optimisation_cycle(MSection):
+
+    m_def = Section(validate=False)
+
+    x_gulp_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        ''')
+
+    x_gulp_gnorm = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         description='''
-        GULP energy term for total_lattice_energy
         ''')
+
+    x_gulp_cpu_time = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='s',
+        description='''
+        ''')
+
+
+class x_gulp_bulk_optimisation(MSection):
+
+    m_def = Section(validate=False)
+
+    x_gulp_n_variables = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_max_n_calculations = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_max_hessian_update_interval = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_max_step_size = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_max_parameter_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_max_function_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_max_gradient_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_max_gradient_component = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_optimiser = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_hessian_updater = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_bulk_optimisation_cycle = SubSection(sub_section=x_gulp_bulk_optimisation_cycle, repeats=True)
+
+
+class Calculation(simulation.calculation.Calculation):
+
+    m_def = Section(validate=False, extends_base_section=True)
 
     x_gulp_md_time = Quantity(
         type=np.dtype(np.float64),
@@ -601,4 +771,219 @@ class Calculation(simulation.calculation.Calculation):
         shape=[],
         description='''
         GULP molecular dynamics pressure
+        ''')
+
+    x_gulp_temperature_averaged = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kelvin',
+        description='''
+        ''')
+
+    x_gulp_pressure_averaged = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        ''')
+
+    x_gulp_piezoelectric_strain_matrix = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 6],
+        unit='C / m**2',
+        description='''
+        ''')
+
+    x_gulp_piezoelectric_stress_matrix = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 6],
+        unit='C / N',
+        description='''
+        ''')
+
+    x_gulp_static_dielectric_constant_tensor = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        description='''
+        ''')
+
+    x_gulp_high_frequency_dielectric_constant_tensor = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        description='''
+        ''')
+
+    x_gulp_static_refractive_indices = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        description='''
+        ''')
+
+    x_gulp_high_frequency_refractive_indices = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        description='''
+        ''')
+
+    x_gulp_bulk_optimisation = SubSection(sub_section=x_gulp_bulk_optimisation.m_def)
+
+
+class Elastic(workflow.Elastic):
+
+    m_def = Section(validate=False, extends_base_section=True)
+
+    x_gulp_velocity_s_wave_reuss = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m / s',
+        description='''
+        ''')
+
+    x_gulp_velocity_s_wave_voigt = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m / s',
+        description='''
+        ''')
+
+    x_gulp_velocity_s_wave_hill = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m / s',
+        description='''
+        ''')
+
+    x_gulp_velocity_p_wave_reuss = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m / s',
+        description='''
+        ''')
+
+    x_gulp_velocity_p_wave_voigt = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m / s',
+        description='''
+        ''')
+
+    x_gulp_velocity_p_wave_hill = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m / s',
+        description='''
+        ''')
+
+    x_gulp_compressibility = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='1 / pascal',
+        description='''
+        ''')
+
+    # TODO determine if these values can be transformed to the top level definitions
+    x_gulp_youngs_modulus_x = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        ''')
+
+    x_gulp_youngs_modulus_y = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        ''')
+
+    x_gulp_youngs_modulus_z = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        ''')
+
+    x_gulp_poissons_ratio = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        description='''
+        ''')
+
+
+class MolecularDynamics(workflow.MolecularDynamics):
+
+    m_def = Section(validate=False, extends_base_section=True)
+
+    x_gulp_friction_temperature_bath = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_n_mobile_ions = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_n_degrees_of_freedom = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        ''')
+
+    x_gulp_equilibration_time = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='s',
+        description='''
+        ''')
+
+    x_gulp_production_time = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='s',
+        description='''
+        ''')
+
+    x_gulp_scaling_time = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='s',
+        description='''
+        ''')
+
+    x_gulp_scaling_frequency = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='s',
+        description='''
+        ''')
+
+    x_gulp_sampling_frequency = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='s',
+        description='''
+        ''')
+
+    x_gulp_write_frequency = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='s',
+        description='''
+        ''')
+
+    x_gulp_td_force_start_time = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='s',
+        description='''
+        ''')
+
+    x_gulp_td_field_start_time = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='s',
+        description='''
         ''')

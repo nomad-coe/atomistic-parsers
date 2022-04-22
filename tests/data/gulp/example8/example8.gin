@@ -1,0 +1,38 @@
+opti mole defe bulk c6 
+title
+Vacancy of SO4 2- in BaSO4 : example of molecular defect calculation
+end
+cell
+   8.849359   5.511278   7.122216  90.000000  90.000000  90.000000 0 0 0 0 0 0
+fractional    8
+Ba   core  0.18403159   0.25000000   0.15871720    2.000000 0 0 0
+S    core  0.44293245   0.75000000   0.18559160    1.560000 0 0 0
+O    core  0.59763173   0.75000000   0.10196233    0.560000 0 0 0
+O    core  0.31838419   0.75000000   0.04068194    0.560000 0 0 0
+O    core  0.42464344   0.97112909   0.30941077    0.560000 0 0 0
+O    shel  0.59891583   0.75000000   0.10151961   -1.450000 0 0 0
+O    shel  0.31956732   0.75000000   0.03985411   -1.450000 0 0 0
+O    shel  0.42515811   0.97063065   0.30869996   -1.450000 0 0 0
+space
+P N M A         
+size   4.600   8.600
+centre molecule 1
+vacancy molecule 1
+species   4
+Ba    core    2.000000
+S     core    1.560000
+O     core    0.560000
+O     shel   -1.450000
+buck
+Ba   core O    shel    4000.000000 0.291300    0.00000  0.000 8.000
+morse intra
+S    core O    shel      4.756000   2.135000  1.52700  0.0000  1.800
+buck inter
+O    shel O    shel  150000.000001 0.197600   28.00000  2.700 16.000
+spring
+O    15.000000  
+three
+S    core O    shel O    shel   7.750000 109.470000  1.800  1.800  3.200
+element
+covalent 56  0.2220
+end

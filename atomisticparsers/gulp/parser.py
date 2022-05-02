@@ -186,7 +186,7 @@ class MainfileParser(TextParser):
             ),
             Quantity(
                 'x_gulp_piezoelectric_strain_matrix',
-                rf'Piezoelectric Strain Matrix\: \(Units=C/m\*\*2\)\s+\-+\s+'
+                rf'Piezoelectric Strain Matrix\: \(Unitenergy_componentss=C/m\*\*2\)\s+\-+\s+'
                 rf'Indices.+\s*\-+\s+((?:\w +{re_f}.+\s+)+)',
                 dtype=np.dtype(np.float64), str_operation=lambda x: np.array(
                     [v.strip().split()[1:7] for v in x.strip().splitlines()],
@@ -537,7 +537,7 @@ class GulpParser:
             'SM Coulomb correction': 'x_gulp_sm_coulomb_correction',
             'Solvation energy': 'x_gulp_solvation',
             'Three-body potentials': 'x_gulp_three_body_potentials',
-            'Total lattice energy': 'total',
+            'Total lattice energy': 'total', 'Total defect energy': 'total'
         }
         self._sg_map = {
             'P 1': 1, 'P -1': 2, 'P 2': 3, 'P 21': 4, 'C 2': 5, 'P M': 6, 'P C': 7,
@@ -693,6 +693,7 @@ class GulpParser:
             sec_calc = sec_run.m_create(Calculation)
 
             if source.energy_components is not None:
+                print('--------------------', source.energy_components.key_val)
                 sec_energy = sec_calc.m_create(Energy)
                 for key, val in source.energy_components.get('key_val', []):
                     name = self._metainfo_map.get(key)
@@ -717,6 +718,7 @@ class GulpParser:
             if source.elastic_constants is not None:
                 sec_workflow = self.archive.m_create(Workflow)
                 sec_elastic = sec_workflow.m_create(Elastic)
+                sec_workflow.type = 'elastic'
                 sec_elastic.energy_stress_calculator = "gulp"
                 sec_elastic.elastic_constants_matrix_second_order = source.elastic_constants
                 sec_elastic.compliance_matrix_second_order = source.elastic_compliance

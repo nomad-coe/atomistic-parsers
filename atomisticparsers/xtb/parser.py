@@ -641,7 +641,7 @@ class XTBParser:
 
         for cycle in module.get('cycle', []):
             # cycle[0] is the timestep, we divide it with trj_freq to get corresponding frame
-            sec_system = self.parse_system(int(cycle[0] // trj_freq) + 1)
+            sec_system = self.parse_system(int(cycle[0] // trj_freq))
             sec_calc = self.archive.run[-1].m_create(Calculation)
             sec_calc.time_physical = cycle[1] * ureg.ps
             sec_calc.energy = Energy(total=EnergyEntry(

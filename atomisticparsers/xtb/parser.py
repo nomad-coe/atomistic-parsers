@@ -580,7 +580,8 @@ class XTBParser:
             else:
                 sec_interaction = sec_tb_model.m_create(Interaction, TBModel.contributions)
                 sec_interaction.type = name
-            sec_interaction.parameters = {p[0]: p[1] for p in contribution.parameters}
+            sec_interaction.parameters = {
+                p[0]: p[1].tolist() if isinstance(p[1], np.ndarray) else p[1] for p in contribution.parameters}
 
     def parse_single_point(self, source, section):
         if source is None:

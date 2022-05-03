@@ -186,7 +186,7 @@ class MainfileParser(TextParser):
             ),
             Quantity(
                 'x_gulp_piezoelectric_strain_matrix',
-                rf'Piezoelectric Strain Matrix\: \(Unitenergy_componentss=C/m\*\*2\)\s+\-+\s+'
+                rf'Piezoelectric Strain Matrix\: \(Units=C/m\*\*2\)\s+\-+\s+'
                 rf'Indices.+\s*\-+\s+((?:\w +{re_f}.+\s+)+)',
                 dtype=np.dtype(np.float64), str_operation=lambda x: np.array(
                     [v.strip().split()[1:7] for v in x.strip().splitlines()],
@@ -634,7 +634,8 @@ class GulpParser:
                     sec_model.contributions.append(Interaction(
                         functional_form=interaction.functional_form,
                         atom_labels=[v[0] for v in interaction.get('atom_type')],
-                        parameters={key: val for key, val in interaction.get('key_parameter', [])}
+                        parameters={key: float(val) if isinstance(
+                            val, np.float64) else val for key, val in interaction.get('key_parameter', [])}
                     ))
         # atom parameters
         for n in range(len(input_info.get('species', {}).get('label', []))):
@@ -693,7 +694,6 @@ class GulpParser:
             sec_calc = sec_run.m_create(Calculation)
 
             if source.energy_components is not None:
-                print('--------------------', source.energy_components.key_val)
                 sec_energy = sec_calc.m_create(Energy)
                 for key, val in source.energy_components.get('key_val', []):
                     name = self._metainfo_map.get(key)

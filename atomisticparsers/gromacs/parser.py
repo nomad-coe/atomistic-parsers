@@ -672,9 +672,9 @@ class GromacsParser:
                 if key == 'Total Energy':
                     sec_energy.total = EnergyEntry(value=val)
                 elif key == 'Potential':
-                    sec_energy.potential = val
+                    sec_energy.potential = EnergyEntry(value=val)
                 elif key == 'Kinetic En.':
-                    sec_energy.kinetic = val
+                    sec_energy.kinetic = EnergyEntry(value=val)
                 elif key == 'Coulomb (SR)':
                     sec_energy.coulomb = EnergyEntry(value=val)
                 elif key == 'Pressure':

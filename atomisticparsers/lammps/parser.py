@@ -671,7 +671,6 @@ class LammpsParser:
                 sec_scc = sec_sccs[n // self.frame_rate]
 
             sec_energy = sec_scc.m_create(Energy)
-            sec_thermo = sec_scc.m_create(Thermodynamics)
             for key, val in thermo_data.items():
                 key = key.lower()
                 if key in self._energy_mapping:
@@ -681,12 +680,12 @@ class LammpsParser:
                     sec_energy.current = EnergyEntry(value=val[n])
                     sec_energy.total = EnergyEntry(value=val[n])
                 elif key == 'press':
-                    sec_thermo.pressure = val[n]
+                    sec_scc.pressure = val[n]
                 elif key == 'temp':
-                    sec_thermo.temperature = val[n]
+                    sec_scc.temperature = val[n]
                 elif key == 'step':
-                    sec_thermo.time_step = int(val[n])
-                    sec_thermo.time = sec_thermo.time_step * time_step
+                    sec_scc.step = int(val[n])
+                    sec_scc.time = sec_scc.step * time_step
                 elif key == 'cpu':
                     sec_scc.time_calculation = float(val[n])
 

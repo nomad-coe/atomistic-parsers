@@ -663,7 +663,6 @@ class GromacsParser:
                 sec_scc = sec_run.m_create(Calculation)
             else:
                 sec_scc = sec_run.calculation[n // self._frame_rate]
-            sec_thermo = sec_scc.m_create(Thermodynamics)
             sec_energy = sec_scc.m_create(Energy)
             for key in thermo_data.keys():
                 val = thermo_data.get(key)[n]
@@ -673,17 +672,18 @@ class GromacsParser:
                 if key == 'Total Energy':
                     sec_energy.total = EnergyEntry(value=val)
                 elif key == 'Potential':
-                    sec_thermo.potential_energy = val
+                    sec_energy.potential = val
                 elif key == 'Kinetic En.':
-                    sec_thermo.kinetic_energy = val
+                    sec_energy.kinetic = val
                 elif key == 'Coulomb (SR)':
                     sec_energy.coulomb = EnergyEntry(value=val)
                 elif key == 'Pressure':
-                    sec_thermo.pressure = val
+                    sec_scc.pressure = val
                 elif key == 'Temperature':
-                    sec_thermo.temperature = val
+                    sec_scc.temperature = val
                 elif key == 'Time':
-                    sec_thermo.time_step = int((val / timestep).magnitude)
+                    sec_scc.time = val
+                    sec_scc.step = int((val / timestep).magnitude)
                 if key in energy_keys:
                     sec_energy.contributions.append(
                         EnergyEntry(kind=self._metainfo_mapping[key], value=val))

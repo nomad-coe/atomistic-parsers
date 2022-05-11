@@ -441,8 +441,8 @@ class TinkerParser:
                     n_atoms = len(sec_system.atoms.positions)
                     sec_scc = sec_run.m_create(Calculation)
                     sec_scc.energy = Energy(
-                        total=EnergyEntry(value=(value.potential + value.kinetic) * n_atoms)
-                        kinetic=EnergyEntry(value=value.kinetic * n_atoms)
+                        total=EnergyEntry(value=(value.potential + value.kinetic) * n_atoms),
+                        kinetic=EnergyEntry(value=value.kinetic * n_atoms),
                         potential=EnergyEntry(value=value.potential * n_atoms)
                     )
                     sec_scc.step = int(value.step)

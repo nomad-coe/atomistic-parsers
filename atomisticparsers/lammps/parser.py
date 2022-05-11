@@ -725,8 +725,6 @@ class LammpsParser:
 
         sec_md.finished_normally = self.log_parser.get('finished') is not None
         sec_md.with_trajectory = self.traj_parsers.eval('with_trajectory')
-        sec_md.with_thermodynamics = self.log_parser.get('thermo_data') is not None or\
-            self.aux_log_parser.get('thermo_data') is not None
 
     def parse_system(self):
         sec_run = self.archive.run[-1]

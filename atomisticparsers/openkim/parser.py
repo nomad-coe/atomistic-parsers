@@ -232,7 +232,7 @@ class Converter:
             temperatures = get_value(entry, 'temperature.si-value', True)
             for n, temperature in enumerate(temperatures):
                 sec_scc = sec_run.calculation[n] if sec_run.calculation else sec_run.m_create(Calculation)
-                sec_scc.thermodynamics.append(Thermodynamics(temperature=temperature))
+                sec_scc.temperature = temperature
 
             stress = get_value(entry, 'cauchy-stress.si-value')
             if stress is not None:

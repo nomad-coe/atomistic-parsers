@@ -32,7 +32,7 @@ from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics, VibrationalFrequencies
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, VibrationalFrequencies
 )
 from nomad.datamodel.metainfo.workflow import (
     Workflow, GeometryOptimization, MolecularDynamics

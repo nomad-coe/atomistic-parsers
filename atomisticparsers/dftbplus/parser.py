@@ -34,7 +34,7 @@ from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, ScfIteration, Thermodynamics, BandEnergies,
+    Calculation, Energy, EnergyEntry, ScfIteration, BandEnergies,
     Multipoles, MultipolesEntry, Forces, ForcesEntry
 )
 

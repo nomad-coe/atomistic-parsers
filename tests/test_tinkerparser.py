@@ -55,8 +55,8 @@ def test_minimize_dynamic(parser):
 
     assert len(sec_run[1].calculation) == 6
     assert sec_run[1].calculation[3].energy.total.value.magnitude == approx(-8.20736128e-17)
-    assert sec_run[1].calculation[4].thermodynamics[1].temperature.magnitude == approx(163.21)
-    assert sec_run[1].calculation[5].thermodynamics[0].time_step == 3000
+    assert sec_run[1].calculation[4].temperature.magnitude == approx(163.21)
+    assert sec_run[1].calculation[5].step == 3000
 
     sec_workflow = archive.workflow
     assert len(sec_workflow) == 2
@@ -105,11 +105,11 @@ def test_arc(parser):
 
     assert len(sec_run[0].calculation) == 2
     assert sec_run[0].calculation[0].energy.total.value.magnitude == approx(-1.75498075e-13)
-    assert sec_run[0].calculation[0].thermodynamics[0].potential_energy.magnitude == approx(-2.24844458e-13)
-    assert sec_run[0].calculation[0].thermodynamics[0].time_step == approx(100)
-    assert sec_run[0].calculation[1].thermodynamics[0].kinetic_energy.magnitude == approx(4.77713513e-14)
-    assert sec_run[0].calculation[1].thermodynamics[1].pressure.magnitude == approx(4.99210036e+08)
-    assert sec_run[0].calculation[1].thermodynamics[1].temperature.magnitude == approx(254.89)
+    assert sec_run[0].calculation[0].energy.potential.value.magnitude == approx(-2.24844458e-13)
+    assert sec_run[0].calculation[0].step == approx(100)
+    assert sec_run[0].calculation[1].energy.kinetic.value.magnitude == approx(4.77713513e-14)
+    assert sec_run[0].calculation[1].pressure.magnitude == approx(4.99210036e+08)
+    assert sec_run[0].calculation[1].temperature.magnitude == approx(254.89)
 
     assert len(sec_run[0].system) == 2
     assert sec_run[0].system[0].atoms.lattice_vectors[2][2].magnitude == approx(4.05187059e-09)

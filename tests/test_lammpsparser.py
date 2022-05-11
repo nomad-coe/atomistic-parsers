@@ -60,9 +60,9 @@ def test_nvt(parser):
     assert len(sec_scc) == 201
     assert sec_scc[21].energy.current.value.magnitude == approx(8.86689197e-18)
     assert sec_scc[180].time_calculation.magnitude == 218.5357
-    assert sec_scc[56].thermodynamics[0].pressure.magnitude == approx(-77642135.4975)
-    assert sec_scc[103].thermodynamics[0].temperature.magnitude == 291.4591
-    assert sec_scc[11].thermodynamics[0].time_step == 4400
+    assert sec_scc[56].pressure.magnitude == approx(-77642135.4975)
+    assert sec_scc[103].temperature.magnitude == 291.4591
+    assert sec_scc[11].step == 4400
     assert len(sec_scc[1].energy.contributions) == 9
     assert sec_scc[112].energy.contributions[8].kind == 'kspace long range'
     assert sec_scc[96].energy.contributions[2].value.magnitude == approx(1.19666271e-18)

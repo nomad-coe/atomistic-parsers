@@ -339,7 +339,7 @@ class TinkerParser:
             # TODO verify this! I am sure it is wrong but tinker documentation does not specify clearly
             ensemble_types = ['NVE', 'NVT', 'NPT', None, None]
             sec_md.ensemble_type = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
-            sec_md.timestep = parameters[1] * ureg.fs
+            sec_md.time_step = parameters[1] * ureg.fs
             sec_md.x_tinker_barostat_tau = control_parameters.get('tau-pressure')
             sec_md.x_tinker_barostat_type = control_parameters.get('barostat')
             sec_md.x_tinker_integrator_type = control_parameters.get('integrator')

@@ -703,7 +703,7 @@ class LammpsParser:
         sec_md.x_lammps_integrator_type = run_style
         sec_md.x_lammps_number_of_steps_requested = run
         sec_md.x_lammps_integrator_dt = time_step
-        sec_md.timestep = time_step
+        sec_md.time_step = time_step
         sec_md.ensemble_type = ensemble_type.upper()
 
         thermo_settings = self.log_parser.get_thermostat_settings()

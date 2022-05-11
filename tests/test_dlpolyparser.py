@@ -74,7 +74,7 @@ def test_0(parser):
     assert sec_calc[1].x_dl_poly_volume.magnitude == approx(9.6388e+05)
 
     assert archive.workflow[0].molecular_dynamics.ensemble_type == 'NVT'
-    assert archive.workflow[0].molecular_dynamics.timestep.magnitude == approx(1e-15)
+    assert archive.workflow[0].molecular_dynamics.time_step.magnitude == approx(1e-15)
 
 
 def test_1(parser):

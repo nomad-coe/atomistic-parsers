@@ -67,7 +67,7 @@ def test_minimize_dynamic(parser):
 
     assert sec_workflow[1].type == 'molecular_dynamics'
     assert sec_workflow[1].molecular_dynamics.ensemble_type is None
-    assert sec_workflow[1].molecular_dynamics.timestep.magnitude == approx(2e-15)
+    assert sec_workflow[1].molecular_dynamics.time_step.magnitude == approx(2e-15)
     assert sec_workflow[1].molecular_dynamics.x_tinker_number_of_steps_requested == 3000
     assert sec_workflow[1].molecular_dynamics.x_tinker_barostat_tau == approx(1.0e+20)
     assert sec_workflow[1].molecular_dynamics.x_tinker_thermostat_target_temperature.magnitude == approx(150.87)

@@ -563,5 +563,5 @@ class DLPolyParser:
         ensemble_type = control_parameters.get('Ensemble')
         sec_workflow.molecular_dynamics = MolecularDynamics(
             ensemble_type=ensemble_type.split()[0] if ensemble_type is not None else None,
-            timestep=control_parameters.get('fixed simulation timestep', 0) * ureg.ps
+            time_step=control_parameters.get('fixed simulation timestep', 0) * ureg.ps
         )

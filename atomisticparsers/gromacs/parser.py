@@ -40,7 +40,7 @@ from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
 from nomad.datamodel.metainfo.workflow import (
     DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
@@ -648,9 +648,9 @@ class GromacsParser:
                 'evaluations, will create new sections')
             create_scc = True
 
-        timestep = self.traj_parser.get('timestep')
-        if timestep is None:
-            timestep = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
+        time_step = self.traj_parser.get('timestep')
+        if time_step is None:
+            time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
 
         # TODO add other energy contributions, properties
         energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']
@@ -663,7 +663,6 @@ class GromacsParser:
                 sec_scc = sec_run.m_create(Calculation)
             else:
                 sec_scc = sec_run.calculation[n // self._frame_rate]
-            sec_thermo = sec_scc.m_create(Thermodynamics)
             sec_energy = sec_scc.m_create(Energy)
             for key in thermo_data.keys():
                 val = thermo_data.get(key)[n]
@@ -673,17 +672,18 @@ class GromacsParser:
                 if key == 'Total Energy':
                     sec_energy.total = EnergyEntry(value=val)
                 elif key == 'Potential':
-                    sec_thermo.potential_energy = val
+                    sec_energy.potential = EnergyEntry(value=val)
                 elif key == 'Kinetic En.':
-                    sec_thermo.kinetic_energy = val
+                    sec_energy.kinetic = EnergyEntry(value=val)
                 elif key == 'Coulomb (SR)':
                     sec_energy.coulomb = EnergyEntry(value=val)
                 elif key == 'Pressure':
-                    sec_thermo.pressure = val
+                    sec_scc.pressure = val
                 elif key == 'Temperature':
-                    sec_thermo.temperature = val
+                    sec_scc.temperature = val
                 elif key == 'Time':
-                    sec_thermo.time_step = int((val / timestep).magnitude)
+                    sec_scc.time = val
+                    sec_scc.step = int((val / time_step).magnitude)
                 if key in energy_keys:
                     sec_energy.contributions.append(
                         EnergyEntry(kind=self._metainfo_mapping[key], value=val))
@@ -869,9 +869,9 @@ class GromacsParser:
         sec_md.x_gromacs_integrator_type = sampling_settings['integrator_type']
 
         input_parameters = self.log_parser.get('input_parameters', {})
-        timestep = input_parameters.get('dt', 0)
-        sec_md.x_gromacs_integrator_dt = timestep
-        sec_md.timestep = timestep * 1e-12
+        time_step = input_parameters.get('dt', 0)
+        sec_md.x_gromacs_integrator_dt = time_step
+        sec_md.time_step = time_step * 1e-12
 
         nsteps = input_parameters.get('nsteps', 0)
         sec_md.x_gromacs_number_of_steps_requested = nsteps

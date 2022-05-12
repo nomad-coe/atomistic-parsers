@@ -32,7 +32,7 @@ from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics, VibrationalFrequencies
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, VibrationalFrequencies
 )
 from nomad.datamodel.metainfo.workflow import (
     Workflow, GeometryOptimization, MolecularDynamics
@@ -339,7 +339,7 @@ class TinkerParser:
             # TODO verify this! I am sure it is wrong but tinker documentation does not specify clearly
             ensemble_types = ['NVE', 'NVT', 'NPT', None, None]
             sec_md.ensemble_type = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
-            sec_md.timestep = parameters[1] * ureg.fs
+            sec_md.time_step = parameters[1] * ureg.fs
             sec_md.x_tinker_barostat_tau = control_parameters.get('tau-pressure')
             sec_md.x_tinker_barostat_type = control_parameters.get('barostat')
             sec_md.x_tinker_integrator_type = control_parameters.get('integrator')
@@ -440,19 +440,16 @@ class TinkerParser:
                     sec_system = self.parse_system(index, filename)
                     n_atoms = len(sec_system.atoms.positions)
                     sec_scc = sec_run.m_create(Calculation)
-                    sec_scc.energy = Energy(total=EnergyEntry(
-                        value=(value.potential + value.kinetic) * n_atoms))
-                    sec_scc.thermodynamics.append(Thermodynamics(
-                        kinetic_energy=value.kinetic * n_atoms, potential_energy=value.potential * n_atoms,
-                        time_step=int(value.step)
-                    ))
+                    sec_scc.energy = Energy(
+                        total=EnergyEntry(value=(value.potential + value.kinetic) * n_atoms),
+                        kinetic=EnergyEntry(value=value.kinetic * n_atoms),
+                        potential=EnergyEntry(value=value.potential * n_atoms)
+                    )
+                    sec_scc.step = int(value.step)
                     average_value = average_values.get(value.step)
                     if average_value:
-                        sec_scc.thermodynamics.append(Thermodynamics(
-                            kinetic_energy=average_value.kinetic * n_atoms, potential_energy=average_value.potential * n_atoms,
-                            time_step=int(average_value.step), pressure=average_value.pressure,
-                            temperature=average_value.temperature
-                        ))
+                        sec_scc.temperature = average_value.temperature
+                        sec_scc.pressure = average_value.pressure
                     trajectory = self.traj_parser.universe.trajectory[index]
                     if trajectory is not None and trajectory.has_forces:
                         sec_scc.forces = Forces(total=ForcesEntry(value=trajectory.forces * (ureg.kJ / ureg.angstrom)))

@@ -35,7 +35,7 @@ from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from nomad.datamodel.metainfo.simulation.method import Method, ForceField, Model
 from nomad.datamodel.metainfo.simulation.calculation import (
-    BandEnergies, BandStructure, Calculation, Energy, EnergyEntry, Thermodynamics, Stress, StressEntry)
+    BandEnergies, BandStructure, Calculation, Energy, EnergyEntry, Stress, StressEntry)
 from nomad.datamodel.metainfo.workflow import Phonon, Workflow, Elastic, Interface
 from .metainfo import openkim  # pylint: disable=unused-import
 
@@ -232,7 +232,7 @@ class Converter:
             temperatures = get_value(entry, 'temperature.si-value', True)
             for n, temperature in enumerate(temperatures):
                 sec_scc = sec_run.calculation[n] if sec_run.calculation else sec_run.m_create(Calculation)
-                sec_scc.thermodynamics.append(Thermodynamics(temperature=temperature))
+                sec_scc.temperature = temperature
 
             stress = get_value(entry, 'cauchy-stress.si-value')
             if stress is not None:

@@ -34,7 +34,7 @@ from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, ScfIteration, Thermodynamics, BandEnergies,
+    Calculation, Energy, EnergyEntry, ScfIteration, BandEnergies,
     Multipoles, MultipolesEntry, Forces, ForcesEntry
 )
 
@@ -363,7 +363,7 @@ class DFTBPlusParser:
                 total=EnergyEntry(value=step.energy_total),
                 total_t0=EnergyEntry(value=step.energy_total_t0))
             sec_scc.energy.x_dftbp_total_mermin = EnergyEntry(value=step.energy_x_dftbp_total_mermin)
-            sec_scc.thermodynamics.append(Thermodynamics(pressure=step.pressure))
+            sec_scc.pressure = step.pressure
             for scf in step.get('scf', []):
                 sec_scf = sec_scc.m_create(ScfIteration)
                 sec_scf.energy = Energy(
@@ -393,8 +393,7 @@ class DFTBPlusParser:
             elif key == 'fermi_level':
                 sec_scc.energy.fermi = val
             elif key == 'pressure':
-                sec_thermo = sec_scc.thermodynamics[-1] if sec_scc.thermodynamics else sec_scc.m_create(Thermodynamics)
-                sec_thermo.pressure = val
+                sec_scc.pressure = val
             elif key == 'eigenvalues_occupations':
                 sec_eigenvalues = sec_scc.m_create(BandEnergies)
                 # TODO handle spin polarization

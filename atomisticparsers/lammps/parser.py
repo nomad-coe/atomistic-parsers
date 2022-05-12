@@ -32,7 +32,7 @@ from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
 from nomad.datamodel.metainfo.workflow import (
     DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
@@ -671,7 +671,6 @@ class LammpsParser:
                 sec_scc = sec_sccs[n // self.frame_rate]
 
             sec_energy = sec_scc.m_create(Energy)
-            sec_thermo = sec_scc.m_create(Thermodynamics)
             for key, val in thermo_data.items():
                 key = key.lower()
                 if key in self._energy_mapping:
@@ -681,12 +680,12 @@ class LammpsParser:
                     sec_energy.current = EnergyEntry(value=val[n])
                     sec_energy.total = EnergyEntry(value=val[n])
                 elif key == 'press':
-                    sec_thermo.pressure = val[n]
+                    sec_scc.pressure = val[n]
                 elif key == 'temp':
-                    sec_thermo.temperature = val[n]
+                    sec_scc.temperature = val[n]
                 elif key == 'step':
-                    sec_thermo.time_step = int(val[n])
-                    sec_thermo.time = sec_thermo.time_step * time_step
+                    sec_scc.step = int(val[n])
+                    sec_scc.time = sec_scc.step * time_step
                 elif key == 'cpu':
                     sec_scc.time_calculation = float(val[n])
 
@@ -704,7 +703,7 @@ class LammpsParser:
         sec_md.x_lammps_integrator_type = run_style
         sec_md.x_lammps_number_of_steps_requested = run
         sec_md.x_lammps_integrator_dt = time_step
-        sec_md.timestep = time_step
+        sec_md.time_step = time_step
         sec_md.ensemble_type = ensemble_type.upper()
 
         thermo_settings = self.log_parser.get_thermostat_settings()
@@ -726,8 +725,6 @@ class LammpsParser:
 
         sec_md.finished_normally = self.log_parser.get('finished') is not None
         sec_md.with_trajectory = self.traj_parsers.eval('with_trajectory')
-        sec_md.with_thermodynamics = self.log_parser.get('thermo_data') is not None or\
-            self.aux_log_parser.get('thermo_data') is not None
 
     def parse_system(self):
         sec_run = self.archive.run[-1]

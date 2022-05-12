@@ -24,6 +24,7 @@ try:
     from MDAnalysis.topology.guessers import guess_atom_element
 except Exception:
     MDAnalysis = None
+from typing import Any, Dict
 from collections import namedtuple
 from array import array
 from scipy import sparse
@@ -71,7 +72,7 @@ class MDAnalysisParser(FileParser):
 
     def parse(self, quantity_key: str = None, **kwargs):
         if self._results is None:
-            self._results = dict()
+            self._results: Dict[str, Any] = dict()
 
         atoms = list(self.universe.atoms)
 

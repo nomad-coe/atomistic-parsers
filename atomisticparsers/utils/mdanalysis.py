@@ -18,6 +18,7 @@
 #
 
 import numpy as np
+from typing import Dict, Any
 try:
     import MDAnalysis
     import MDAnalysis.analysis.rdf as MDA_RDF
@@ -40,6 +41,7 @@ class MDAnalysisParser(FileParser):
         super().__init__()
         self._args = args
         self._kwargs = kwargs
+        self._results: Dict[str, Any] = None
         self._atomsgroup_info = None
 
     @property

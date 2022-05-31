@@ -776,8 +776,8 @@ class GulpParser:
             sec_workflow = self.archive.m_create(Workflow)
             sec_workflow.type = 'molecular_dynamics'
             sec_md = sec_workflow.m_create(MolecularDynamics)
-            sec_md.ensemble_type = output.get('ensemble_type', '').lower()
-            sec_md.timestep = output.timestep
+            sec_md.ensemble_type = output.get('ensemble_type', '').upper()
+            sec_md.time_step = output.timestep
             for key, val in output.items():
                 if key.startswith('x_gulp_'):
                     setattr(sec_md, key, val)

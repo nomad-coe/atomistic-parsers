@@ -704,7 +704,11 @@ class LammpsParser:
         sec_md.x_lammps_number_of_steps_requested = run
         sec_md.x_lammps_integrator_dt = time_step
         sec_md.time_step = time_step
-        sec_md.ensemble_type = ensemble_type.upper()
+        # TODO add langevin dynamics in ensemble_types
+        try:
+            sec_md.ensemble_type = ensemble_type.upper()
+        except Exception:
+            pass
 
         thermo_settings = self.log_parser.get_thermostat_settings()
         target_T = thermo_settings.get('target_T', None)

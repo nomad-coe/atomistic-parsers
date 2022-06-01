@@ -52,7 +52,11 @@ class KeyParser(TextParser):
     def init_quantities(self):
         def to_key_val(val_in):
             val = val_in.strip().split()
-            return [val[0], True] if len(val) == 1 else val
+            if len(val) == 1:
+                return [val[0], True]
+            elif len(val) > 2:
+                return [val[0], val[1:]]
+            return val
 
         self._quantities = [Quantity(
             'key_val',
@@ -284,6 +288,7 @@ class TinkerParser:
             labels=[atom.name for atom in list(self.traj_parser.universe.atoms)])
         if trajectory.triclinic_dimensions is not None:
             sec_system.atoms.lattice_vectors = trajectory.triclinic_dimensions * ureg.angstrom
+            sec_system.atoms.periodic = [True, True, True]
         if trajectory.has_velocities:
             sec_system.atoms.velocities = trajectory.velocities * (ureg.angstrom / ureg.ps)
 
@@ -344,9 +349,12 @@ class TinkerParser:
             sec_md.x_tinker_barostat_type = control_parameters.get('barostat')
             sec_md.x_tinker_integrator_type = control_parameters.get('integrator')
             sec_md.x_tinker_number_of_steps_requested = parameters[0]
-            sec_md.x_tinker_integrator_dt = parameters[1] * ureg.ps
-            sec_md.x_tinker_thermostat_target_temperature = parameters[4] * ureg.kelvin
-            sec_md.x_tinker_barostat_target_pressure = parameters[5] * ureg.atmosphere
+            if parameters[1] is not None:
+                sec_md.x_tinker_integrator_dt = parameters[1] * ureg.ps
+            if parameters[4] is not None:
+                sec_md.x_tinker_thermostat_target_temperature = parameters[4] * ureg.kelvin
+            if parameters[5] is not None:
+                sec_md.x_tinker_barostat_target_pressure = parameters[5] * ureg.atmosphere
             sec_md.x_tinker_thermostat_tau = control_parameters.get('tau-temperature')
             sec_md.x_tinker_thermostat_type = control_parameters.get('thermostat')
 
@@ -468,7 +476,8 @@ class TinkerParser:
                 # or tinker.key
                 self.key_parser.mainfile = self._get_tinker_file('key')
 
-            parameters = {key.lower(): val for key, val in self.key_parser.get('key_val', [])}
+            parameters = {key.lower(): val.tolist() if isinstance(
+                val, np.ndarray) else val for key, val in self.key_parser.get('key_val', [])}
             sec_run.x_tinker_control_parameters = parameters
             # TODO should this be removed and only have a dictionary of control parameters
             sec_control = sec_run.m_create(x_tinker_section_control_parameters)

@@ -505,7 +505,7 @@ class DLPolyParser:
             for interaction in self.field_parser.get(interaction_type, []):
                 sec_interaction = sec_model.m_create(Interaction)
                 for key, val in interaction.items():
-                    setattr(sec_interaction, key, val)
+                    setattr(sec_interaction, key, val.tolist() if isinstance(val, np.ndarray) else val)
 
         system_spec = self.mainfile_parser.get('system_specification', {})
         n_atoms = len(sec_run.system[-1].atoms.positions)

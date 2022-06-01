@@ -788,7 +788,11 @@ class GromacsParser:
 
         # calculate molecular radial distribution functions
         sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-        rdf_results = self.traj_parser.calc_molecular_rdf()
+        try:
+            rdf_results = self.traj_parser.calc_molecular_rdf()
+        except Exception:
+            self.logger.error('Error calculating molecular RDF.')
+            rdf_results = None
         if rdf_results is not None:
             sec_rdfs = sec_molecular_dynamics.m_create(RadialDistributionFunction)
             sec_rdfs.type = 'Molecular'
@@ -806,7 +810,11 @@ class GromacsParser:
                     'value') is not None else []
 
         # calculate the molecular mean squared displacements
-        msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()
+        try:
+            msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()
+        except Exception:
+            self.logger.error('Error calculating molecular MSD.')
+            msd_results = None
         if msd_results is not None:
             sec_msds = sec_molecular_dynamics.m_create(MeanSquaredDisplacement)
             sec_msds.type = 'Molecular'

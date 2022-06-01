@@ -494,8 +494,9 @@ class LogParser(TextParser):
             data_files = os.listdir(self.maindir)
             data_files = [f for f in data_files if f.endswith('data') or f.startswith('data')]
             if len(data_files) > 1:
-                prefix = os.path.basename(self.mainfile).rsplit('.', 1)[1]  # JFR- @Alvin Please check this - changed from [0] to [1] for case that filename is leading with log
-                data_files = [f for f in data_files if prefix in f]
+                prefix = os.path.basename(self.mainfile).strip('log.')
+                data_files_filter = [f for f in data_files if prefix in f]
+                data_files = data_files_filter if data_files_filter else data_files
         else:
             data_files = read_data
 
@@ -584,6 +585,16 @@ class LogParser(TextParser):
 
         return styles_coeffs
 
+    def parse(self, key=None):
+        super().parse(key)
+
+        aux_log_file = self._results.get('log')
+        if aux_log_file is not None:
+            auxilliary_parser = self.copy()
+            auxilliary_parser.mainfile = os.path.join(self.maindir, aux_log_file[0])
+            auxilliary_parser.parse()
+            self._results.update(auxilliary_parser._results)
+
 
 class TrajParsers:
     def __init__(self, parsers):
@@ -623,6 +634,7 @@ class LammpsParser:
     def frame_rate(self):
         if self._frame_rate is None:
             n_frames = self.traj_parsers.eval('n_frames')
+            n_frames = 0 if n_frames is None else n_frames
             n_atoms = [self.traj_parsers.eval('get_n_atoms', n) for n in range(n_frames)]
             n_atoms = max(n_atoms) if n_atoms else 0
 
@@ -733,6 +745,9 @@ class LammpsParser:
         sec_run = self.archive.run[-1]
 
         n_frames = self.traj_parsers.eval('n_frames')
+        if n_frames is None:
+            return
+
         units = self.log_parser.units
 
         def apply_unit(value, unit):
@@ -890,6 +905,9 @@ class LammpsParser:
     def parse_method(self):
         sec_run = self.archive.run[-1]
 
+        if self.traj_parsers[0] is None:
+            return
+
         if self.traj_parsers[0].mainfile is None or self.data_parser.mainfile is None:
             return
 
@@ -920,7 +938,7 @@ class LammpsParser:
             sec_input_output_files.x_lammps_inout_file_data = os.path.basename(
                 self.data_parser.mainfile)
 
-        if self.traj_parsers[0].mainfile is not None:
+        if self.traj_parsers[0] is not None and self.traj_parsers[0].mainfile is not None:
             sec_input_output_files.x_lammps_inout_file_trajectory = os.path.basename(
                 self.traj_parsers[0].mainfile)
 
@@ -1008,6 +1026,9 @@ class LammpsParser:
                         self._mdanalysistraj_parser = traj_parser
                     traj_parser = TrajParser()
                     traj_parser.mainfile = traj_file
+            elif file_type == 'xyz':
+                traj_parser = XYZTrajParser()
+                traj_parser.mainfile = traj_file
             else:
                 traj_parser = TrajParser()
                 traj_parser.mainfile = traj_file

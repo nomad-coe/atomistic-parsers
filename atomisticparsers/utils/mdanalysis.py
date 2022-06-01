@@ -75,6 +75,9 @@ class MDAnalysisParser(FileParser):
         if self._results is None:
             self._results = dict()
 
+        if self.universe is None:
+            return
+
         atoms = list(self.universe.atoms)
 
         name_map = {'mass': 'masses'}

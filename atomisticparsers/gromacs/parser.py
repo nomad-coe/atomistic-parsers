@@ -34,7 +34,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program, TimeRun
 from nomad.datamodel.metainfo.simulation.method import (
-    Method, ForceField, Model, Interaction, AtomParameters
+    NeighborSearching, ForceCalculations, Method, ForceField, Model, Interaction, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
@@ -43,8 +43,9 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
 from nomad.datamodel.metainfo.workflow import (
-    DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
-    RadialDistributionFunction, RadialDistributionFunctionValues,
+    BarostatParameters, ThermostatParameters, 
+    IntegrationParameters, DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
+    MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
     Workflow, MolecularDynamics
 )
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
@@ -65,7 +66,7 @@ class GromacsLogParser(TextParser):
 
         def str_to_input_parameters(val_in):
             re_array = re.compile(r'\s*([\w\-]+)\[[\d ]+\]\s*=\s*\{*(.+)')
-            re_scalar = re.compile(r'\s*([\w\-]+)\s*=\s*(.+)')
+            re_scalar = re.compile(r'\s*([\w\-]+)\s*[=:]\s*(.+)')
             parameters = dict()
             val = val_in.strip().split('\n')
             for val_n in val:
@@ -728,7 +729,6 @@ class GromacsParser:
         for segment in self.traj_parser.universe.segments:
             # we only create atomsgroup in the initial system
             sec_segment = sec_run.system[0].m_create(AtomsGroup)
-            sec_segment.label = segment.segid
             sec_segment.type = 'molecule_group'
             sec_segment.index = int(segment.segindex)
             sec_segment.atom_indices = segment.atoms.ix
@@ -744,6 +744,7 @@ class GromacsParser:
                 moltypes_count[moltype] = np.unique(mol_nums).shape[0]
             formula = ''.join([f'{moltype}({moltypes_count[moltype]})' for moltype in moltypes_count])
             sec_segment.composition_formula = formula
+            sec_segment.label = f'group_{moltypes[0]}'
 
             for i_molecule, molecule in enumerate(np.unique(atoms_molnums[sec_segment.atom_indices])):
                 sec_molecule = sec_segment.m_create(AtomsGroup)
@@ -762,18 +763,32 @@ class GromacsParser:
                     elements = atoms_elements[sec_molecule.atom_indices]
                     sec_molecule.composition_formula = get_composition(elements)
                 else:
-                    for i_res, res_id in enumerate(mol_resids):
-                        sec_residue = sec_molecule.m_create(AtomsGroup)
-                        sec_residue.index = i_res
-                        atom_indices = np.where(atoms_resids == res_id)[0]
-                        sec_residue.atom_indices = np.intersect1d(atom_indices, sec_molecule.atom_indices)
-                        sec_residue.n_atoms = len(sec_residue.atom_indices)
-                        res_names = atoms_resnames[sec_residue.atom_indices]
-                        sec_residue.label = str(res_names[0])
-                        sec_residue.type = 'monomer'
-                        sec_residue.is_molecule = False
-                        elements = atoms_elements[sec_residue.atom_indices]
-                        sec_residue.composition_formula = get_composition(elements)
+                    mol_resnames = atoms_resnames[sec_molecule.atom_indices]
+                    restypes = np.unique(mol_resnames)
+                    for i_restype, restype in enumerate(restypes):
+                        sec_monomer_group = sec_molecule.m_create(AtomsGroup)
+                        restype_indices = np.where(atoms_resnames == restype)[0]
+                        sec_monomer_group.label = f'group_{restype}'
+                        sec_monomer_group.type = 'monomer_group'
+                        sec_monomer_group.index = i_restype
+                        sec_monomer_group.atom_indices = np.intersect1d(restype_indices, sec_molecule.atom_indices)
+                        sec_monomer_group.n_atoms = len(sec_monomer_group.atom_indices)
+                        sec_monomer_group.is_molecule = False
+
+                        restype_resids = np.unique(atoms_resids[sec_monomer_group.atom_indices])
+                        restype_count = restype_resids.shape[0]
+                        sec_monomer_group.composition_formula = f'{restype}({restype_count})'
+                        for i_res, res_id in enumerate(restype_resids):
+                            sec_residue = sec_monomer_group.m_create(AtomsGroup)
+                            sec_residue.index = i_res
+                            atom_indices = np.where(atoms_resids == res_id)[0]
+                            sec_residue.atom_indices = np.intersect1d(atom_indices, sec_monomer_group.atom_indices)
+                            sec_residue.n_atoms = len(sec_residue.atom_indices)
+                            sec_residue.label = str(restype)
+                            sec_residue.type = 'monomer'
+                            sec_residue.is_molecule = False
+                            elements = atoms_elements[sec_residue.atom_indices]
+                            sec_residue.composition_formula = get_composition(elements)
 
                     names = atoms_resnames[sec_molecule.atom_indices]
                     ids = atoms_resids[sec_molecule.atom_indices]
@@ -788,10 +803,11 @@ class GromacsParser:
 
         # calculate molecular radial distribution functions
         sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+        sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
         rdf_results = self.traj_parser.calc_molecular_rdf()
         if rdf_results is not None:
-            sec_rdfs = sec_molecular_dynamics.m_create(RadialDistributionFunction)
-            sec_rdfs.type = 'Molecular'
+            sec_rdfs = sec_results.m_create(RadialDistributionFunction)
+            sec_rdfs.type = 'molecular'
             sec_rdfs.n_smooth = rdf_results.get('n_smooth')
             sec_rdfs.n_variables = 1
             sec_rdfs.variables_name = np.array(['distance'])
@@ -808,8 +824,8 @@ class GromacsParser:
         # calculate the molecular mean squared displacements
         msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()
         if msd_results is not None:
-            sec_msds = sec_molecular_dynamics.m_create(MeanSquaredDisplacement)
-            sec_msds.type = 'Molecular'
+            sec_msds = sec_results.m_create(MeanSquaredDisplacement)
+            sec_msds.type = 'molecular'
             for i_type, moltype in enumerate(msd_results.get('types')):
                 sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
                 sec_msd_values.label = str(moltype)
@@ -858,41 +874,155 @@ class GromacsParser:
             for key, val in interaction.items():
                 setattr(sec_interaction, key, val)
 
+        input_parameters = self.log_parser.get('input_parameters', {})
+        sec_force_calculations = sec_force_field.m_create(ForceCalculations)
+        sec_neighbor_searching = sec_force_calculations.m_create(NeighborSearching)
+
+        nstlist = input_parameters.get('nstlist', None)
+        if nstlist is not None:
+            sec_neighbor_searching.neighbor_update_frequency = int(nstlist)
+        rlist = input_parameters.get('rlist', None)
+        if rlist is not None:
+            sec_neighbor_searching.neighbor_update_cutoff = float(rlist) * ureg.nanometer
+
+        rvdw = input_parameters.get('rvdw', None)
+        if rvdw is not None:
+            sec_force_calculations.vdw_cutoff = float(rvdw) * ureg.nanometer
+        coulombtype = input_parameters.get('coulombtype', 'no').lower()
+        if coulombtype != 'none' and coulombtype != 'no':
+            if coulombtype == 'cut-off':
+                sec_force_calculations.Coulomb_type = 'cutoff'
+            elif coulombtype == 'ewald':
+                sec_force_calculations.Coulomb_type = 'ewald'
+            elif 'pme' in coulombtype:
+                sec_force_calculations.Coulomb_type = 'particle_mesh_ewald'
+            elif coulombtype == 'p3m-ad':
+                sec_force_calculations.Coulomb_type = 'particle_particle_particle_mesh'
+            elif 'reaction-field' in coulombtype:
+                sec_force_calculations.Coulomb_type = 'reaction_field'
+            elif 'shift' in coulombtype:
+                sec_force_calculations.Coulomb_type = 'cutoff'
+            elif 'switch' in coulombtype:
+                sec_force_calculations.Coulomb_type = 'cutoff'
+            elif coulombtype == 'user':
+                sec_force_calculations.Coulomb_type = 'cutoff'
+            rcoulomb = input_parameters.get('rcoulomb', None)
+            if rcoulomb is not None:
+                sec_force_calculations.Coulomb_cutoff = float(rcoulomb)
+
     def parse_workflow(self):
-        sec_workflow = self.archive.m_create(Workflow)
-
-        sampling_settings = self.log_parser.get_sampling_settings()
-
-        sec_workflow.type = sampling_settings['sampling_method']
-        sec_md = sec_workflow.m_create(MolecularDynamics)
-        sec_md.ensemble_type = sampling_settings['ensemble_type']
-        sec_md.x_gromacs_integrator_type = sampling_settings['integrator_type']
+        sec_workflow = self.archive.workflow[-1]
+        sec_md = sec_workflow.molecular_dynamics
 
         input_parameters = self.log_parser.get('input_parameters', {})
-        time_step = input_parameters.get('dt', 0)
-        sec_md.x_gromacs_integrator_dt = time_step
-        sec_md.time_step = time_step * 1e-12
 
-        nsteps = input_parameters.get('nsteps', 0)
-        sec_md.x_gromacs_number_of_steps_requested = nsteps
+        integrator = input_parameters.get('integrator', 'md').lower()
+        if integrator in ['l-bfgs', 'cg', 'steep']:
+            sec_workflow.type = 'geometry_optimization'
 
-        tp_settings = self.log_parser.get_tpstat_settings()
+        sec_integration_parameters = sec_md.m_create(IntegrationParameters)
+        nsteps = input_parameters.get('nsteps', None)
+        if nsteps is not None:
+            sec_integration_parameters.n_steps = int(nsteps)
+        nstxout = input_parameters.get('nstxout', None)
+        if nstxout is not None:
+            sec_integration_parameters.coordinate_save_frequency = int(nstxout)
+        nstvout = input_parameters.get('nstvout', None)   
+        if nstvout is not None:
+            sec_integration_parameters.velocity_save_frequency = int(nstvout)
+        nstfout = input_parameters.get('nstfout', None)
+        if nstfout is not None:
+            sec_integration_parameters.force_save_frequency = int(nstfout)
+        nstenergy = input_parameters.get('nstenergy', None)
+        if nstenergy is not None:
+            sec_integration_parameters.thermodynamics_save_frequency = int(nstenergy)
+        
+        if integrator == 'md':
+            sec_integration_parameters.integrator_type = 'leap_frog'
+        elif 'md-vv' in integrator:
+            sec_integration_parameters.integrator_type = 'velocity_verlet'
+        elif 'sd' in integrator:
+            sec_integration_parameters.integrator_type = 'langevin_goga'
+        elif integrator == 'bd':
+            sec_integration_parameters.integrator_type = 'brownian'
+        elif integrator == 'steep':
+            sec_integration_parameters.integrator_type = 'steepest_descent'
+        elif integrator == 'cg':
+            sec_integration_parameters.integrator_type = 'conjugant_gradient'
+        elif integrator == 'l-bfgs':
+            sec_integration_parameters.integrator_type = 'low_memory_broyden_fletcher_goldfarb_shanno'
+        timestep = input_parameters.get('dt', None)    
+        if timestep is not None:
+            sec_integration_parameters.integration_timestep = float(timestep) * ureg.picosecond
+        sec_thermostat_parameters = sec_integration_parameters.m_create(ThermostatParameters)
+        sec_barostat_parameters = sec_integration_parameters.m_create(BarostatParameters)
 
-        target_T = tp_settings.get('target_T', None)
-        if target_T is not None:
-            sec_md.x_gromacs_thermostat_target_temperature = target_T
-        thermostat_tau = tp_settings.get('thermostat_tau', None)
-        if thermostat_tau is not None:
-            sec_md.x_gromacs_thermostat_tau = thermostat_tau
-        target_P = tp_settings.get('target_P', None)
-        if target_P is not None:
-            sec_md.x_gromacs_barostat_target_pressure = target_P
-        barostat_tau = tp_settings.get('barostat_P', None)
-        if barostat_tau is not None:
-            sec_md.x_gromacs_barostat_tau = barostat_tau
-        langevin_gamma = tp_settings.get('langevin_gamma', None)
-        if langevin_gamma is not None:
-            sec_md.x_gromacs_langevin_gamma = langevin_gamma
+        flag_thermostat = False
+        tcoupl = input_parameters.get('tcoupl', 'no').lower()
+        if 'sd' in integrator:
+            sec_thermostat_parameters.thermostat_type = 'langevin_goga'
+        elif tcoupl == 'berendsen':
+            sec_thermostat_parameters.thermostat_type = 'berendsen'
+        elif tcoupl == 'v-rescale':
+            sec_thermostat_parameters.thermostat_type = 'velocity_rescaling'
+        elif tcoupl == 'nose-hoover':
+            sec_thermostat_parameters.thermostat_type = 'nose_hoover'
+        elif 'andersen' in tcoupl:
+            sec_thermostat_parameters.thermostat_type = 'andersen'
+        if tcoupl != 'no' or 'sd' in integrator:
+            flag_thermostat = True
+            reference_temperature = input_parameters.get('ref-t', None)
+            if type(reference_temperature) == str:
+                reference_temperature = float(reference_temperature.split()[0])
+            if reference_temperature is not None:
+                reference_temperature *= ureg.kelvin
+            sec_thermostat_parameters.reference_temperature = reference_temperature
+            coupling_constant = input_parameters.get('tau-t', None)
+            if type(coupling_constant) == str:
+                coupling_constant = float(coupling_constant.split()[0])
+            if coupling_constant is not None:
+                coupling_constant *= ureg.picosecond
+            sec_thermostat_parameters.coupling_constant = coupling_constant 
+
+        flag_barostat = False
+        pcoupl = input_parameters.get('pcoupl', 'no').lower()
+        if pcoupl == 'berendsen':
+            sec_barostat_parameters.barostat_type = 'berendsen'
+        elif pcoupl == 'parrinello-rahman': 
+            sec_barostat_parameters.barostat_type = 'parrinello_rahman'
+        elif pcoupl == 'mttk': 
+            sec_barostat_parameters.barostat_type = 'martyna_tuckerman_tobias_klein'
+        elif pcoupl == 'c-rescale': 
+            sec_barostat_parameters.barostat_type = 'stochastic_cell_rescaling'
+        if pcoupl != 'no':
+            flag_barostat = True
+            pcoupltype = input_parameters.get('pcoupltype', None).lower()
+            if pcoupltype is not None:
+                if pcoupltype == 'isotropic':
+                    sec_barostat_parameters.coupling_type = 'isotropic'
+                elif pcoupltype == 'semiisotropic':
+                    sec_barostat_parameters.coupling_type = 'semi_isotropic'
+                elif pcoupltype == 'anisotropic':
+                    sec_barostat_parameters.coupling_type = 'anisotropic'
+                taup = input_parameters.get('tau-p', None)
+                if taup is not None:
+                    sec_barostat_parameters.coupling_constant = np.ones(shape=(3,3)) * float(taup) * ureg.picosecond
+                refp = input_parameters.get('ref-p', None)
+                if refp is not None:
+                    sec_barostat_parameters.reference_pressure = refp * ureg.bar
+                compressibility = input_parameters.get('compressibility', None)
+                if compressibility is not None:
+                    sec_barostat_parameters.compressibility = compressibility * (1./ureg.bar)
+
+        if flag_thermostat:
+            if flag_barostat:
+                sec_md.thermodynamic_ensemble = 'NPT'
+            else:
+                sec_md.thermodynamic_ensemble = 'NVT'
+        elif flag_barostat:
+            sec_md.thermodynamic_ensemble = 'NPH'
+        else:
+            sec_md.thermodynamic_ensemble = 'NVE'     
 
     def parse_input(self):
         sec_run = self.archive.run[-1]
@@ -965,9 +1095,11 @@ class GromacsParser:
         self.traj_parser.mainfile = topology_file
         self.traj_parser.auxilliary_files = [trajectory_file]
 
-        self.parse_method()
+        sec_workflow = self.archive.m_create(Workflow)
+        sec_workflow.type = 'molecular_dynamics'
+        __ = sec_workflow.m_create(MolecularDynamics)
 
-        self.parse_workflow()
+        self.parse_method()
 
         self.parse_system()
 
@@ -978,3 +1110,5 @@ class GromacsParser:
         self.parse_thermodynamic_data()
 
         self.parse_input()
+
+        self.parse_workflow()

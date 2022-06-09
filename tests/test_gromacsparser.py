@@ -42,10 +42,32 @@ def test_md_verbose(parser):
     assert sec_control.x_gromacs_inout_control_coulombtype == 'PME'
     assert np.shape(sec_control.x_gromacs_inout_control_deform) == (3, 3)
 
-    sec_md = archive.workflow[0].molecular_dynamics
-    assert sec_md.ensemble_type == 'NPT'
-    assert sec_md.x_gromacs_integrator_dt.magnitude == 0.0005
-    assert sec_md.x_gromacs_barostat_target_pressure.magnitude == approx(33333.33)
+    sec_workflow = archive.workflow[0]
+    section_MD = sec_workflow.molecular_dynamics   
+    assert sec_workflow.type == 'molecular_dynamics'
+    assert section_MD.thermodynamic_ensemble == 'NPT'
+    assert section_MD.finished_normally == None
+    assert section_MD.with_trajectory == None
+    assert section_MD.with_thermodynamics == None
+    assert section_MD.integration_parameters.integrator_type == 'leap_frog'
+    assert section_MD.integration_parameters.integration_timestep.magnitude == 5e-16
+    assert section_MD.integration_parameters.integration_timestep.units == 'second'
+    assert section_MD.integration_parameters.n_steps == 20
+    assert section_MD.integration_parameters.coordinate_save_frequency == 20
+    assert section_MD.integration_parameters.thermodynamics_save_frequency == 5
+    assert section_MD.integration_parameters.thermostat_parameters.thermostat_type == 'berendsen'
+    assert section_MD.integration_parameters.thermostat_parameters.reference_temperature.magnitude == 298.0
+    assert section_MD.integration_parameters.thermostat_parameters.reference_temperature.units == 'kelvin'
+    assert section_MD.integration_parameters.thermostat_parameters.coupling_constant.magnitude == 5e-13
+    assert section_MD.integration_parameters.thermostat_parameters.coupling_constant.units == 'second'
+    assert section_MD.integration_parameters.barostat_parameters.barostat_type == 'berendsen'
+    assert section_MD.integration_parameters.barostat_parameters.coupling_type == 'isotropic'
+    assert np.all( section_MD.integration_parameters.barostat_parameters.reference_pressure.magnitude == [ [100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.] ] )
+    assert section_MD.integration_parameters.barostat_parameters.reference_pressure.units == 'pascal'
+    assert np.all( section_MD.integration_parameters.barostat_parameters.coupling_constant.magnitude == [ [1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12] ] )
+    assert section_MD.integration_parameters.barostat_parameters.coupling_constant.units == 'second'
+    assert np.all( section_MD.integration_parameters.barostat_parameters.compressibility.magnitude == [ [4.6e-10, 0.0e+00, 0.0e+00], [0.0e+00, 4.6e-10, 0.0e+00], [0.0e+00, 0.0e+00, 4.6e-10] ] )
+    assert section_MD.integration_parameters.barostat_parameters.compressibility.units == '1 / pascal'
 
     sec_sccs = sec_run.calculation
     assert len(sec_sccs) == 7
@@ -61,11 +83,19 @@ def test_md_verbose(parser):
     assert sec_systems[0].atoms.velocities[500][0].magnitude == approx(869.4773)
     assert sec_systems[1].atoms.lattice_vectors[2][2].magnitude == approx(2.469158e-09)
 
-    sec_methods = sec_run.method
-    assert len(sec_methods) == 1
-    assert len(sec_methods[0].force_field.model[0].contributions) == 1127
-    assert sec_methods[0].force_field.model[0].contributions[0].type == 'angle'
-    assert sec_methods[0].force_field.model[0].contributions[1120].parameters[1] == 575.0
+    sec_method = sec_run.method
+    assert len(sec_method) == 1
+    assert len(sec_method[0].force_field.model[0].contributions) == 1127
+    assert sec_method[0].force_field.model[0].contributions[0].type == 'angle'
+    assert sec_method[0].force_field.model[0].contributions[1120].parameters[1] == 575.0
+    assert sec_method[0].force_field.force_calculations.vdw_cutoff.magnitude == 1.2e-09
+    assert sec_method[0].force_field.force_calculations.vdw_cutoff.units == 'meter'
+    assert sec_method[0].force_field.force_calculations.Coulomb_type == 'particle_mesh_ewald'
+    assert sec_method[0].force_field.force_calculations.Coulomb_cutoff.magnitude == 0.9
+    assert sec_method[0].force_field.force_calculations.Coulomb_cutoff.units == 'meter'
+    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_frequency == 5
+    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.magnitude == 9.000000000000001e-10
+    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.units == 'meter'
 
 
 def test_md_edr(parser):
@@ -85,7 +115,7 @@ def test_md_atomsgroup(parser):
     assert len(sec_systems[0].atoms_group) == 1
     assert len(sec_systems[0].atoms_group[0].atoms_group) == 100
 
-    assert sec_systems[0].atoms_group[0].label == 'seg_0_S1P1'
+    assert sec_systems[0].atoms_group[0].label == 'group_S1P1'
     assert sec_systems[0].atoms_group[0].type == 'molecule_group'
     assert sec_systems[0].atoms_group[0].index == 0
     assert sec_systems[0].atoms_group[0].composition_formula == 'S1P1(100)'
@@ -101,13 +131,21 @@ def test_md_atomsgroup(parser):
     assert sec_systems[0].atoms_group[0].atoms_group[52].atom_indices[8] == 3752
     assert sec_systems[0].atoms_group[0].atoms_group[52].is_molecule is True
 
-    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].label == 'ETHOX'
-    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].type == 'monomer'
-    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].index == 7
-    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].composition_formula == 'C(2)H(4)O(1)'
-    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].n_atoms == 7
-    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].atom_indices[5] == 5527
-    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[7].is_molecule is False
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].label == 'group_ETHOX'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].type == 'monomer_group'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].index == 0
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].composition_formula == 'ETHOX(10)'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].n_atoms == 72
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atom_indices[5] == 5477
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].is_molecule is False
+
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].label == 'ETHOX'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].type == 'monomer'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].index == 7
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].composition_formula == 'C(2)H(4)O(1)'
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].n_atoms == 7
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].atom_indices[5] == 5527
+    assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].is_molecule is False
 
 
 def test_rdf(parser):
@@ -115,9 +153,9 @@ def test_rdf(parser):
     parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
 
     sec_workflow = archive.workflow[0]
-    section_MD = sec_workflow.molecular_dynamics
+    section_MD = sec_workflow.molecular_dynamics.results
 
-    assert section_MD.radial_distribution_functions[0].type == 'Molecular'
+    assert section_MD.radial_distribution_functions[0].type == 'molecular'
     assert section_MD.radial_distribution_functions[0].n_smooth == 2
     assert section_MD.radial_distribution_functions[0].variables_name[0] == 'distance'
 
@@ -139,9 +177,9 @@ def test_msd(parser):
     parser.parse('tests/data/gromacs/cgwater/mdrun.log', archive, None)
 
     sec_workflow = archive.workflow[0]
-    section_MD = sec_workflow.molecular_dynamics
+    section_MD = sec_workflow.molecular_dynamics.results
 
-    assert section_MD.mean_squared_displacements[0].type == 'Molecular'
+    assert section_MD.mean_squared_displacements[0].type == 'molecular'
     assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].label == 'LJ'
     assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
     assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].magnitude == approx(95.0 * 10**(-12))

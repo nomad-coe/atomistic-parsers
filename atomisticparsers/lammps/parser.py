@@ -26,7 +26,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import Quantity, TextParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
-    ForceField, Method, Interaction, Model
+    NeighborSearching, ForceCalculations, ForceField, Method, Interaction, Model
 )
 from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
@@ -35,8 +35,9 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
 from nomad.datamodel.metainfo.workflow import (
-    DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
-    RadialDistributionFunction, RadialDistributionFunctionValues,
+    MolecularDynamicsResults, BarostatParameters, ThermostatParameters, 
+    IntegrationParameters, DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
+    MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
     Workflow, MolecularDynamics
 )
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
@@ -690,45 +691,204 @@ class LammpsParser:
                     sec_scc.time_calculation = float(val[n])
 
     def parse_workflow(self):
-        sec_workflow = self.archive.m_create(Workflow)
-        sec_md = sec_workflow.m_create(MolecularDynamics)
-
-        run_style = self.log_parser.get('run_style', ['verlet'])[0]
-        run = self.log_parser.get('run', [0])[0]
-
-        time_step = self.get_time_step()
-        sampling_method, ensemble_type = self.log_parser.get_sampling_method()
-
-        sec_workflow.type = sampling_method
-        sec_md.x_lammps_integrator_type = run_style
-        sec_md.x_lammps_number_of_steps_requested = run
-        sec_md.x_lammps_integrator_dt = time_step
-        sec_md.time_step = time_step
-        # TODO add langevin dynamics in ensemble_types
-        try:
-            sec_md.ensemble_type = ensemble_type.upper()
-        except Exception:
-            pass
-
-        thermo_settings = self.log_parser.get_thermostat_settings()
-        target_T = thermo_settings.get('target_T', None)
-        if target_T is not None:
-            sec_md.x_lammps_thermostat_target_temperature = target_T
-        thermostat_tau = thermo_settings.get('thermostat_tau', None)
-        if thermostat_tau is not None:
-            sec_md.x_lammps_thermostat_tau = thermostat_tau
-        target_P = thermo_settings.get('target_P', None)
-        if target_P is not None:
-            sec_md.x_lammps_barostat_target_pressure = target_P
-        barostat_tau = thermo_settings.get('barostat_P', None)
-        if barostat_tau is not None:
-            sec_md.x_lammps_barostat_tau = barostat_tau
-        langevin_gamma = thermo_settings.get('langevin_gamma', None)
-        if langevin_gamma is not None:
-            sec_md.x_lammps_langevin_gamma = langevin_gamma
+        sec_workflow = self.archive.workflow[-1]
+        sec_md = sec_workflow.molecular_dynamics
+        sec_run = self.archive.run[-1]
+        sec_lammps = sec_run.x_lammps_section_control_parameters[-1]
 
         sec_md.finished_normally = self.log_parser.get('finished') is not None
         sec_md.with_trajectory = self.traj_parsers.eval('with_trajectory')
+        sec_md.with_thermodynamics = self.log_parser.get('thermo_data') is not None or\
+            self.aux_log_parser.get('thermo_data') is not None
+
+        dump_params = sec_lammps.x_lammps_inout_control_dump.split()
+        sec_integration_parameters = sec_md.m_create(IntegrationParameters)
+        if ',' in dump_params[3]:
+            coordinate_save_frequency = dump_params[3].replace(',', '')
+        else:
+            coordinate_save_frequency = dump_params[3]
+        sec_integration_parameters.coordinate_save_frequency = int(coordinate_save_frequency)
+        sec_integration_parameters.n_steps = (len(sec_run.system) - 1) * sec_integration_parameters.coordinate_save_frequency
+        if 'vx' in dump_params[7:] or 'vy' in dump_params[7:] or 'vz' in dump_params[7:]:
+            sec_integration_parameters.velocity_save_frequency = int(dump_params[3])
+        if 'fx' in dump_params[7:] or 'fy' in dump_params[7:] or 'fz' in dump_params[7:]:
+            sec_integration_parameters.force_save_frequency = int(dump_params[3])
+        if sec_lammps.x_lammps_inout_control_thermo is not None:
+            sec_integration_parameters.thermodynamics_save_frequency = int(sec_lammps.x_lammps_inout_control_thermo)
+
+        val = self.log_parser.get('minimize', None)
+        if val is None:
+            val = self.log_parser.get('minimize/kk', None)
+        if val is not None:
+            sec_workflow.type = 'geometry_optimization'
+
+        # runstyle has 2 options: Velocity-Verlet (default) or rRESPA Multi-Timescale
+        runstyle = sec_lammps.x_lammps_inout_control_runstyle
+        if runstyle is not None:
+            if 'respa' in runstyle.lower:
+                sec_integration_parameters.integrator_type = 'rRESPA_multitimescale'
+            else:
+                sec_integration_parameters.integrator_type = 'velocity_verlet'
+        else:
+            sec_integration_parameters.integrator_type = 'velocity_verlet'
+        sec_integration_parameters.integration_timestep = self.get_time_step()
+        sec_thermostat_parameters = sec_integration_parameters.m_create(ThermostatParameters)
+        sec_barostat_parameters = sec_integration_parameters.m_create(BarostatParameters)
+
+        val = self.log_parser.get('fix', None)
+        flag_thermostat = False
+        flag_barostat = False
+        if val is not None:     
+            val_remove_duplicates = val if len(val) == 1 else []
+            val_tmp = val[0]
+            for i in range(1,len(val)):
+                if val[i][:3] == val[i-1][:3]:
+                    val_tmp = val[i]
+                else:
+                    val_remove_duplicates.append(val_tmp)
+                    val_tmp = val[i]
+            val_remove_duplicates.append(val_tmp)
+            val = val_remove_duplicates
+            for fix in val:
+                fix = [str(i).lower() for i in fix]
+                fix = np.array(fix)
+                fix_group = fix[1]
+                fix_style = fix[2]
+
+                if fix_group != 'all': # ignore any complex settings
+                    continue
+
+                reference_temperature = None
+                coupling_constant = None
+                if 'nvt' in fix_style or 'npt' in fix_style:
+                    flag_thermostat = True
+                    sec_thermostat_parameters.thermostat_type = 'nose_hoover'
+                    if 'temp' in fix:
+                        i_temp = np.where(fix == 'temp')[0]  
+                        reference_temperature = float(fix[i_temp+2]) # stop temp 
+                        coupling_constant = float(fix[i_temp+3]) * sec_integration_parameters.integration_timestep
+                elif fix_style == 'temp/berendsen':
+                    flag_thermostat = True
+                    sec_thermostat_parameters.thermostat_type = 'berendsen'
+                    i_temp = 3
+                    reference_temperature = float(fix[i_temp+2]) # stop temp  
+                    coupling_constant = float(fix[i_temp+3]) * sec_integration_parameters.integration_timestep        
+                elif fix_style == 'temp/csvr':
+                    flag_thermostat = True
+                    sec_thermostat_parameters.thermostat_type = 'velocity_rescaling'
+                    i_temp = 3
+                    reference_temperature = float(fix[i_temp+2]) # stop temp   
+                    coupling_constant = float(fix[i_temp+3]) * sec_integration_parameters.integration_timestep
+                elif fix_style == 'temp/csld':
+                    flag_thermostat = True
+                    sec_thermostat_parameters.thermostat_type = 'velocity_rescaling_langevin'
+                    i_temp = 3
+                    reference_temperature = float(fix[i_temp+2]) # stop temp   
+                    coupling_constant = float(fix[i_temp+3]) * sec_integration_parameters.integration_timestep
+                elif fix_style == 'langevin':
+                    flag_thermostat = True
+                    sec_thermostat_parameters.thermostat_type = 'langevin_schneider'
+                    i_temp = 3
+                    reference_temperature = float(fix[i_temp+2]) # stop temp   
+                    coupling_constant = float(fix[i_temp+3]) * sec_integration_parameters.integration_timestep
+                elif 'brownian' in fix_style:
+                    flag_thermostat = True
+                    sec_thermostat_parameters.thermostat_type = 'brownian'
+                    i_temp = 3
+                    reference_temperature = float(fix[i_temp+2]) # stop temp   
+                    # coupling_constant = # ignore multiple coupling parameters
+                sec_thermostat_parameters.reference_temperature = reference_temperature
+                sec_thermostat_parameters.coupling_constant = coupling_constant
+
+                if 'npt' in fix_style or 'nph' in fix_style:
+                    flag_barostat = True
+                    coupling_constant = np.zeros(shape=(3,3))
+                    reference_pressure = np.zeros(shape=(3,3))
+                    compressibility = None
+                    sec_barostat_parameters.barostat_type = 'nose_hoover'
+                    if 'iso' in fix:
+                        i_baro = np.where(fix == 'iso')[0]
+                        sec_barostat_parameters.coupling_type = 'isotropic'
+                        np.fill_diagonal(coupling_constant, float(fix[i_baro+3]))
+                        np.fill_diagonal(reference_pressure, float(fix[i_baro+2]))
+                    else:
+                        sec_barostat_parameters.coupling_type = 'anisotropic'
+                    if 'x' in fix:
+                        i_baro = np.where(fix == 'x')[0]
+                        coupling_constant[0,0] = float(fix[i_baro+3])
+                        reference_pressure[0,0] = float(fix[i_baro+2])
+                    if 'y' in fix:
+                        i_baro = np.where(fix == 'y')[0]
+                        coupling_constant[1,1] = float(fix[i_baro+3])
+                        reference_pressure[1,1] = float(fix[i_baro+2])
+                    if 'z' in fix:
+                        i_baro = np.where(fix == 'z')[0]
+                        coupling_constant[2,2] = float(fix[i_baro+3])
+                        reference_pressure[2,2] = float(fix[i_baro+2])
+                    if 'xy' in fix:
+                        i_baro = np.where(fix == 'xy')[0]
+                        coupling_constant[0,1] = float(fix[i_baro+3])
+                        coupling_constant[1,0] = float(fix[i_baro+3])
+                        reference_pressure[0,1] = float(fix[i_baro+2])
+                        reference_pressure[1,0] = float(fix[i_baro+2])
+                    if 'yz' in fix:
+                        i_baro = np.where(fix == 'yz')[0]
+                        coupling_constant[1,2] = float(fix[i_baro+3])
+                        coupling_constant[2,1] = float(fix[i_baro+3])
+                        reference_pressure[1,2] = float(fix[i_baro+2])
+                        reference_pressure[2,1] = float(fix[i_baro+2])
+                    if 'xz' in fix:
+                        i_baro = np.where(fix == 'xz')[0]
+                        coupling_constant[0,3] = float(fix[i_baro+3])
+                        coupling_constant[3,0] = float(fix[i_baro+3])
+                        reference_pressure[0,3] = float(fix[i_baro+2])
+                        reference_pressure[3,0] = float(fix[i_baro+2])
+                    sec_barostat_parameters.reference_pressure = reference_pressure * ureg.bar # stop pressure 
+                    sec_barostat_parameters.coupling_constant = coupling_constant * sec_integration_parameters.integration_timestep
+                    sec_barostat_parameters.compressibility = compressibility
+
+                if fix_style == 'press/berendsen':
+                    flag_barostat = False
+                    sec_barostat_parameters.barostat_type = 'berendsen'
+                    if 'iso' in fix:
+                        i_baro = np.where(fix == 'iso')[0]
+                        sec_barostat_parameters.coupling_type = 'isotropic'
+                        np.fill_diagonal(coupling_constant, float(fix[i_baro+3]))
+                    elif 'aniso' in fix:
+                        i_baro = np.where(fix == 'aniso')[0]
+                        sec_barostat_parameters.coupling_type = 'anisotropic'
+                        coupling_constant[:3] += 1.
+                        coupling_constant[:3] *= float(fix[i_baro+3])
+                    else:
+                        sec_barostat_parameters.coupling_type = 'anisotropic'
+                    if 'x' in fix:
+                        i_baro = np.where(fix == 'x')[0]
+                        coupling_constant[0] = float(fix[i_baro+3])
+                    if 'y' in fix:
+                        i_baro = np.where(fix == 'y')[0]
+                        coupling_constant[1] = float(fix[i_baro+3])
+                    if 'z' in fix:
+                        i_baro = np.where(fix == 'z')[0]
+                        coupling_constant[2] = float(fix[i_baro+3])
+                    if 'couple' in fix:
+                        i_baro = np.where(fix == 'couple')[0]
+                        couple = fix[i_baro]
+                        if couple == 'xyz':
+                            sec_barostat_parameters.coupling_type = 'isotropic'
+                        elif couple == 'xy' or couple == 'yz' or couple == 'xz':
+                            sec_barostat_parameters.coupling_type = 'anisotropic'
+                    sec_barostat_parameters.reference_pressure = float(fix[i_baro+2]) # stop pressure
+                    sec_barostat_parameters.coupling_constant = np.ones(shape=(3,3)) * float(fix[i_baro+3]) * sec_integration_parameters.integration_timestep
+
+        if flag_thermostat:
+            if flag_barostat:
+                sec_md.thermodynamic_ensemble = 'NPT'
+            else:
+                sec_md.thermodynamic_ensemble = 'NVT'
+        elif flag_barostat:
+            sec_md.thermodynamic_ensemble = 'NPH'
+        else:
+            sec_md.thermodynamic_ensemble = 'NVE'
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
@@ -790,7 +950,7 @@ class LammpsParser:
             for i_moltype, moltype in enumerate(moltypes):
                 # Only add atomsgroup for initial system for now
                 sec_molecule_group = sec_run.system[0].m_create(AtomsGroup)
-                sec_molecule_group.label = f'seg_{i_moltype}_{moltype}'
+                sec_molecule_group.label = f'group_{moltype}'
                 sec_molecule_group.type = 'molecule_group'
                 sec_molecule_group.index = i_moltype
                 sec_molecule_group.atom_indices = np.where(atoms_moltypes == moltype)[0]
@@ -819,18 +979,32 @@ class LammpsParser:
                         elements = atoms_elements[sec_molecule.atom_indices]
                         sec_molecule.composition_formula = get_composition(elements)
                     else:
-                        for i_res, res_id in enumerate(mol_resids):
-                            sec_residue = sec_molecule.m_create(AtomsGroup)
-                            sec_residue.index = i_res
-                            atom_indices = np.where(atoms_resids == res_id)[0]
-                            sec_residue.atom_indices = np.intersect1d(atom_indices, sec_molecule.atom_indices)
-                            sec_residue.n_atoms = len(sec_residue.atom_indices)
-                            res_names = atoms_resnames[sec_residue.atom_indices]
-                            sec_residue.label = str(res_names[0])
-                            sec_residue.type = 'monomer'
-                            sec_residue.is_molecule = False
-                            elements = atoms_elements[sec_residue.atom_indices]
-                            sec_residue.composition_formula = get_composition(elements)
+                        mol_resnames = atoms_resnames[sec_molecule.atom_indices]
+                        restypes = np.unique(mol_resnames)
+                        for i_restype, restype in enumerate(restypes):
+                            sec_monomer_group = sec_molecule.m_create(AtomsGroup)
+                            restype_indices = np.where(atoms_resnames == restype)[0]
+                            sec_monomer_group.label = f'group_{restype}'
+                            sec_monomer_group.type = 'monomer_group'
+                            sec_monomer_group.index = i_restype
+                            sec_monomer_group.atom_indices = np.intersect1d(restype_indices, sec_molecule.atom_indices)
+                            sec_monomer_group.n_atoms = len(sec_monomer_group.atom_indices)
+                            sec_monomer_group.is_molecule = False
+
+                            restype_resids = np.unique(atoms_resids[sec_monomer_group.atom_indices])
+                            restype_count = restype_resids.shape[0]
+                            sec_monomer_group.composition_formula = f'{restype}({restype_count})'
+                            for i_res, res_id in enumerate(restype_resids):
+                                sec_residue = sec_monomer_group.m_create(AtomsGroup)
+                                sec_residue.index = i_res
+                                atom_indices = np.where(atoms_resids == res_id)[0]
+                                sec_residue.atom_indices = np.intersect1d(atom_indices, sec_monomer_group.atom_indices)
+                                sec_residue.n_atoms = len(sec_residue.atom_indices)
+                                sec_residue.label = str(restype)
+                                sec_residue.type = 'monomer'
+                                sec_residue.is_molecule = False
+                                elements = atoms_elements[sec_residue.atom_indices]
+                                sec_residue.composition_formula = get_composition(elements)
 
                         names = atoms_resnames[sec_molecule.atom_indices]
                         ids = atoms_resids[sec_molecule.atom_indices]
@@ -845,13 +1019,14 @@ class LammpsParser:
 
             # calculate molecular radial distribution functions
             sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
             rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
             rdf_results = rdf_results() if rdf_results is not None else None
             if rdf_results is None:
                 rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
             if rdf_results is not None:
-                sec_rdfs = sec_molecular_dynamics.m_create(RadialDistributionFunction)
-                sec_rdfs.type = 'Molecular'
+                sec_rdfs = sec_results.m_create(RadialDistributionFunction)
+                sec_rdfs.type = 'molecular'
                 sec_rdfs.n_smooth = rdf_results.get('n_smooth')
                 sec_rdfs.variables_name = np.array(['distance'])
                 for i_pair, pair_type in enumerate(rdf_results.get('types')):
@@ -870,8 +1045,8 @@ class LammpsParser:
             if msd_results is None:
                 msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squard_displacements()
             if msd_results is not None:
-                sec_msds = sec_molecular_dynamics.m_create(MeanSquaredDisplacement)
-                sec_msds.type = 'Molecular'
+                sec_msds = sec_results.m_create(MeanSquaredDisplacement)
+                sec_msds.type = 'molecular'
                 for i_type, moltype in enumerate(msd_results.get('types')):
                     sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
                     sec_msd_values.label = str(moltype)
@@ -912,6 +1087,46 @@ class LammpsParser:
             sec_interaction = sec_model.m_create(Interaction)
             sec_interaction.type = str(interaction[0])
             sec_interaction.parameters = [[float(ai) for ai in a] for a in interaction[1]]
+
+        sec_force_calculations = sec_force_field.m_create(ForceCalculations)
+        val = self.log_parser.get('pair_style', None)
+        if val is not None:
+            for pairstyle in val:
+                pairstyle_args = pairstyle[1:]
+                pairstyle = pairstyle[0].lower()
+                if 'lj' in pairstyle and 'coul' not in pairstyle: # only cover the simplest case
+                    sec_force_calculations.vdw_cutoff = float(pairstyle_args[-1]) * ureg.nanometer
+                if 'coul' in pairstyle:
+                    if 'streitz' in pairstyle:
+                        cutoff = float(pairstyle_args[0])
+                    else:
+                        cutoff = float(pairstyle_args[-1])
+                    sec_force_calculations.Coulomb_cutoff = cutoff * ureg.nanometer 
+                val = self.log_parser.get('kspace_style', None)
+                if val is not None:
+                    kspacestyle = val[0][0].lower()
+                    if 'ewald' in kspacestyle:
+                        sec_force_calculations.Coulomb_type = 'ewald'
+                    elif 'pppm' in kspacestyle:
+                        sec_force_calculations.Coulomb_type = 'particle_particle_particle_mesh'
+                    elif 'msm' in kspacestyle:
+                        sec_force_calculations.Coulomb_type = 'multilevel_summation'
+
+        sec_neighbor_searching = sec_force_calculations.m_create(NeighborSearching)
+        val = self.log_parser.get('neighbor', None)
+        if val is not None:
+            neighbor = val[0][0] # just use the first instance for now
+            vdw_cutoff = sec_force_calculations.vdw_cutoff
+            if vdw_cutoff is not None:
+                sec_neighbor_searching.neighbor_update_cutoff = float(neighbor) * ureg.nanometer
+                sec_neighbor_searching.neighbor_update_cutoff += vdw_cutoff
+        val = self.log_parser.get('neigh_modify', None)
+        if val is not None:
+            neighmodify = val[0] # just use the first instace for now
+            neighmodify = np.array([str(i).lower() for i in neighmodify])
+            if 'every' in neighmodify:
+                index = np.where(neighmodify == 'every')[0]
+                sec_neighbor_searching.neighbor_update_frequency = int(neighmodify[index+1])
 
     def parse_input(self):
         sec_run = self.archive.run[-1]
@@ -1024,9 +1239,11 @@ class LammpsParser:
             # we assign units here which is read from log parser
             self.aux_log_parser._units = self.log_parser.units
 
-        self.parse_method()
+        sec_workflow = self.archive.m_create(Workflow)
+        sec_workflow.type = 'molecular_dynamics'
+        __ = sec_workflow.m_create(MolecularDynamics)
 
-        self.parse_workflow()
+        self.parse_method()
 
         self.parse_system()
 
@@ -1035,3 +1252,5 @@ class LammpsParser:
 
         # include input controls from log file
         self.parse_input()
+
+        self.parse_workflow()

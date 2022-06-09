@@ -1418,7 +1418,7 @@ class x_gromacs_section_control_parameters(MSection):
 
     x_gromacs_inout_control_nfreeze = Quantity(
         type=str,
-        shape=[3],
+        shape=[],
         description='''
         Gromacs running environment and control parameters.
         ''',)

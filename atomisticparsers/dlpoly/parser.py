@@ -33,7 +33,7 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
-from nomad.datamodel.metainfo.workflow import Workflow, MolecularDynamics
+from nomad.datamodel.metainfo.workflow import IntegrationParameters, Workflow, MolecularDynamics
 
 
 re_f = r'[-+]?\d*\.\d*(?:[Ee][-+]\d+)?'
@@ -560,8 +560,8 @@ class DLPolyParser:
 
         sec_workflow = archive.m_create(Workflow)
         sec_workflow.type == 'molecular_dynamics'
+        sec_md = sec_workflow.m_create(MolecularDynamics)
         ensemble_type = control_parameters.get('Ensemble')
-        sec_workflow.molecular_dynamics = MolecularDynamics(
-            ensemble_type=ensemble_type.split()[0] if ensemble_type is not None else None,
-            time_step=control_parameters.get('fixed simulation timestep', 0) * ureg.ps
-        )
+        sec_md.thermodynamic_ensemble = ensemble_type.split()[0] if ensemble_type is not None else None
+        sec_integration_parameters = sec_md.m_create(IntegrationParameters)
+        sec_integration_parameters.integration_timestep = control_parameters.get('fixed simulation timestep', 0) * ureg.ps

@@ -43,12 +43,12 @@ def test_md_verbose(parser):
     assert np.shape(sec_control.x_gromacs_inout_control_deform) == (3, 3)
 
     sec_workflow = archive.workflow[0]
-    section_MD = sec_workflow.molecular_dynamics   
+    section_MD = sec_workflow.molecular_dynamics
     assert sec_workflow.type == 'molecular_dynamics'
     assert section_MD.thermodynamic_ensemble == 'NPT'
-    assert section_MD.finished_normally == None
-    assert section_MD.with_trajectory == None
-    assert section_MD.with_thermodynamics == None
+    assert section_MD.finished_normally is None
+    assert section_MD.with_trajectory is None
+    assert section_MD.with_thermodynamics is None
     assert section_MD.integration_parameters.integrator_type == 'leap_frog'
     assert section_MD.integration_parameters.integration_timestep.magnitude == 5e-16
     assert section_MD.integration_parameters.integration_timestep.units == 'second'
@@ -62,11 +62,11 @@ def test_md_verbose(parser):
     assert section_MD.integration_parameters.thermostat_parameters.coupling_constant.units == 'second'
     assert section_MD.integration_parameters.barostat_parameters.barostat_type == 'berendsen'
     assert section_MD.integration_parameters.barostat_parameters.coupling_type == 'isotropic'
-    assert np.all( section_MD.integration_parameters.barostat_parameters.reference_pressure.magnitude == [ [100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.] ] )
+    assert np.all(section_MD.integration_parameters.barostat_parameters.reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
     assert section_MD.integration_parameters.barostat_parameters.reference_pressure.units == 'pascal'
-    assert np.all( section_MD.integration_parameters.barostat_parameters.coupling_constant.magnitude == [ [1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12] ] )
+    assert np.all(section_MD.integration_parameters.barostat_parameters.coupling_constant.magnitude == [[1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12]])
     assert section_MD.integration_parameters.barostat_parameters.coupling_constant.units == 'second'
-    assert np.all( section_MD.integration_parameters.barostat_parameters.compressibility.magnitude == [ [4.6e-10, 0.0e+00, 0.0e+00], [0.0e+00, 4.6e-10, 0.0e+00], [0.0e+00, 0.0e+00, 4.6e-10] ] )
+    assert np.all(section_MD.integration_parameters.barostat_parameters.compressibility.magnitude == [[4.6e-10, 0.0e+00, 0.0e+00], [0.0e+00, 4.6e-10, 0.0e+00], [0.0e+00, 0.0e+00, 4.6e-10]])
     assert section_MD.integration_parameters.barostat_parameters.compressibility.units == '1 / pascal'
 
     sec_sccs = sec_run.calculation

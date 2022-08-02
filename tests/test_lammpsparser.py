@@ -40,12 +40,12 @@ def test_nvt(parser):
     assert sec_run.program.version == '14 May 2016'
 
     sec_workflow = archive.workflow[0]
-    section_MD = sec_workflow.molecular_dynamics   
+    section_MD = sec_workflow.molecular_dynamics
     assert sec_workflow.type == 'molecular_dynamics'
     assert section_MD.thermodynamic_ensemble == 'NVT'
-    assert section_MD.finished_normally == False
-    assert section_MD.with_trajectory == True
-    assert section_MD.with_thermodynamics == True
+    assert section_MD.finished_normally is False
+    assert section_MD.with_trajectory is True
+    assert section_MD.with_thermodynamics is True
     assert section_MD.integration_parameters.integrator_type == 'velocity_verlet'
     assert section_MD.integration_parameters.integration_timestep.magnitude == 2.5e-16
     assert section_MD.integration_parameters.integration_timestep.units == 'second'

@@ -43,10 +43,9 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
 from nomad.datamodel.metainfo.workflow import (
-    BarostatParameters, ThermostatParameters, 
-    IntegrationParameters, DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
-    MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
-    Workflow, MolecularDynamics
+    BarostatParameters, ThermostatParameters, IntegrationParameters, DiffusionConstantValues,
+    MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
+    RadialDistributionFunction, RadialDistributionFunctionValues, Workflow, MolecularDynamics
 )
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser
@@ -129,6 +128,9 @@ class GromacsLogParser(TextParser):
             Quantity('execution_path', r'Executable:\s*(.+)'),
             Quantity('working_path', r'Data prefix:\s*(.+)'),
             # TODO cannot understand treatment of the command line in the old parser
+            # Quantity(
+            #     'header',
+            #     r'(?:GROMACS|Gromacs) (2019[\s\S]+?)\n\n', str_operation=str_to_header),
             Quantity(
                 'header',
                 r'(?:GROMACS|Gromacs) (version:[\s\S]+?)\n\n', str_operation=str_to_header),
@@ -927,7 +929,7 @@ class GromacsParser:
         nstxout = input_parameters.get('nstxout', None)
         if nstxout is not None:
             sec_integration_parameters.coordinate_save_frequency = int(nstxout)
-        nstvout = input_parameters.get('nstvout', None)   
+        nstvout = input_parameters.get('nstvout', None)
         if nstvout is not None:
             sec_integration_parameters.velocity_save_frequency = int(nstvout)
         nstfout = input_parameters.get('nstfout', None)
@@ -936,7 +938,7 @@ class GromacsParser:
         nstenergy = input_parameters.get('nstenergy', None)
         if nstenergy is not None:
             sec_integration_parameters.thermodynamics_save_frequency = int(nstenergy)
-        
+
         if integrator == 'md':
             sec_integration_parameters.integrator_type = 'leap_frog'
         elif 'md-vv' in integrator:
@@ -951,7 +953,7 @@ class GromacsParser:
             sec_integration_parameters.integrator_type = 'conjugant_gradient'
         elif integrator == 'l-bfgs':
             sec_integration_parameters.integrator_type = 'low_memory_broyden_fletcher_goldfarb_shanno'
-        timestep = input_parameters.get('dt', None)    
+        timestep = input_parameters.get('dt', None)
         if timestep is not None:
             sec_integration_parameters.integration_timestep = float(timestep) * ureg.picosecond
         sec_thermostat_parameters = sec_integration_parameters.m_create(ThermostatParameters)
@@ -982,17 +984,17 @@ class GromacsParser:
                 coupling_constant = float(coupling_constant.split()[0])
             if coupling_constant is not None:
                 coupling_constant *= ureg.picosecond
-            sec_thermostat_parameters.coupling_constant = coupling_constant 
+            sec_thermostat_parameters.coupling_constant = coupling_constant
 
         flag_barostat = False
         pcoupl = input_parameters.get('pcoupl', 'no').lower()
         if pcoupl == 'berendsen':
             sec_barostat_parameters.barostat_type = 'berendsen'
-        elif pcoupl == 'parrinello-rahman': 
+        elif pcoupl == 'parrinello-rahman':
             sec_barostat_parameters.barostat_type = 'parrinello_rahman'
-        elif pcoupl == 'mttk': 
+        elif pcoupl == 'mttk':
             sec_barostat_parameters.barostat_type = 'martyna_tuckerman_tobias_klein'
-        elif pcoupl == 'c-rescale': 
+        elif pcoupl == 'c-rescale':
             sec_barostat_parameters.barostat_type = 'stochastic_cell_rescaling'
         if pcoupl != 'no':
             flag_barostat = True
@@ -1006,13 +1008,13 @@ class GromacsParser:
                     sec_barostat_parameters.coupling_type = 'anisotropic'
                 taup = input_parameters.get('tau-p', None)
                 if taup is not None:
-                    sec_barostat_parameters.coupling_constant = np.ones(shape=(3,3)) * float(taup) * ureg.picosecond
+                    sec_barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond
                 refp = input_parameters.get('ref-p', None)
                 if refp is not None:
                     sec_barostat_parameters.reference_pressure = refp * ureg.bar
                 compressibility = input_parameters.get('compressibility', None)
                 if compressibility is not None:
-                    sec_barostat_parameters.compressibility = compressibility * (1./ureg.bar)
+                    sec_barostat_parameters.compressibility = compressibility * (1. / ureg.bar)
 
         if flag_thermostat:
             if flag_barostat:
@@ -1022,7 +1024,7 @@ class GromacsParser:
         elif flag_barostat:
             sec_md.thermodynamic_ensemble = 'NPH'
         else:
-            sec_md.thermodynamic_ensemble = 'NVE'     
+            sec_md.thermodynamic_ensemble = 'NVE'
 
     def parse_input(self):
         sec_run = self.archive.run[-1]
@@ -1073,7 +1075,7 @@ class GromacsParser:
 
         header = self.log_parser.get('header', {})
         sec_run.program = Program(
-            name='GROMACS', version=header.get('version', 'unknown').lstrip('VERSION '))
+            name='GROMACS', version=str(header.get('version', 'unknown')).lstrip('VERSION '))
 
         sec_time_run = sec_run.m_create(TimeRun)
         for key in ['start', 'end']:

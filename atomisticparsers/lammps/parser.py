@@ -691,8 +691,9 @@ class LammpsParser:
                     sec_scc.time_calculation = float(val[n])
 
     def parse_workflow(self):
-        sec_workflow = self.archive.workflow[-1]
-        sec_md = sec_workflow.molecular_dynamics
+        sec_workflow = self.archive.m_create(Workflow)
+        sec_workflow.type = 'molecular_dynamics'
+        sec_md = sec_workflow.m_create(MolecularDynamics)
         sec_run = self.archive.run[-1]
         sec_lammps = sec_run.x_lammps_section_control_parameters[-1]
 
@@ -881,14 +882,55 @@ class LammpsParser:
                     sec_barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(fix[i_baro + 3]) * sec_integration_parameters.integration_timestep
 
         if flag_thermostat:
-            if flag_barostat:
-                sec_md.thermodynamic_ensemble = 'NPT'
-            else:
-                sec_md.thermodynamic_ensemble = 'NVT'
+            sec_md.thermodynamic_ensemble = 'NPT' if flag_barostat else 'NVT'
         elif flag_barostat:
             sec_md.thermodynamic_ensemble = 'NPH'
         else:
             sec_md.thermodynamic_ensemble = 'NVE'
+
+        # calculate molecular radial distribution functions
+        sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+        sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
+        rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
+        rdf_results = rdf_results() if rdf_results is not None else None
+        if rdf_results is None:
+            rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
+        if rdf_results is not None:
+            sec_rdfs = sec_results.m_create(RadialDistributionFunction)
+            sec_rdfs.type = 'molecular'
+            sec_rdfs.n_smooth = rdf_results.get('n_smooth')
+            sec_rdfs.variables_name = np.array(['distance'])
+            for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
+                sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
+                sec_rdf_values.label = str(pair_type)
+                sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
+                sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
+                    'bins') is not None else []
+                sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
+                    'value') is not None else []
+
+        # calculate the molecular mean squared displacements
+        msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')
+        msd_results = msd_results() if msd_results is not None else None
+        if msd_results is None:
+            msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squard_displacements()
+        if msd_results is not None:
+            sec_msds = sec_results.m_create(MeanSquaredDisplacement)
+            sec_msds.type = 'molecular'
+            for i_type, moltype in enumerate(msd_results.get('types', [])):
+                sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
+                sec_msd_values.label = str(moltype)
+                sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
+                sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
+                    'times') is not None else []
+                sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
+                    'value') is not None else []
+                sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
+                sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
+                    'diffusion_constant') is not None else []
+                sec_diffusion.error_type = 'Pearson correlation coefficient'
+                sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
+                    'error_diffusion_constant') is not None else []
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
@@ -1017,52 +1059,6 @@ class LammpsParser:
                         names_firstatom = names[ids_firstatom]
                         sec_molecule.composition_formula = get_composition(names_firstatom)
 
-            # calculate molecular radial distribution functions
-            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
-            rdf_results = rdf_results() if rdf_results is not None else None
-            if rdf_results is None:
-                rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
-            if rdf_results is not None:
-                sec_rdfs = sec_results.m_create(RadialDistributionFunction)
-                sec_rdfs.type = 'molecular'
-                sec_rdfs.n_smooth = rdf_results.get('n_smooth')
-                sec_rdfs.variables_name = np.array(['distance'])
-                for i_pair, pair_type in enumerate(rdf_results.get('types')):
-                    sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
-                    sec_rdf_values.label = str(pair_type)
-                    sec_rdf_values.n_bins = len(rdf_results['bins'][i_pair]) if rdf_results.get(
-                        'bins') is not None else []
-                    sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
-                        'bins') is not None else []
-                    sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
-                        'value') is not None else []
-
-            # calculate the molecular mean squared displacements
-            msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')
-            msd_results = msd_results() if msd_results is not None else None
-            if msd_results is None:
-                msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squard_displacements()
-            if msd_results is not None:
-                sec_msds = sec_results.m_create(MeanSquaredDisplacement)
-                sec_msds.type = 'molecular'
-                for i_type, moltype in enumerate(msd_results.get('types')):
-                    sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
-                    sec_msd_values.label = str(moltype)
-                    sec_msd_values.n_times = len(msd_results['times'][i_type]) if msd_results.get(
-                        'times') is not None else []
-                    sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
-                        'times') is not None else []
-                    sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
-                        'value') is not None else []
-                    sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-                    sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
-                        'diffusion_constant') is not None else []
-                    sec_diffusion.error_type = 'Pearson correlation coefficient'
-                    sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
-                        'error_diffusion_constant') is not None else []
-
     def parse_method(self):
         sec_run = self.archive.run[-1]
 
@@ -1089,28 +1085,26 @@ class LammpsParser:
             sec_interaction.parameters = [[float(ai) for ai in a] for a in interaction[1]]
 
         sec_force_calculations = sec_force_field.m_create(ForceCalculations)
-        val = self.log_parser.get('pair_style', None)
-        if val is not None:
-            for pairstyle in val:
-                pairstyle_args = pairstyle[1:]
-                pairstyle = pairstyle[0].lower()
-                if 'lj' in pairstyle and 'coul' not in pairstyle:  # only cover the simplest case
-                    sec_force_calculations.vdw_cutoff = float(pairstyle_args[-1]) * ureg.nanometer
-                if 'coul' in pairstyle:
-                    if 'streitz' in pairstyle:
-                        cutoff = float(pairstyle_args[0])
-                    else:
-                        cutoff = float(pairstyle_args[-1])
-                    sec_force_calculations.Coulomb_cutoff = cutoff * ureg.nanometer
-                val = self.log_parser.get('kspace_style', None)
-                if val is not None:
-                    kspacestyle = val[0][0].lower()
-                    if 'ewald' in kspacestyle:
-                        sec_force_calculations.Coulomb_type = 'ewald'
-                    elif 'pppm' in kspacestyle:
-                        sec_force_calculations.Coulomb_type = 'particle_particle_particle_mesh'
-                    elif 'msm' in kspacestyle:
-                        sec_force_calculations.Coulomb_type = 'multilevel_summation'
+        for pairstyle in self.log_parser.get('pair_style', []):
+            pairstyle_args = pairstyle[1:]
+            pairstyle = pairstyle[0].lower()
+            if 'lj' in pairstyle and 'coul' not in pairstyle:  # only cover the simplest case
+                sec_force_calculations.vdw_cutoff = float(pairstyle_args[-1]) * ureg.nanometer
+            if 'coul' in pairstyle:
+                if 'streitz' in pairstyle:
+                    cutoff = float(pairstyle_args[0])
+                else:
+                    cutoff = float(pairstyle_args[-1])
+                sec_force_calculations.coulomb_cutoff = cutoff * ureg.nanometer
+            val = self.log_parser.get('kspace_style', None)
+            if val is not None:
+                kspacestyle = val[0][0].lower()
+                if 'ewald' in kspacestyle:
+                    sec_force_calculations.coulomb_type = 'ewald'
+                elif 'pppm' in kspacestyle:
+                    sec_force_calculations.coulomb_type = 'particle_particle_particle_mesh'
+                elif 'msm' in kspacestyle:
+                    sec_force_calculations.coulomb_type = 'multilevel_summation'
 
         sec_neighbor_searching = sec_force_calculations.m_create(NeighborSearching)
         val = self.log_parser.get('neighbor', None)
@@ -1238,10 +1232,6 @@ class LammpsParser:
                 self.log_parser.maindir, self.log_parser.get('log')[0])
             # we assign units here which is read from log parser
             self.aux_log_parser._units = self.log_parser.units
-
-        sec_workflow = self.archive.m_create(Workflow)
-        sec_workflow.type = 'molecular_dynamics'
-        __ = sec_workflow.m_create(MolecularDynamics)
 
         self.parse_method()
 

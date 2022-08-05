@@ -43,31 +43,31 @@ def test_md_verbose(parser):
     assert np.shape(sec_control.x_gromacs_inout_control_deform) == (3, 3)
 
     sec_workflow = archive.workflow[0]
-    section_MD = sec_workflow.molecular_dynamics
+    section_md = sec_workflow.molecular_dynamics
     assert sec_workflow.type == 'molecular_dynamics'
-    assert section_MD.thermodynamic_ensemble == 'NPT'
-    assert section_MD.finished_normally is None
-    assert section_MD.with_trajectory is None
-    assert section_MD.with_thermodynamics is None
-    assert section_MD.integration_parameters.integrator_type == 'leap_frog'
-    assert section_MD.integration_parameters.integration_timestep.magnitude == 5e-16
-    assert section_MD.integration_parameters.integration_timestep.units == 'second'
-    assert section_MD.integration_parameters.n_steps == 20
-    assert section_MD.integration_parameters.coordinate_save_frequency == 20
-    assert section_MD.integration_parameters.thermodynamics_save_frequency == 5
-    assert section_MD.integration_parameters.thermostat_parameters.thermostat_type == 'berendsen'
-    assert section_MD.integration_parameters.thermostat_parameters.reference_temperature.magnitude == 298.0
-    assert section_MD.integration_parameters.thermostat_parameters.reference_temperature.units == 'kelvin'
-    assert section_MD.integration_parameters.thermostat_parameters.coupling_constant.magnitude == 5e-13
-    assert section_MD.integration_parameters.thermostat_parameters.coupling_constant.units == 'second'
-    assert section_MD.integration_parameters.barostat_parameters.barostat_type == 'berendsen'
-    assert section_MD.integration_parameters.barostat_parameters.coupling_type == 'isotropic'
-    assert np.all(section_MD.integration_parameters.barostat_parameters.reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
-    assert section_MD.integration_parameters.barostat_parameters.reference_pressure.units == 'pascal'
-    assert np.all(section_MD.integration_parameters.barostat_parameters.coupling_constant.magnitude == [[1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12]])
-    assert section_MD.integration_parameters.barostat_parameters.coupling_constant.units == 'second'
-    assert np.all(section_MD.integration_parameters.barostat_parameters.compressibility.magnitude == [[4.6e-10, 0.0e+00, 0.0e+00], [0.0e+00, 4.6e-10, 0.0e+00], [0.0e+00, 0.0e+00, 4.6e-10]])
-    assert section_MD.integration_parameters.barostat_parameters.compressibility.units == '1 / pascal'
+    assert section_md.thermodynamic_ensemble == 'NPT'
+    assert section_md.finished_normally is None
+    assert section_md.with_trajectory is None
+    assert section_md.with_thermodynamics is None
+    assert section_md.integration_parameters.integrator_type == 'leap_frog'
+    assert section_md.integration_parameters.integration_timestep.magnitude == 5e-16
+    assert section_md.integration_parameters.integration_timestep.units == 'second'
+    assert section_md.integration_parameters.n_steps == 20
+    assert section_md.integration_parameters.coordinate_save_frequency == 20
+    assert section_md.integration_parameters.thermodynamics_save_frequency == 5
+    assert section_md.integration_parameters.thermostat_parameters.thermostat_type == 'berendsen'
+    assert section_md.integration_parameters.thermostat_parameters.reference_temperature.magnitude == 298.0
+    assert section_md.integration_parameters.thermostat_parameters.reference_temperature.units == 'kelvin'
+    assert section_md.integration_parameters.thermostat_parameters.coupling_constant.magnitude == 5e-13
+    assert section_md.integration_parameters.thermostat_parameters.coupling_constant.units == 'second'
+    assert section_md.integration_parameters.barostat_parameters.barostat_type == 'berendsen'
+    assert section_md.integration_parameters.barostat_parameters.coupling_type == 'isotropic'
+    assert np.all(section_md.integration_parameters.barostat_parameters.reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
+    assert section_md.integration_parameters.barostat_parameters.reference_pressure.units == 'pascal'
+    assert np.all(section_md.integration_parameters.barostat_parameters.coupling_constant.magnitude == [[1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12]])
+    assert section_md.integration_parameters.barostat_parameters.coupling_constant.units == 'second'
+    assert np.all(section_md.integration_parameters.barostat_parameters.compressibility.magnitude == [[4.6e-10, 0.0e+00, 0.0e+00], [0.0e+00, 4.6e-10, 0.0e+00], [0.0e+00, 0.0e+00, 4.6e-10]])
+    assert section_md.integration_parameters.barostat_parameters.compressibility.units == '1 / pascal'
 
     sec_sccs = sec_run.calculation
     assert len(sec_sccs) == 7
@@ -90,9 +90,9 @@ def test_md_verbose(parser):
     assert sec_method[0].force_field.model[0].contributions[1120].parameters[1] == 575.0
     assert sec_method[0].force_field.force_calculations.vdw_cutoff.magnitude == 1.2e-09
     assert sec_method[0].force_field.force_calculations.vdw_cutoff.units == 'meter'
-    assert sec_method[0].force_field.force_calculations.Coulomb_type == 'particle_mesh_ewald'
-    assert sec_method[0].force_field.force_calculations.Coulomb_cutoff.magnitude == 0.9
-    assert sec_method[0].force_field.force_calculations.Coulomb_cutoff.units == 'meter'
+    assert sec_method[0].force_field.force_calculations.coulomb_type == 'particle_mesh_ewald'
+    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.magnitude == 0.9
+    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.units == 'meter'
     assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_frequency == 5
     assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.magnitude == 9.000000000000001e-10
     assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.units == 'meter'
@@ -153,23 +153,23 @@ def test_rdf(parser):
     parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
 
     sec_workflow = archive.workflow[0]
-    section_MD = sec_workflow.molecular_dynamics.results
+    section_md = sec_workflow.molecular_dynamics.results
 
-    assert section_MD.radial_distribution_functions[0].type == 'molecular'
-    assert section_MD.radial_distribution_functions[0].n_smooth == 2
-    assert section_MD.radial_distribution_functions[0].variables_name[0] == 'distance'
+    assert section_md.radial_distribution_functions[0].type == 'molecular'
+    assert section_md.radial_distribution_functions[0].n_smooth == 2
+    assert section_md.radial_distribution_functions[0].variables_name[0] == 'distance'
 
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[0].label == 'SOL-Protein'
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[0].n_bins == 198
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(7.624056451320648 * 10**(-10))
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(1.093694948374587)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].label == 'SOL-Protein'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(7.624056451320648 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(1.093694948374587)
 
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[1].label == 'SOL-SOL'
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(6.389391438961029 * 10**(-10))
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
-    assert section_MD.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.8368052672121375)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].label == 'SOL-SOL'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(6.389391438961029 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.8368052672121375)
 
 
 def test_msd(parser):
@@ -177,16 +177,16 @@ def test_msd(parser):
     parser.parse('tests/data/gromacs/cgwater/mdrun.log', archive, None)
 
     sec_workflow = archive.workflow[0]
-    section_MD = sec_workflow.molecular_dynamics.results
+    section_md = sec_workflow.molecular_dynamics.results
 
-    assert section_MD.mean_squared_displacements[0].type == 'molecular'
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].label == 'LJ'
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].magnitude == approx(95.0 * 10**(-12))
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].units == 'second'
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].magnitude == approx(250.15309179080856 * 10**(-20))
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].units == 'meter^2'
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.magnitude == approx(1.1311880364159048 * 10**(-8))
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.units == 'meter^2/second'
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
-    assert section_MD.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.errors == 0.9999312519176002
+    assert section_md.mean_squared_displacements[0].type == 'molecular'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].label == 'LJ'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].magnitude == approx(95.0 * 10**(-12))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].units == 'second'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].magnitude == approx(250.15309179080856 * 10**(-20))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].units == 'meter^2'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.magnitude == approx(1.1311880364159048 * 10**(-8))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.units == 'meter^2/second'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.errors == 0.9999312519176002

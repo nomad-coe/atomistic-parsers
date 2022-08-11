@@ -66,8 +66,8 @@ def test_minimize_dynamic(parser):
     assert sec_workflow[0].geometry_optimization.x_tinker_final_rms_gradient.magnitude == 0.9715
 
     assert sec_workflow[1].type == 'molecular_dynamics'
-    assert sec_workflow[1].molecular_dynamics.ensemble_type is None
-    assert sec_workflow[1].molecular_dynamics.time_step.magnitude == approx(2e-15)
+    assert sec_workflow[1].molecular_dynamics.thermodynamic_ensemble is None
+    assert sec_workflow[1].molecular_dynamics.integration_parameters.integration_timestep.magnitude == approx(2e-15)
     assert sec_workflow[1].molecular_dynamics.x_tinker_number_of_steps_requested == 3000
     assert sec_workflow[1].molecular_dynamics.x_tinker_barostat_tau == approx(1.0e+20)
     assert sec_workflow[1].molecular_dynamics.x_tinker_thermostat_target_temperature.magnitude == approx(150.87)

@@ -35,7 +35,7 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry
 )
-from nomad.datamodel.metainfo.workflow import Workflow, Elastic, MolecularDynamics
+from nomad.datamodel.metainfo.workflow import Workflow, Elastic, MolecularDynamics, IntegrationParameters
 from atomisticparsers.gulp.metainfo.gulp import x_gulp_bulk_optimisation, x_gulp_bulk_optimisation_cycle
 
 
@@ -776,8 +776,9 @@ class GulpParser:
             sec_workflow = self.archive.m_create(Workflow)
             sec_workflow.type = 'molecular_dynamics'
             sec_md = sec_workflow.m_create(MolecularDynamics)
-            sec_md.ensemble_type = output.get('ensemble_type', '').upper()
-            sec_md.time_step = output.timestep
+            sec_md.thermodynamic_ensemble = output.get('ensemble_type', '').upper()
+            sec_integration_parameters = sec_md.m_create(IntegrationParameters)
+            sec_integration_parameters.integration_timestep = output.timestep
             for key, val in output.items():
                 if key.startswith('x_gulp_'):
                     setattr(sec_md, key, val)

@@ -134,8 +134,8 @@ def test_single_md_conv_old(parser):
 
     sec_workflow = archive.workflow
     assert sec_workflow[0].type == 'molecular_dynamics'
-    assert sec_workflow[0].molecular_dynamics.ensemble_type == 'NVT'
-    assert sec_workflow[0].molecular_dynamics.time_step.magnitude == approx(1e-15)
+    assert sec_workflow[0].molecular_dynamics.thermodynamic_ensemble == 'NVT'
+    assert sec_workflow[0].molecular_dynamics.integration_parameters.integration_timestep.magnitude == approx(1e-15)
     assert sec_workflow[0].molecular_dynamics.x_gulp_production_time.magnitude == approx(5e-13)
     assert sec_workflow[0].molecular_dynamics.x_gulp_td_field_start_time.magnitude == approx(0.)
     assert sec_workflow[0].molecular_dynamics.x_gulp_n_degrees_of_freedom == approx(189)

@@ -35,7 +35,7 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, VibrationalFrequencies
 )
 from nomad.datamodel.metainfo.workflow import (
-    Workflow, GeometryOptimization, MolecularDynamics
+    Workflow, GeometryOptimization, MolecularDynamics, IntegrationParameters
 )
 from atomisticparsers.utils import MDAnalysisParser
 from .metainfo.tinker import x_tinker_section_control_parameters
@@ -335,11 +335,12 @@ class TinkerParser:
         parameters.extend([None] * 6)
         if workflow_type == 'molecular_dynamics':
             sec_md = self.archive.workflow[-1].m_create(MolecularDynamics)
+            sec_integration_parameters = sec_md.m_create(IntegrationParameters)
             control_parameters = self.archive.run[-1].x_tinker_control_parameters
             # TODO verify this! I am sure it is wrong but tinker documentation does not specify clearly
             ensemble_types = ['NVE', 'NVT', 'NPT', None, None]
-            sec_md.ensemble_type = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
-            sec_md.time_step = parameters[1] * ureg.fs
+            sec_md.thermodynamic_ensemble = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
+            sec_integration_parameters.integration_timestep = parameters[1] * ureg.fs
             sec_md.x_tinker_barostat_tau = control_parameters.get('tau-pressure')
             sec_md.x_tinker_barostat_type = control_parameters.get('barostat')
             sec_md.x_tinker_integrator_type = control_parameters.get('integrator')

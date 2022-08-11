@@ -38,7 +38,7 @@ from nomad.datamodel.metainfo.workflow import (
     MolecularDynamicsResults, BarostatParameters, ThermostatParameters, IntegrationParameters,
     DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
     MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
-    Workflow, MolecularDynamics
+    Workflow, MolecularDynamics, GeometryOptimization
 )
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
 from atomisticparsers.utils import MDAnalysisParser
@@ -418,6 +418,10 @@ class LogParser(TextParser):
             'finished', r'\s*Dangerous builds\s*=\s*(\d+)', repeats=False)
         )
 
+        self._quantities.append(Quantity(
+            'minimization_stats', r'\s*Minimization stats:\s*([\s\S]+?)\n\n', flatten=False)
+        )
+
         def str_to_thermo(val):
             res = {}
             if val.count('Step') > 1:
@@ -692,245 +696,297 @@ class LammpsParser:
 
     def parse_workflow(self):
         sec_workflow = self.archive.m_create(Workflow)
-        sec_workflow.type = 'molecular_dynamics'
-        sec_md = sec_workflow.m_create(MolecularDynamics)
         sec_run = self.archive.run[-1]
         sec_lammps = sec_run.x_lammps_section_control_parameters[-1]
 
-        sec_md.finished_normally = self.log_parser.get('finished') is not None
-        sec_md.with_trajectory = self.traj_parsers.eval('with_trajectory')
-        sec_md.with_thermodynamics = self.log_parser.get('thermo_data') is not None or\
-            self.aux_log_parser.get('thermo_data') is not None
+        units = self.log_parser.units
+        if not units:
+            self.logger.warn('Unit information not available. Assuming "real" units in workflow metainfo!')
+            units = get_unit('real')
+        energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule)
+        force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton)
 
-        dump_params = sec_lammps.x_lammps_inout_control_dump.split()
-        sec_integration_parameters = sec_md.m_create(IntegrationParameters)
-        if ',' in dump_params[3]:
-            coordinate_save_frequency = dump_params[3].replace(',', '')
-        else:
-            coordinate_save_frequency = dump_params[3]
-        sec_integration_parameters.coordinate_save_frequency = int(coordinate_save_frequency)
-        sec_integration_parameters.n_steps = (len(sec_run.system) - 1) * sec_integration_parameters.coordinate_save_frequency
-        if 'vx' in dump_params[7:] or 'vy' in dump_params[7:] or 'vz' in dump_params[7:]:
-            sec_integration_parameters.velocity_save_frequency = int(dump_params[3])
-        if 'fx' in dump_params[7:] or 'fy' in dump_params[7:] or 'fz' in dump_params[7:]:
-            sec_integration_parameters.force_save_frequency = int(dump_params[3])
-        if sec_lammps.x_lammps_inout_control_thermo is not None:
-            sec_integration_parameters.thermodynamics_save_frequency = int(sec_lammps.x_lammps_inout_control_thermo)
-
-        val = self.log_parser.get('minimize', None)
-        if val is None:
-            val = self.log_parser.get('minimize/kk', None)
-        if val is not None:
+        minimization_stats = self.log_parser.get('minimization_stats', None)
+        if minimization_stats is not None:
             sec_workflow.type = 'geometry_optimization'
+            sec_go = sec_workflow.m_create(GeometryOptimization)
+            sec_go.type = 'atomic'
 
-        # runstyle has 2 options: Velocity-Verlet (default) or rRESPA Multi-Timescale
-        runstyle = sec_lammps.x_lammps_inout_control_runstyle
-        if runstyle is not None:
-            if 'respa' in runstyle.lower:
-                sec_integration_parameters.integrator_type = 'rRESPA_multitimescale'
+            min_style = self.log_parser.get('min_style')
+            min_style = min_style[0].lower() if min_style else 'none'
+            min_style_map = {'cg': 'polak_ribiere_conjugant_gradient',
+                             'hftn': 'hessian_free_truncated_newton', 'sd': 'steepest_descent',
+                             'quickmin': 'damped_dynamics', 'fire': 'damped_dynamics',
+                             'spin': 'damped_dynamics'}
+            value = min_style_map.get(min_style, [val for key, val in min_style_map.items() if key in min_style])
+            value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
+            sec_go.method = value
+
+            minimization_stats = minimization_stats.split('\n')
+            energy_index = [i for i, s in enumerate(minimization_stats) if 'Energy initial, next-to-last, final' in s]
+            if len(energy_index) != 0:
+                energy_stats = minimization_stats[energy_index[0] + 1].split()
+                sec_go.final_energy_difference = (float(energy_stats[-1]) - float(energy_stats[-2])) * energy_conversion
+
+            force_index = [i for i, s in enumerate(minimization_stats) if 'Force two-norm initial, final = 3167.24 0.509175' in s]
+            if len(force_index) != 0:
+                force_stats = minimization_stats[force_index[0]].split('=')[1]
+                force_stats = force_stats.split()
+                sec_go.final_force_maximum = float(force_stats[-1]) * force_conversion
+
+            minimize_parameters = self.log_parser.get('minimize')
+            if not minimize_parameters:
+                minimize_parameters = self.log_parser.get('minimize/kk')
+            if minimize_parameters:
+                sec_go.optimization_steps_maximum = int(minimize_parameters[0][2])
+                sec_go.convergence_tolerance_force_maximum = minimize_parameters[0][1] * force_conversion
+                sec_go.convergence_tolerance_energy_difference = minimize_parameters[0][0] * energy_conversion
+
+            sec_calc = self.archive.run[-1].calculation
+            energies = []
+            steps = []
+            for calc in sec_calc:
+                val = calc.get('energy')
+                energy = val.get('total') if val else None
+                if energy:
+                    energies.append(energy.value.magnitude)
+                    step = calc.get('step')
+                    steps.append(step)
+            sec_go.energies = energies
+            sec_go.steps = steps
+            sec_go.optimization_steps = len(energies) + 1
+
+        else:  # for now, only allow one workflow per runtime file
+            sec_workflow.type = 'molecular_dynamics'
+            sec_md = sec_workflow.m_create(MolecularDynamics)
+            sec_md.finished_normally = self.log_parser.get('finished') is not None
+            sec_md.with_trajectory = self.traj_parsers.eval('with_trajectory')
+            sec_md.with_thermodynamics = self.log_parser.get('thermo_data') is not None or\
+                self.aux_log_parser.get('thermo_data') is not None
+
+            dump_params = sec_lammps.x_lammps_inout_control_dump.split()
+            sec_integration_parameters = sec_md.m_create(IntegrationParameters)
+            if ',' in dump_params[3]:
+                coordinate_save_frequency = dump_params[3].replace(',', '')
+            else:
+                coordinate_save_frequency = dump_params[3]
+            sec_integration_parameters.coordinate_save_frequency = int(coordinate_save_frequency)
+            sec_integration_parameters.n_steps = (len(sec_run.system) - 1) * sec_integration_parameters.coordinate_save_frequency
+            if 'vx' in dump_params[7:] or 'vy' in dump_params[7:] or 'vz' in dump_params[7:]:
+                sec_integration_parameters.velocity_save_frequency = int(dump_params[3])
+            if 'fx' in dump_params[7:] or 'fy' in dump_params[7:] or 'fz' in dump_params[7:]:
+                sec_integration_parameters.force_save_frequency = int(dump_params[3])
+            if sec_lammps.x_lammps_inout_control_thermo is not None:
+                sec_integration_parameters.thermodynamics_save_frequency = int(sec_lammps.x_lammps_inout_control_thermo)
+
+            # runstyle has 2 options: Velocity-Verlet (default) or rRESPA Multi-Timescale
+            runstyle = sec_lammps.x_lammps_inout_control_runstyle
+            if runstyle is not None:
+                if 'respa' in runstyle.lower:
+                    sec_integration_parameters.integrator_type = 'rRESPA_multitimescale'
+                else:
+                    sec_integration_parameters.integrator_type = 'velocity_verlet'
             else:
                 sec_integration_parameters.integrator_type = 'velocity_verlet'
-        else:
-            sec_integration_parameters.integrator_type = 'velocity_verlet'
-        sec_integration_parameters.integration_timestep = self.get_time_step()
-        sec_thermostat_parameters = sec_integration_parameters.m_create(ThermostatParameters)
-        sec_barostat_parameters = sec_integration_parameters.m_create(BarostatParameters)
+            sec_integration_parameters.integration_timestep = self.get_time_step()
+            sec_thermostat_parameters = sec_integration_parameters.m_create(ThermostatParameters)
+            sec_barostat_parameters = sec_integration_parameters.m_create(BarostatParameters)
 
-        val = self.log_parser.get('fix', None)
-        flag_thermostat = False
-        flag_barostat = False
-        if val is not None:
-            val_remove_duplicates = val if len(val) == 1 else []
-            val_tmp = val[0]
-            for i in range(1, len(val)):
-                if val[i][:3] == val[i - 1][:3]:
-                    val_tmp = val[i]
-                else:
-                    val_remove_duplicates.append(val_tmp)
-                    val_tmp = val[i]
-            val_remove_duplicates.append(val_tmp)
-            val = val_remove_duplicates
-            for fix in val:
-                fix = [str(i).lower() for i in fix]
-                fix = np.array(fix)
-                fix_group = fix[1]
-                fix_style = fix[2]
+            val = self.log_parser.get('fix', None)
+            flag_thermostat = False
+            flag_barostat = False
+            if val is not None:
+                val_remove_duplicates = val if len(val) == 1 else []
+                val_tmp = val[0]
+                for i in range(1, len(val)):
+                    if val[i][:3] == val[i - 1][:3]:
+                        val_tmp = val[i]
+                    else:
+                        val_remove_duplicates.append(val_tmp)
+                        val_tmp = val[i]
+                val_remove_duplicates.append(val_tmp)
+                val = val_remove_duplicates
+                for fix in val:
+                    fix = [str(i).lower() for i in fix]
+                    fix = np.array(fix)
+                    fix_group = fix[1]
+                    fix_style = fix[2]
 
-                if fix_group != 'all':  # ignore any complex settings
-                    continue
+                    if fix_group != 'all':  # ignore any complex settings
+                        continue
 
-                reference_temperature = None
-                coupling_constant = None
-                if 'nvt' in fix_style or 'npt' in fix_style:
-                    flag_thermostat = True
-                    sec_thermostat_parameters.thermostat_type = 'nose_hoover'
-                    if 'temp' in fix:
-                        i_temp = np.where(fix == 'temp')[0]
+                    reference_temperature = None
+                    coupling_constant = None
+                    if 'nvt' in fix_style or 'npt' in fix_style:
+                        flag_thermostat = True
+                        sec_thermostat_parameters.thermostat_type = 'nose_hoover'
+                        if 'temp' in fix:
+                            i_temp = np.where(fix == 'temp')[0]
+                            reference_temperature = float(fix[i_temp + 2])  # stop temp
+                            coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
+                    elif fix_style == 'temp/berendsen':
+                        flag_thermostat = True
+                        sec_thermostat_parameters.thermostat_type = 'berendsen'
+                        i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
                         coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
-                elif fix_style == 'temp/berendsen':
-                    flag_thermostat = True
-                    sec_thermostat_parameters.thermostat_type = 'berendsen'
-                    i_temp = 3
-                    reference_temperature = float(fix[i_temp + 2])  # stop temp
-                    coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
-                elif fix_style == 'temp/csvr':
-                    flag_thermostat = True
-                    sec_thermostat_parameters.thermostat_type = 'velocity_rescaling'
-                    i_temp = 3
-                    reference_temperature = float(fix[i_temp + 2])  # stop temp
-                    coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
-                elif fix_style == 'temp/csld':
-                    flag_thermostat = True
-                    sec_thermostat_parameters.thermostat_type = 'velocity_rescaling_langevin'
-                    i_temp = 3
-                    reference_temperature = float(fix[i_temp + 2])  # stop temp
-                    coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
-                elif fix_style == 'langevin':
-                    flag_thermostat = True
-                    sec_thermostat_parameters.thermostat_type = 'langevin_schneider'
-                    i_temp = 3
-                    reference_temperature = float(fix[i_temp + 2])  # stop temp
-                    coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
-                elif 'brownian' in fix_style:
-                    flag_thermostat = True
-                    sec_thermostat_parameters.thermostat_type = 'brownian'
-                    i_temp = 3
-                    reference_temperature = float(fix[i_temp + 2])  # stop temp
-                    # coupling_constant =  # ignore multiple coupling parameters
-                sec_thermostat_parameters.reference_temperature = reference_temperature
-                sec_thermostat_parameters.coupling_constant = coupling_constant
+                    elif fix_style == 'temp/csvr':
+                        flag_thermostat = True
+                        sec_thermostat_parameters.thermostat_type = 'velocity_rescaling'
+                        i_temp = 3
+                        reference_temperature = float(fix[i_temp + 2])  # stop temp
+                        coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
+                    elif fix_style == 'temp/csld':
+                        flag_thermostat = True
+                        sec_thermostat_parameters.thermostat_type = 'velocity_rescaling_langevin'
+                        i_temp = 3
+                        reference_temperature = float(fix[i_temp + 2])  # stop temp
+                        coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
+                    elif fix_style == 'langevin':
+                        flag_thermostat = True
+                        sec_thermostat_parameters.thermostat_type = 'langevin_schneider'
+                        i_temp = 3
+                        reference_temperature = float(fix[i_temp + 2])  # stop temp
+                        coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
+                    elif 'brownian' in fix_style:
+                        flag_thermostat = True
+                        sec_thermostat_parameters.thermostat_type = 'brownian'
+                        i_temp = 3
+                        reference_temperature = float(fix[i_temp + 2])  # stop temp
+                        # coupling_constant =  # ignore multiple coupling parameters
+                    sec_thermostat_parameters.reference_temperature = reference_temperature
+                    sec_thermostat_parameters.coupling_constant = coupling_constant
 
-                if 'npt' in fix_style or 'nph' in fix_style:
-                    flag_barostat = True
-                    coupling_constant = np.zeros(shape=(3, 3))
-                    reference_pressure = np.zeros(shape=(3, 3))
-                    compressibility = None
-                    sec_barostat_parameters.barostat_type = 'nose_hoover'
-                    if 'iso' in fix:
-                        i_baro = np.where(fix == 'iso')[0]
-                        sec_barostat_parameters.coupling_type = 'isotropic'
-                        np.fill_diagonal(coupling_constant, float(fix[i_baro + 3]))
-                        np.fill_diagonal(reference_pressure, float(fix[i_baro + 2]))
-                    else:
-                        sec_barostat_parameters.coupling_type = 'anisotropic'
-                    if 'x' in fix:
-                        i_baro = np.where(fix == 'x')[0]
-                        coupling_constant[0, 0] = float(fix[i_baro + 3])
-                        reference_pressure[0, 0] = float(fix[i_baro + 2])
-                    if 'y' in fix:
-                        i_baro = np.where(fix == 'y')[0]
-                        coupling_constant[1, 1] = float(fix[i_baro + 3])
-                        reference_pressure[1, 1] = float(fix[i_baro + 2])
-                    if 'z' in fix:
-                        i_baro = np.where(fix == 'z')[0]
-                        coupling_constant[2, 2] = float(fix[i_baro + 3])
-                        reference_pressure[2, 2] = float(fix[i_baro + 2])
-                    if 'xy' in fix:
-                        i_baro = np.where(fix == 'xy')[0]
-                        coupling_constant[0, 1] = float(fix[i_baro + 3])
-                        coupling_constant[1, 0] = float(fix[i_baro + 3])
-                        reference_pressure[0, 1] = float(fix[i_baro + 2])
-                        reference_pressure[1, 0] = float(fix[i_baro + 2])
-                    if 'yz' in fix:
-                        i_baro = np.where(fix == 'yz')[0]
-                        coupling_constant[1, 2] = float(fix[i_baro + 3])
-                        coupling_constant[2, 1] = float(fix[i_baro + 3])
-                        reference_pressure[1, 2] = float(fix[i_baro + 2])
-                        reference_pressure[2, 1] = float(fix[i_baro + 2])
-                    if 'xz' in fix:
-                        i_baro = np.where(fix == 'xz')[0]
-                        coupling_constant[0, 3] = float(fix[i_baro + 3])
-                        coupling_constant[3, 0] = float(fix[i_baro + 3])
-                        reference_pressure[0, 3] = float(fix[i_baro + 2])
-                        reference_pressure[3, 0] = float(fix[i_baro + 2])
-                    sec_barostat_parameters.reference_pressure = reference_pressure * ureg.bar  # stop pressure
-                    sec_barostat_parameters.coupling_constant = coupling_constant * sec_integration_parameters.integration_timestep
-                    sec_barostat_parameters.compressibility = compressibility
-
-                if fix_style == 'press/berendsen':
-                    flag_barostat = False
-                    sec_barostat_parameters.barostat_type = 'berendsen'
-                    if 'iso' in fix:
-                        i_baro = np.where(fix == 'iso')[0]
-                        sec_barostat_parameters.coupling_type = 'isotropic'
-                        np.fill_diagonal(coupling_constant, float(fix[i_baro + 3]))
-                    elif 'aniso' in fix:
-                        i_baro = np.where(fix == 'aniso')[0]
-                        sec_barostat_parameters.coupling_type = 'anisotropic'
-                        coupling_constant[:3] += 1.
-                        coupling_constant[:3] *= float(fix[i_baro + 3])
-                    else:
-                        sec_barostat_parameters.coupling_type = 'anisotropic'
-                    if 'x' in fix:
-                        i_baro = np.where(fix == 'x')[0]
-                        coupling_constant[0] = float(fix[i_baro + 3])
-                    if 'y' in fix:
-                        i_baro = np.where(fix == 'y')[0]
-                        coupling_constant[1] = float(fix[i_baro + 3])
-                    if 'z' in fix:
-                        i_baro = np.where(fix == 'z')[0]
-                        coupling_constant[2] = float(fix[i_baro + 3])
-                    if 'couple' in fix:
-                        i_baro = np.where(fix == 'couple')[0]
-                        couple = fix[i_baro]
-                        if couple == 'xyz':
+                    if 'npt' in fix_style or 'nph' in fix_style:
+                        flag_barostat = True
+                        coupling_constant = np.zeros(shape=(3, 3))
+                        reference_pressure = np.zeros(shape=(3, 3))
+                        compressibility = None
+                        sec_barostat_parameters.barostat_type = 'nose_hoover'
+                        if 'iso' in fix:
+                            i_baro = np.where(fix == 'iso')[0]
                             sec_barostat_parameters.coupling_type = 'isotropic'
-                        elif couple == 'xy' or couple == 'yz' or couple == 'xz':
+                            np.fill_diagonal(coupling_constant, float(fix[i_baro + 3]))
+                            np.fill_diagonal(reference_pressure, float(fix[i_baro + 2]))
+                        else:
                             sec_barostat_parameters.coupling_type = 'anisotropic'
-                    sec_barostat_parameters.reference_pressure = float(fix[i_baro + 2])  # stop pressure
-                    sec_barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(fix[i_baro + 3]) * sec_integration_parameters.integration_timestep
+                        if 'x' in fix:
+                            i_baro = np.where(fix == 'x')[0]
+                            coupling_constant[0, 0] = float(fix[i_baro + 3])
+                            reference_pressure[0, 0] = float(fix[i_baro + 2])
+                        if 'y' in fix:
+                            i_baro = np.where(fix == 'y')[0]
+                            coupling_constant[1, 1] = float(fix[i_baro + 3])
+                            reference_pressure[1, 1] = float(fix[i_baro + 2])
+                        if 'z' in fix:
+                            i_baro = np.where(fix == 'z')[0]
+                            coupling_constant[2, 2] = float(fix[i_baro + 3])
+                            reference_pressure[2, 2] = float(fix[i_baro + 2])
+                        if 'xy' in fix:
+                            i_baro = np.where(fix == 'xy')[0]
+                            coupling_constant[0, 1] = float(fix[i_baro + 3])
+                            coupling_constant[1, 0] = float(fix[i_baro + 3])
+                            reference_pressure[0, 1] = float(fix[i_baro + 2])
+                            reference_pressure[1, 0] = float(fix[i_baro + 2])
+                        if 'yz' in fix:
+                            i_baro = np.where(fix == 'yz')[0]
+                            coupling_constant[1, 2] = float(fix[i_baro + 3])
+                            coupling_constant[2, 1] = float(fix[i_baro + 3])
+                            reference_pressure[1, 2] = float(fix[i_baro + 2])
+                            reference_pressure[2, 1] = float(fix[i_baro + 2])
+                        if 'xz' in fix:
+                            i_baro = np.where(fix == 'xz')[0]
+                            coupling_constant[0, 3] = float(fix[i_baro + 3])
+                            coupling_constant[3, 0] = float(fix[i_baro + 3])
+                            reference_pressure[0, 3] = float(fix[i_baro + 2])
+                            reference_pressure[3, 0] = float(fix[i_baro + 2])
+                        sec_barostat_parameters.reference_pressure = reference_pressure * ureg.bar  # stop pressure
+                        sec_barostat_parameters.coupling_constant = coupling_constant * sec_integration_parameters.integration_timestep
+                        sec_barostat_parameters.compressibility = compressibility
 
-        if flag_thermostat:
-            sec_md.thermodynamic_ensemble = 'NPT' if flag_barostat else 'NVT'
-        elif flag_barostat:
-            sec_md.thermodynamic_ensemble = 'NPH'
-        else:
-            sec_md.thermodynamic_ensemble = 'NVE'
+                    if fix_style == 'press/berendsen':
+                        flag_barostat = False
+                        sec_barostat_parameters.barostat_type = 'berendsen'
+                        if 'iso' in fix:
+                            i_baro = np.where(fix == 'iso')[0]
+                            sec_barostat_parameters.coupling_type = 'isotropic'
+                            np.fill_diagonal(coupling_constant, float(fix[i_baro + 3]))
+                        elif 'aniso' in fix:
+                            i_baro = np.where(fix == 'aniso')[0]
+                            sec_barostat_parameters.coupling_type = 'anisotropic'
+                            coupling_constant[:3] += 1.
+                            coupling_constant[:3] *= float(fix[i_baro + 3])
+                        else:
+                            sec_barostat_parameters.coupling_type = 'anisotropic'
+                        if 'x' in fix:
+                            i_baro = np.where(fix == 'x')[0]
+                            coupling_constant[0] = float(fix[i_baro + 3])
+                        if 'y' in fix:
+                            i_baro = np.where(fix == 'y')[0]
+                            coupling_constant[1] = float(fix[i_baro + 3])
+                        if 'z' in fix:
+                            i_baro = np.where(fix == 'z')[0]
+                            coupling_constant[2] = float(fix[i_baro + 3])
+                        if 'couple' in fix:
+                            i_baro = np.where(fix == 'couple')[0]
+                            couple = fix[i_baro]
+                            if couple == 'xyz':
+                                sec_barostat_parameters.coupling_type = 'isotropic'
+                            elif couple == 'xy' or couple == 'yz' or couple == 'xz':
+                                sec_barostat_parameters.coupling_type = 'anisotropic'
+                        sec_barostat_parameters.reference_pressure = float(fix[i_baro + 2])  # stop pressure
+                        sec_barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(fix[i_baro + 3]) * sec_integration_parameters.integration_timestep
 
-        # calculate molecular radial distribution functions
-        sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-        sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-        rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
-        rdf_results = rdf_results() if rdf_results is not None else None
-        if rdf_results is None:
-            rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
-        if rdf_results is not None:
-            sec_rdfs = sec_results.m_create(RadialDistributionFunction)
-            sec_rdfs.type = 'molecular'
-            sec_rdfs.n_smooth = rdf_results.get('n_smooth')
-            sec_rdfs.variables_name = np.array(['distance'])
-            for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
-                sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
-                sec_rdf_values.label = str(pair_type)
-                sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
-                sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
-                    'bins') is not None else []
-                sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
-                    'value') is not None else []
+            if flag_thermostat:
+                sec_md.thermodynamic_ensemble = 'NPT' if flag_barostat else 'NVT'
+            elif flag_barostat:
+                sec_md.thermodynamic_ensemble = 'NPH'
+            else:
+                sec_md.thermodynamic_ensemble = 'NVE'
 
-        # calculate the molecular mean squared displacements
-        msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')
-        msd_results = msd_results() if msd_results is not None else None
-        if msd_results is None:
-            msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squard_displacements()
-        if msd_results is not None:
-            sec_msds = sec_results.m_create(MeanSquaredDisplacement)
-            sec_msds.type = 'molecular'
-            for i_type, moltype in enumerate(msd_results.get('types', [])):
-                sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
-                sec_msd_values.label = str(moltype)
-                sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
-                sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
-                    'times') is not None else []
-                sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
-                    'value') is not None else []
-                sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-                sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
-                    'diffusion_constant') is not None else []
-                sec_diffusion.error_type = 'Pearson correlation coefficient'
-                sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
-                    'error_diffusion_constant') is not None else []
+            # calculate molecular radial distribution functions
+            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
+            rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
+            rdf_results = rdf_results() if rdf_results is not None else None
+            if rdf_results is None:
+                rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
+            if rdf_results is not None:
+                sec_rdfs = sec_results.m_create(RadialDistributionFunction)
+                sec_rdfs.type = 'molecular'
+                sec_rdfs.n_smooth = rdf_results.get('n_smooth')
+                sec_rdfs.variables_name = np.array(['distance'])
+                for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
+                    sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
+                    sec_rdf_values.label = str(pair_type)
+                    sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
+                    sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
+                        'bins') is not None else []
+                    sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
+                        'value') is not None else []
+
+            # calculate the molecular mean squared displacements
+            msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')
+            msd_results = msd_results() if msd_results is not None else None
+            if msd_results is None:
+                msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squard_displacements()
+            if msd_results is not None:
+                sec_msds = sec_results.m_create(MeanSquaredDisplacement)
+                sec_msds.type = 'molecular'
+                for i_type, moltype in enumerate(msd_results.get('types', [])):
+                    sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
+                    sec_msd_values.label = str(moltype)
+                    sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
+                    sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
+                        'times') is not None else []
+                    sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
+                        'value') is not None else []
+                    sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
+                    sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
+                        'diffusion_constant') is not None else []
+                    sec_diffusion.error_type = 'Pearson correlation coefficient'
+                    sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
+                        'error_diffusion_constant') is not None else []
 
     def parse_system(self):
         sec_run = self.archive.run[-1]

@@ -3,6 +3,9 @@ OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (src/comm.cpp:87
   using 1 OpenMP thread(s) per MPI task
 echo            screen
 Switching to CHARMM coulomb energy conversion constant (src/KSPACE/pair_lj_charmmfsw_coul_long.cpp:70)
+units           real
+min_style       cg
+minimize        0.0 1.0e-8 10000 20000
   dump            1 all dcd 2500 step4.0_minimization.dcd
   orthogonal box = (-24.0079 -24.0079 -24.0079) to (24.0079 24.0079 24.0079)
   1 by 1 by 1 MPI processor grid

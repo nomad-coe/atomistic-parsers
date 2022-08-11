@@ -234,3 +234,33 @@ def test_msd(parser):
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.value.units == 'meter^2/second'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.error_type == 'Pearson correlation coefficient'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.errors == approx(0.996803829564569)
+
+
+def test_geometry_optimization(parser):
+    archive = EntryArchive()
+    parser.parse('tests/data/lammps/polymer_melt/log.step4.0_minimization', archive, None)
+
+    sec_workflow = archive.workflow[0]
+    section_go = sec_workflow.geometry_optimization
+
+    assert section_go.type == 'atomic'
+    assert section_go.method == 'polak_ribiere_conjugant_gradient'
+
+    assert section_go.convergence_tolerance_energy_difference.magnitude == approx(0.0)
+    assert section_go.convergence_tolerance_energy_difference.units == 'joule'
+    assert section_go.final_energy_difference.magnitude == approx(0.0)
+    assert section_go.final_energy_difference.units == 'joule'
+
+    assert section_go.convergence_tolerance_force_maximum.magnitude == approx(100)
+    assert section_go.convergence_tolerance_force_maximum.units == 'newton'
+
+    assert section_go.final_force_maximum.magnitude == approx(5091750000.0)
+    assert section_go.final_force_maximum.units == 'newton'
+
+    assert section_go.optimization_steps_maximum == 10000
+    assert section_go.optimization_steps == 160
+    assert len(section_go.energies) == 159
+    assert section_go.energies[14].magnitude == approx(6.931486093999211e-17)
+    assert section_go.energies[14].units == 'joule'
+    assert len(section_go.steps) == 159
+    assert section_go.steps[22] == 1100

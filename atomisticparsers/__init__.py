@@ -27,6 +27,5 @@ from .gulp.parser import GulpParser
 from .lammps.parser import LammpsParser
 from .libatoms.parser import LibAtomsParser
 from .namd.parser import NAMDParser
-from .openkim.parser import OpenKIMParser
 from .tinker.parser import TinkerParser
 from .xtb.parser import XTBParser

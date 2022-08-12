@@ -578,6 +578,9 @@ class GromacsParser:
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
 
+        if len(files) == 0:
+            return ''
+
         if len(files) == 1:
             return os.path.join(self._maindir, files[0])
 
@@ -980,7 +983,18 @@ class GromacsParser:
             # calculate molecular radial distribution functions
             sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
             sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            rdf_results = self.traj_parser.calc_molecular_rdf()
+            n_traj_split = 10
+            interval_indices = []
+            # first 20% of trajectory
+            interval_indices.append([0, 1])
+            # last 80% of trajectory
+            interval_indices.append([2, 3, 4, 5, 6, 7, 8, 9])
+            # last 60% of trajectory
+            interval_indices.append([4, 5, 6, 7, 8, 9])
+            # last 40% of trajectory
+            interval_indices.append([6, 7, 8, 9])
+
+            rdf_results = self.traj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=1, interval_indices=interval_indices)
             if rdf_results is not None:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
                 sec_rdfs.type = 'molecular'
@@ -995,6 +1009,10 @@ class GromacsParser:
                         'bins') is not None else []
                     sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
                         'value') is not None else []
+                    sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
+                        'frame_start') is not None else []
+                    sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
+                        'frame_end') is not None else []
 
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()
@@ -1083,7 +1101,18 @@ class GromacsParser:
 
         topology_file = self.get_gromacs_file('tpr')
         # I have no idea if output trajectory file can be specified in input
-        trajectory_file = self.get_gromacs_file('trr')
+        trr_file = self.get_gromacs_file('trr')
+        trr_file_nopath = trr_file.rsplit('.', 1)[0]
+        trr_file_nopath = trr_file_nopath.rsplit('/')[-1]
+        if not trr_file_nopath.startswith(self._basename):
+            xtc_file = self.get_gromacs_file('xtc')
+            xtc_file_nopath = xtc_file.rsplit('.', 1)[0]
+            xtc_file_nopath = xtc_file_nopath.rsplit('/')[-1]
+            trajectory_file = xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
+        else:
+            trajectory_file = trr_file
+        # trajectory_file = self.get_gromacs_file('trr')
+
         self.traj_parser.mainfile = topology_file
         self.traj_parser.auxilliary_files = [trajectory_file]
 

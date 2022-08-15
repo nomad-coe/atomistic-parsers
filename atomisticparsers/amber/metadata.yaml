@@ -1,6 +1,7 @@
 codeLabel: Amber
 codeLabelStyle: only first character in capitals
 codeUrl: http://ambermd.org/
+codeCategory: Atomistic
 parserDirName: dependencies/parsers/atomistic/atomisticparsers/amber/
 parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
 parserSpecific: |

@@ -600,19 +600,13 @@ class TrajParsers:
         if self._parsers:
             return self._parsers[index]
 
-    # def eval(self, key, *args):
-    #     for parser in self._parsers:
-    #         print(parser)
-    #         val = getattr(parser, key)(*args) if args else getattr(parser, key)
-    #         if val is not None:
-    #             return val
-
     def eval(self, key, *args, **kwargs):
-        for parser in self._parsers:
-            if getattr(parser, key) is not None:
-                val = getattr(parser, key)(*args, **kwargs) if args or kwargs else getattr(parser, key)
-                if val is not None:
-                    return val
+            for parser in self._parsers:
+                parser_method = getattr(parser, key)
+                if parser_method is not None:
+                    val = parser_method(*args, **kwargs) if args or kwargs else parser_method
+                    if val is not None:
+                        return val
 
 class LammpsParser:
     def __init__(self):

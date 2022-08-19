@@ -600,12 +600,24 @@ class TrajParsers:
         if self._parsers:
             return self._parsers[index]
 
-    def eval(self, key, *args):
+    # def eval(self, key, *args):
+    #     for parser in self._parsers:
+    #         val = getattr(parser, key)(*args) if args else getattr(parser, key)
+    #         if val is not None:
+    #             return val
+
+    def eval(self, key, *args, **kwargs):
         for parser in self._parsers:
-            val = getattr(parser, key)(*args) if args else getattr(parser, key)
+
+            if not hasattr(parser, key):
+                continue
+
+            if not args:
+                val = getattr(parser, key)(**kwargs) if kwargs else getattr(parser, key)
+            else:
+                val = getattr(parser, key)(*args, **kwargs) if kwargs else getattr(parser, key)(*args)
             if val is not None:
                 return val
-
 
 class LammpsParser:
     def __init__(self):
@@ -947,7 +959,44 @@ class LammpsParser:
             # calculate molecular radial distribution functions
             sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
             sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
+            n_traj_split = 10
+            interval_indices = []
+            # first 20% of trajectory
+            interval_indices.append([0, 1])
+            # last 80% of trajectory
+            interval_indices.append([2, 3, 4, 5, 6, 7, 8, 9])
+            # last 60% of trajectory
+            interval_indices.append([4, 5, 6, 7, 8, 9])
+            # last 40% of trajectory
+            interval_indices.append([6, 7, 8, 9])
+
+            #rdf_results = self.traj_parsers.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=1, interval_indices=interval_indices)
+            # rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
+            # if rdf_results is not None:
+            #     sec_rdfs = sec_results.m_create(RadialDistributionFunction)
+            #     sec_rdfs.type = 'molecular'
+            #     sec_rdfs.n_smooth = rdf_results.get('n_smooth')
+            #     sec_rdfs.n_variables = 1
+            #     sec_rdfs.variables_name = np.array(['distance'])
+            #     for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
+            #         sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
+            #         sec_rdf_values.label = str(pair_type)
+            #         sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
+            #         sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
+            #             'bins') is not None else []
+            #         sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
+            #             'value') is not None else []
+            #         sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
+            #             'frame_start') is not None else []
+            #         sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
+            #             'frame_end') is not None else []
+
+            # calculate molecular radial distribution functions
+            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
+            #rdf_results = self.traj_parsers.eval('calc_molecular_rdf', **{"n_traj_split": n_traj_split, "n_prune": 1, "interval_indices": interval_indices})
+            rdf_results = self.traj_parsers.eval('calc_molecular_rdf', n_traj_split=n_traj_split, n_prune=1, interval_indices=interval_indices)
+            #rdf_results = self.traj_parsers.eval('calc_molecular_rdf')
             rdf_results = rdf_results() if rdf_results is not None else None
             if rdf_results is None:
                 rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf()
@@ -964,6 +1013,10 @@ class LammpsParser:
                         'bins') is not None else []
                     sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
                         'value') is not None else []
+                    sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
+                        'frame_start') is not None else []
+                    sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
+                        'frame_end') is not None else []
 
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')

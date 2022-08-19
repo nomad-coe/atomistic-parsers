@@ -1111,7 +1111,6 @@ class GromacsParser:
             trajectory_file = xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
         else:
             trajectory_file = trr_file
-        # trajectory_file = self.get_gromacs_file('trr')
 
         self.traj_parser.mainfile = topology_file
         self.traj_parser.auxilliary_files = [trajectory_file]

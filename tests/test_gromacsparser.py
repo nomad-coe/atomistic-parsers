@@ -218,64 +218,34 @@ def test_geometry_optimization(parser):
     assert section_go.steps[4] == 5000
 
 
-# def test_radius_of_gyration(parser):
-#     archive = EntryArchive()
-#     parser.parse('tests/data/gromacs/protein_fsfg/nvt.log', archive, None)
+def test_radius_of_gyration(parser):
+    archive = EntryArchive()
+    parser.parse('tests/data/gromacs/protein_fsfg/nvt.log', archive, None)
 
-#     sec_workflow = archive.workflow[0]
-#     sec_md = sec_workflow.molecular_dynamics.results
-#     sec_rg = sec_md.radius_of_gyration[0]
+    sec_workflow = archive.workflow[0]
+    sec_md = sec_workflow.molecular_dynamics.results
+    sec_rg = sec_md.radius_of_gyration[0]
 
-# print(sec_rg.type)
+    assert sec_rg.type == 'molecular'
 
-# print('\n')
+    assert sec_rg.radius_of_gyration_values[0].label == 'group_Protein-index_0'
+    assert sec_rg.radius_of_gyration_values[0].n_frames == 11
+    assert sec_rg.radius_of_gyration_values[0].times[4].magnitude == approx(4e-12)
+    assert sec_rg.radius_of_gyration_values[0].times[4].units == 'second'
+    assert sec_rg.radius_of_gyration_values[0].value[4].magnitude == approx(5.464423436523278e-10)
+    assert sec_rg.radius_of_gyration_values[0].value[4].units == 'meter'
+    assert sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].n_bins == 11
+    assert sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].bins[2].magnitude == approx(5.462462459427947e-10)
+    assert sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].bins[2].units == 'meter'
+    assert sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].value[2] == 1
 
-# print(sec_rg.radius_of_gyration_values[0].label)
-# print(sec_rg.radius_of_gyration_values[0].n_frames)
-# print(sec_rg.radius_of_gyration_values[0].times[4].magnitude)
-# print(sec_rg.radius_of_gyration_values[0].times[4].units)
-# print(sec_rg.radius_of_gyration_values[0].value[4].magnitude)
-# print(sec_rg.radius_of_gyration_values[0].value[4].units)
-# print(sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].n_bins)
-# print(sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].bins[2].magnitude)
-# print(sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].bins[2].units)
-# print(sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].value[2])
-
-# print('\n')
-
-# print(sec_rg.radius_of_gyration_values[1].label)
-# print(sec_rg.radius_of_gyration_values[1].n_frames)
-# print(sec_rg.radius_of_gyration_values[1].times[7].magnitude)
-# print(sec_rg.radius_of_gyration_values[1].times[7].units)
-# print(sec_rg.radius_of_gyration_values[1].value[7].magnitude)
-# print(sec_rg.radius_of_gyration_values[1].value[7].units)
-# print(sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].n_bins)
-# print(sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].bins[9].magnitude)
-# print(sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].bins[9].units)
-# print(sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].value[9])
-
-
-# molecular
-
-
-# group_Protein-index_0
-# 11
-# 4e-12
-# second
-# 5.464423436523278e-10
-# meter
-# 11
-# 5.462462459427947e-10
-# meter
-# 1
-
-# group_Protein-index_1
-# 11
-# 7e-12
-# second
-# 7.326346215313874e-10
-# meter
-# 11
-# 7.441846489678909e-10
-# meter
-# 2
+    assert sec_rg.radius_of_gyration_values[1].label == 'group_Protein-index_1'
+    assert sec_rg.radius_of_gyration_values[1].n_frames == 11
+    assert sec_rg.radius_of_gyration_values[1].times[7].magnitude == approx(7e-12)
+    assert sec_rg.radius_of_gyration_values[1].times[7].units == 'second'
+    assert sec_rg.radius_of_gyration_values[1].value[7].magnitude == approx(7.326346215313874e-10)
+    assert sec_rg.radius_of_gyration_values[1].value[7].units == 'meter'
+    assert sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].n_bins == 11
+    assert sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].bins[9].magnitude == approx(7.441846489678909e-10)
+    assert sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].bins[9].units == 'meter'
+    assert sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].value[9] == 2

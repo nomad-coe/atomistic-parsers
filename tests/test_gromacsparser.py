@@ -164,12 +164,16 @@ def test_rdf(parser):
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(7.624056451320648 * 10**(-10))
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(1.093694948374587)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_end == 2
 
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].label == 'SOL-SOL'
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(6.389391438961029 * 10**(-10))
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.8368052672121375)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_end == 2
 
 
 def test_msd(parser):
@@ -212,3 +216,66 @@ def test_geometry_optimization(parser):
     assert section_go.energies[2].units == 'joule'
     assert len(section_go.steps) == 11
     assert section_go.steps[4] == 5000
+
+
+# def test_radius_of_gyration(parser):
+#     archive = EntryArchive()
+#     parser.parse('tests/data/gromacs/protein_fsfg/nvt.log', archive, None)
+
+#     sec_workflow = archive.workflow[0]
+#     sec_md = sec_workflow.molecular_dynamics.results
+#     sec_rg = sec_md.radius_of_gyration[0]
+
+# print(sec_rg.type)
+
+# print('\n')
+
+# print(sec_rg.radius_of_gyration_values[0].label)
+# print(sec_rg.radius_of_gyration_values[0].n_frames)
+# print(sec_rg.radius_of_gyration_values[0].times[4].magnitude)
+# print(sec_rg.radius_of_gyration_values[0].times[4].units)
+# print(sec_rg.radius_of_gyration_values[0].value[4].magnitude)
+# print(sec_rg.radius_of_gyration_values[0].value[4].units)
+# print(sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].n_bins)
+# print(sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].bins[2].magnitude)
+# print(sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].bins[2].units)
+# print(sec_rg.radius_of_gyration_values[0].radius_of_gyration_histogram[0].value[2])
+
+# print('\n')
+
+# print(sec_rg.radius_of_gyration_values[1].label)
+# print(sec_rg.radius_of_gyration_values[1].n_frames)
+# print(sec_rg.radius_of_gyration_values[1].times[7].magnitude)
+# print(sec_rg.radius_of_gyration_values[1].times[7].units)
+# print(sec_rg.radius_of_gyration_values[1].value[7].magnitude)
+# print(sec_rg.radius_of_gyration_values[1].value[7].units)
+# print(sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].n_bins)
+# print(sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].bins[9].magnitude)
+# print(sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].bins[9].units)
+# print(sec_rg.radius_of_gyration_values[1].radius_of_gyration_histogram[0].value[9])
+
+
+# molecular
+
+
+# group_Protein-index_0
+# 11
+# 4e-12
+# second
+# 5.464423436523278e-10
+# meter
+# 11
+# 5.462462459427947e-10
+# meter
+# 1
+
+# group_Protein-index_1
+# 11
+# 7e-12
+# second
+# 7.326346215313874e-10
+# meter
+# 11
+# 7.441846489678909e-10
+# meter
+# 2

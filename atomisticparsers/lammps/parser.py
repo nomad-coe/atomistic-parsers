@@ -35,7 +35,8 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
 from nomad.datamodel.metainfo.workflow import (
-    MolecularDynamicsResults, BarostatParameters, ThermostatParameters, IntegrationParameters,
+    MolecularDynamicsResults, RadiusOfGyration, RadiusOfGyrationHistogram, RadiusOfGyrationValues,
+    BarostatParameters, ThermostatParameters, IntegrationParameters,
     DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
     MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
     Workflow, MolecularDynamics, GeometryOptimization
@@ -488,6 +489,7 @@ class LogParser(TextParser):
             if type(dump[0]) in [str, int]:
                 dump = [dump]
             traj_files = [d[4] for d in dump]
+        traj_files = [i for n, i in enumerate(traj_files) if i not in traj_files[:n]]  # remove duplicates
 
         return [os.path.join(self.maindir, f) for f in traj_files]
 
@@ -601,12 +603,13 @@ class TrajParsers:
             return self._parsers[index]
 
     def eval(self, key, *args, **kwargs):
-            for parser in self._parsers:
-                parser_method = getattr(parser, key)
-                if parser_method is not None:
-                    val = parser_method(*args, **kwargs) if args or kwargs else parser_method
-                    if val is not None:
-                        return val
+        for parser in self._parsers:
+            parser_method = getattr(parser, key)
+            if parser_method is not None:
+                val = parser_method(*args, **kwargs) if args or kwargs else parser_method
+                if val is not None:
+                    return val
+
 
 class LammpsParser:
     def __init__(self):
@@ -706,6 +709,8 @@ class LammpsParser:
             units = get_unit('real')
         energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule)
         force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton)
+        temperature_conversion = ureg.convert(1.0, units.get('temperature'), ureg.kelvin)
+        pressure_conversion = ureg.convert(1.0, units.get('pressure'), ureg.pascal)
 
         minimization_stats = self.log_parser.get('minimization_stats', None)
         if minimization_stats is not None:
@@ -778,7 +783,7 @@ class LammpsParser:
             if 'fx' in dump_params[7:] or 'fy' in dump_params[7:] or 'fz' in dump_params[7:]:
                 sec_integration_parameters.force_save_frequency = int(dump_params[3])
             if sec_lammps.x_lammps_inout_control_thermo is not None:
-                sec_integration_parameters.thermodynamics_save_frequency = int(sec_lammps.x_lammps_inout_control_thermo)
+                sec_integration_parameters.thermodynamics_save_frequency = int(sec_lammps.x_lammps_inout_control_thermo.split()[0])
 
             # runstyle has 2 options: Velocity-Verlet (default) or rRESPA Multi-Timescale
             runstyle = sec_lammps.x_lammps_inout_control_runstyle
@@ -855,7 +860,7 @@ class LammpsParser:
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
                         # coupling_constant =  # ignore multiple coupling parameters
-                    sec_thermostat_parameters.reference_temperature = reference_temperature
+                    sec_thermostat_parameters.reference_temperature = reference_temperature * temperature_conversion
                     sec_thermostat_parameters.coupling_constant = coupling_constant
 
                     if 'npt' in fix_style or 'nph' in fix_style:
@@ -901,7 +906,7 @@ class LammpsParser:
                             coupling_constant[3, 0] = float(fix[i_baro + 3])
                             reference_pressure[0, 3] = float(fix[i_baro + 2])
                             reference_pressure[3, 0] = float(fix[i_baro + 2])
-                        sec_barostat_parameters.reference_pressure = reference_pressure * ureg.bar  # stop pressure
+                        sec_barostat_parameters.reference_pressure = reference_pressure * pressure_conversion  # stop pressure
                         sec_barostat_parameters.coupling_constant = coupling_constant * sec_integration_parameters.integration_timestep
                         sec_barostat_parameters.compressibility = compressibility
 
@@ -935,7 +940,7 @@ class LammpsParser:
                                 sec_barostat_parameters.coupling_type = 'isotropic'
                             elif couple == 'xy' or couple == 'yz' or couple == 'xz':
                                 sec_barostat_parameters.coupling_type = 'anisotropic'
-                        sec_barostat_parameters.reference_pressure = float(fix[i_baro + 2])  # stop pressure
+                        sec_barostat_parameters.reference_pressure = float(fix[i_baro + 2]) * pressure_conversion  # stop pressure
                         sec_barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(fix[i_baro + 3]) * sec_integration_parameters.integration_timestep
 
             if flag_thermostat:
@@ -963,7 +968,6 @@ class LammpsParser:
             sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
             sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
             rdf_results = self.traj_parsers.eval('calc_molecular_rdf', n_traj_split=n_traj_split, n_prune=1, interval_indices=interval_indices)
-            rdf_results = rdf_results() if rdf_results is not None else None
             if rdf_results is None:
                 rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=1, interval_indices=interval_indices)
             if rdf_results is not None:
@@ -983,6 +987,40 @@ class LammpsParser:
                         'frame_start') is not None else []
                     sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
                         'frame_end') is not None else []
+
+            # calculate radius of gyration for polymers
+            sec_rgs = None
+            sec_system = self.archive.run[-1].system[0]
+            sec_molecule_groups = sec_system.get('atoms_group')
+            sec_molecule_groups = sec_molecule_groups if sec_molecule_groups else []
+            for molgroup in sec_molecule_groups:
+                sec_molecules = molgroup.get('atoms_group')
+                sec_molecules = sec_molecules if sec_molecules else []
+                for molecule in sec_molecules:
+                    sec_monomer_groups = molecule.get('atoms_group')
+                    sec_monomer_groups = sec_monomer_groups if sec_monomer_groups else []
+                    group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
+                    if group_type != 'monomer_group':
+                        continue
+                    if not sec_rgs:
+                        sec_rgs = sec_results.m_create(RadiusOfGyration)
+                        sec_rgs.type = 'molecular'
+                    sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
+                    sec_rg_values.molecule_ref = molecule
+                    sec_rg_values.label = molgroup.label + '-index_' + str(molecule.index)
+                    molecule_atom_indices = molecule.atom_indices
+                    rg_results = self.traj_parsers.eval('calc_radius_of_gyration', molecule_atom_indices)
+                    if rg_results is None:
+                        rg_results = self._mdanalysistraj_parser.calc_radius_of_gyration(molecule_atom_indices)
+
+                    if rg_results is not None:
+                        sec_rg_values.n_frames = len(rg_results['times'])
+                        sec_rg_values.times = rg_results['times']
+                        sec_rg_values.value = rg_results['value']
+                        sec_rg_hist = sec_rg_values.m_create(RadiusOfGyrationHistogram)
+                        sec_rg_hist.n_bins = len(rg_results['hist_bins'])
+                        sec_rg_hist.bins = rg_results['hist_bins']
+                        sec_rg_hist.value = rg_results['hist']
 
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')

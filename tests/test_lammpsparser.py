@@ -139,7 +139,7 @@ def test_multiple_dump(parser):
 
 def test_md_atomsgroup(parser):
     archive = EntryArchive()
-    parser.parse('tests/data/lammps/polymer_melt/log.step4.0_minimization', archive, None)
+    parser.parse('tests/data/lammps/polymer_melt/Emin/log.step4.0_minimization', archive, None)
 
     sec_run = archive.run[0]
     sec_systems = sec_run.system
@@ -193,15 +193,35 @@ def test_rdf(parser):
 
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].label == '0-0'
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].n_bins == 198
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(6.9232556438446045 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(6.923255643844605 * 10**(-10))
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(0.5017477701631716)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(0.0)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_end == 40
 
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].label == '1-0'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(5.8020806407928465 * 10**(-10))
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.0)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].label == '0-0'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].bins[65].magnitude == approx(3.727906885147095 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].bins[65].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].value[52] == approx(0.0)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].frame_start == 120
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].frame_end == 201
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].label == '1-0'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].bins[102].magnitude == approx(5.802080640792847 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].bins[102].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].value[55] == approx(0.0)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].frame_start == 40
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].frame_end == 201
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].label == '1-1'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].bins[44].magnitude == approx(2.550673131942749 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].bins[44].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].value[101] == approx(1.4750986777470825)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].frame_start == 80
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].frame_end == 201
 
 
 def test_msd(parser):
@@ -238,7 +258,7 @@ def test_msd(parser):
 
 def test_geometry_optimization(parser):
     archive = EntryArchive()
-    parser.parse('tests/data/lammps/polymer_melt/log.step4.0_minimization', archive, None)
+    parser.parse('tests/data/lammps/polymer_melt/Emin/log.step4.0_minimization', archive, None)
 
     sec_workflow = archive.workflow[0]
     section_go = sec_workflow.geometry_optimization
@@ -264,3 +284,15 @@ def test_geometry_optimization(parser):
     assert section_go.energies[14].units == 'joule'
     assert len(section_go.steps) == 159
     assert section_go.steps[22] == 1100
+
+
+# def test_radius_of_gyration(parser):
+#     archive = EntryArchive()
+#     parser.parse('tests/data/lammps/polymer_melt/Equil/nohup.out', archive, None)
+
+#     sec_workflow = archive.workflow[0]
+#     sec_md = sec_workflow.molecular_dynamics.results
+#     sec_rg = sec_md.radius_of_gyration[0]
+
+
+

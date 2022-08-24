@@ -142,7 +142,7 @@ class DataParser(TextParser):
         ) for header in self._headers]
 
         def get_section_value(val):
-            val = val.split('\n')
+            val = val.strip().splitlines()
             name = None
 
             if val[0][0] == '#':

@@ -1095,10 +1095,9 @@ class LammpsParser:
             atoms_resids = np.array(atom_info.get('resids', []))
             atoms_elements = np.array(atom_info.get('elements', []))
             atoms_types = np.array(atom_info.get('types', []))
-            if 'X' in atoms_elements:
-                atoms_elements = np.array(sec_system.atoms.labels)
-            if 'X' in atoms_elements:
-                atoms_elements = atoms_types
+            atom_labels = sec_system.atoms.get('labels')
+            if 'X' in atoms_elements or atoms_elements == []:
+                atoms_elements = np.array(atom_labels) if atom_labels and 'X' not in atom_labels else atoms_types
             atoms_resnames = np.array(atom_info.get('resnames', []))
             moltypes = np.unique(atoms_moltypes)
             for i_moltype, moltype in enumerate(moltypes):

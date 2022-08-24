@@ -78,48 +78,48 @@ class MDAnalysisParser(FileParser):
 
         name_map = {'mass': 'masses'}
         unit_map = {'mass': ureg.amu, 'charge': ureg.elementary_charge}
-        self._results['atom_info'] = dict()
+        self._results['atoms_info'] = dict()
         for key in ['name', 'charge', 'mass', 'resid', 'resname', 'molnum', 'moltype', 'type', 'segid', 'element']:
             try:
                 value = [getattr(atom, key) for atom in atoms]
             except Exception:
                 continue
             value = value * unit_map.get(key, 1) if value is not None else value
-            self._results['atom_info'][name_map.get(key, f'{key}s')] = value
+            self._results['atoms_info'][name_map.get(key, f'{key}s')] = value
 
         # if atom name is not identified, set it to 'X'
-        if self._results['atom_info'].get('names') is None:
-            self._results['atom_info']['names'] = ['X'] * self.universe.atoms.n_atoms
+        if self._results['atoms_info'].get('names') is None:
+            self._results['atoms_info']['names'] = ['X'] * self.universe.atoms.n_atoms
         self._results['n_atoms'] = self.universe.atoms.n_atoms
         self._results['n_frames'] = len(self.universe.trajectory)
 
         # make substitutions based on available atom info
-        if self._results['atom_info'].get('moltypes') is None:
+        if self._results['atoms_info'].get('moltypes') is None:
             if hasattr(self.universe.atoms, 'fragments'):
-                self._results['atom_info']['moltypes'] = self.get_fragtypes()
+                self._results['atoms_info']['moltypes'] = self.get_fragtypes()
 
-        if self._results['atom_info'].get('molnums') is None:
+        if self._results['atoms_info'].get('molnums') is None:
             try:
                 value = getattr(self.universe.atoms, 'fragindices')
-                self._results['atom_info']['molnums'] = value
+                self._results['atoms_info']['molnums'] = value
             except Exception:
                 pass
 
-        if self._results['atom_info'].get('resnames') is None:
+        if self._results['atoms_info'].get('resnames') is None:
             try:
-                self._results['atom_info']['resnames'] = self._results['atom_info']['resids']
+                self._results['atoms_info']['resnames'] = self._results['atoms_info']['resids']
             except Exception:
                 pass
 
-        if self._results['atom_info'].get('names') is None:
+        if self._results['atoms_info'].get('names') is None:
             try:
-                self._results['atom_info']['names'] = self._results['atom_info']['types']
+                self._results['atoms_info']['names'] = self._results['atoms_info']['types']
             except Exception:
                 pass
 
-        if self._results['atom_info'].get('elements') is None:
+        if self._results['atoms_info'].get('elements') is None:
             try:
-                self._results['atom_info']['elements'] = self._results['atom_info']['names']
+                self._results['atoms_info']['elements'] = self._results['atoms_info']['names']
             except Exception:
                 pass
 
@@ -193,7 +193,7 @@ class MDAnalysisParser(FileParser):
             if not interval_indices:
                 interval_indices = [[i] for i in range(n_traj_split)]
 
-        atoms_moltypes = self.get('atom_info', {}).get('moltypes', [])
+        atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
         moltypes = np.unique(atoms_moltypes)
         bead_groups = {}
         for moltype in moltypes:
@@ -286,7 +286,7 @@ class MDAnalysisParser(FileParser):
         Returns the number of atoms of the frame with index frame_index.
         '''
         # MDAnalysis assumes no change in atom configuration
-        return [guess_atom_element(name) for name in self.get('atom_info', {}).get('names', [])]
+        return [guess_atom_element(name) for name in self.get('atoms_info', {}).get('names', [])]
 
     def get_time_step(self, frame_index):
         '''
@@ -366,7 +366,7 @@ class MDAnalysisParser(FileParser):
         if self.universe.trajectory[0].dimensions is None:
             return
 
-        atoms_moltypes = self.get('atom_info', {}).get('moltypes', [])
+        atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
         moltypes = np.unique(atoms_moltypes)
         dt = self.universe.trajectory.dt
         n_frames = self.universe.trajectory.n_frames

@@ -1086,19 +1086,21 @@ class LammpsParser:
                 sec_scc.forces = Forces(total=ForcesEntry(value=apply_unit(forces, 'force')))
 
         # parse atomsgroup (moltypes --> molecules --> residues)
-        atom_info = self.traj_parsers.eval('atom_info')
-        if atom_info is None:
-            atom_info = self._mdanalysistraj_parser.get('atom_info', None)
-        if atom_info is not None:
-            atoms_moltypes = np.array(atom_info.get('moltypes', []))
-            atoms_molnums = np.array(atom_info.get('molnums', []))
-            atoms_resids = np.array(atom_info.get('resids', []))
-            atoms_elements = np.array(atom_info.get('elements', []))
-            atoms_types = np.array(atom_info.get('types', []))
+        atoms_info = self.traj_parsers.eval('atoms_info')
+        if isinstance(atoms_info, list):
+            atoms_info = atoms_info[0] if atoms_info else None  # using info from the initial frame
+        if atoms_info is None:
+            atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
+        if atoms_info is not None:
+            atoms_moltypes = np.array(atoms_info.get('moltypes', []))
+            atoms_molnums = np.array(atoms_info.get('molnums', []))
+            atoms_resids = np.array(atoms_info.get('resids', []))
+            atoms_elements = np.array(atoms_info.get('elements', []))
+            atoms_types = np.array(atoms_info.get('types', []))
             atom_labels = sec_system.atoms.get('labels')
-            if 'X' in atoms_elements or atoms_elements == []:
+            if 'X' in atoms_elements or not atoms_elements:
                 atoms_elements = np.array(atom_labels) if atom_labels and 'X' not in atom_labels else atoms_types
-            atoms_resnames = np.array(atom_info.get('resnames', []))
+            atoms_resnames = np.array(atoms_info.get('resnames', []))
             moltypes = np.unique(atoms_moltypes)
             for i_moltype, moltype in enumerate(moltypes):
                 # Only add atomsgroup for initial system for now
@@ -1323,7 +1325,7 @@ class LammpsParser:
                 traj_parser.auxilliary_files = [traj_file]
                 # try to check if MDAnalysis can construct the universe or at least parse
                 # the atoms, otherwise will fall back to TrajParser
-                if traj_parser.universe is None or 'X' in traj_parser.get('atom_info', {}).get('names', []):
+                if traj_parser.universe is None or 'X' in traj_parser.get('atoms_info', {}).get('names', []):
                     # mda necessary to calculate rdf and atomsgroup
                     if n == 0:
                         self._mdanalysistraj_parser = traj_parser

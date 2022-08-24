@@ -44,6 +44,9 @@ from nomad.datamodel.metainfo.workflow import (
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
 from atomisticparsers.utils import MDAnalysisParser
 
+re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
+re_n = r'[\n\r]'
+
 
 def get_unit(units_type, property_type=None, dimension=3):
     mole = 6.022140857e+23
@@ -121,8 +124,7 @@ class DataParser(TextParser):
             'extra/bond/per/atom', 'extra angle per atom', 'extra/angle/per/atom',
             'extra dihedral per atom', 'extra/dihedral/per/atom', 'extra improper per atom',
             'extra/improper/per/atom', 'extra special per atom', 'extra/special/per/atom',
-            'ellipsoids', 'lines', 'triangles', 'bodies', 'xlo xhi', 'ylo yhi', 'zlo zhi',
-            'xy xz yz']
+            'ellipsoids', 'lines', 'triangles', 'bodies']
         self._sections = [
             'Atoms', 'Velocities', 'Masses', 'Ellipsoids', 'Lines', 'Triangles', 'Bodies',
             'Bonds', 'Angles', 'Dihedrals', 'Impropers', 'Pair Coeffs', 'PairIJ Coeffs',
@@ -135,10 +137,9 @@ class DataParser(TextParser):
         super().__init__(None)
 
     def init_quantities(self):
-        self._quantities = []
-        for header in self._headers:
-            self._quantities.append(Quantity(
-                header, r'\s*([\+\-eE\d\. ]+)\s*%s\s*\n' % header, comment='#', repeats=True))
+        self._quantities = [Quantity(
+            header, rf'{re_n} *(\d+) +{header}', repeats=True, dtype=np.int32
+        ) for header in self._headers]
 
         def get_section_value(val):
             val = val.split('\n')
@@ -161,11 +162,9 @@ class DataParser(TextParser):
 
             return name, np.array(value)
 
-        for section in self._sections:
-            self._quantities.append(
-                Quantity(
-                    section, r'\s*%s\s*(#*\s*[\s\S]*?\n)\n*([\deE\-\+\.\s]+)\n' % section,
-                    str_operation=get_section_value, repeats=True))
+        self._quantities.extend([Quantity(
+            section, rf'{section} *(#*.*{re_n}\s+(?:[\d ]+{re_float}.+\s+)+)',
+            str_operation=get_section_value, repeats=True) for section in self._sections])
 
     def get_interactions(self):
         styles_coeffs = []

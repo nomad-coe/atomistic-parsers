@@ -43,7 +43,8 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
 from nomad.datamodel.metainfo.workflow import (
-    BarostatParameters, GeometryOptimization, ThermostatParameters, IntegrationParameters, DiffusionConstantValues,
+    BarostatParameters, GeometryOptimization, RadiusOfGyration, RadiusOfGyrationHistogram, RadiusOfGyrationValues,
+    ThermostatParameters, IntegrationParameters, DiffusionConstantValues,
     MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
     RadialDistributionFunction, RadialDistributionFunctionValues, Workflow, MolecularDynamics
 )
@@ -902,7 +903,7 @@ class GromacsParser:
             sec_go.optimization_steps = len(energies) + 1
 
             final_force_maximum = self.log_parser.get('maximum_force')
-            final_force_maximum = float(final_force_maximum.split('=')[-1]) if final_force_maximum else None
+            final_force_maximum = float(re.split('=|\n', final_force_maximum)[1]) if final_force_maximum else None
             sec_go.final_force_maximum = float(final_force_maximum) * force_conversion if final_force_maximum else None
         else:
             sec_workflow.type = 'molecular_dynamics'
@@ -1013,6 +1014,34 @@ class GromacsParser:
                         'frame_start') is not None else []
                     sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
                         'frame_end') is not None else []
+
+            # calculate radius of gyration for polymers
+            sec_rgs = None
+            sec_system = self.archive.run[-1].system[0]
+            sec_molecule_groups = sec_system.get('atoms_group')
+            for molgroup in sec_molecule_groups:
+                sec_molecules = molgroup.get('atoms_group')
+                for molecule in sec_molecules:
+                    sec_monomer_groups = molecule.get('atoms_group')
+                    group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
+                    if group_type != 'monomer_group':
+                        continue
+                    if not sec_rgs:
+                        sec_rgs = sec_results.m_create(RadiusOfGyration)
+                        sec_rgs.type = 'molecular'
+                    sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
+                    sec_rg_values.molecule_ref = molecule
+                    sec_rg_values.label = molgroup.label + '-index_' + str(molecule.index)
+                    molecule_atom_indices = molecule.atom_indices
+                    rg_results = self.traj_parser.calc_radius_of_gyration(molecule_atom_indices)
+                    if rg_results is not None:
+                        sec_rg_values.n_frames = len(rg_results['times'])
+                        sec_rg_values.times = rg_results['times']
+                        sec_rg_values.value = rg_results['value']
+                        sec_rg_hist = sec_rg_values.m_create(RadiusOfGyrationHistogram)
+                        sec_rg_hist.n_bins = len(rg_results['hist_bins'])
+                        sec_rg_hist.bins = rg_results['hist_bins']
+                        sec_rg_hist.value = rg_results['hist']
 
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()

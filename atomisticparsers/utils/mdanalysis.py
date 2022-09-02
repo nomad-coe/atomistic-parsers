@@ -476,15 +476,8 @@ class MDAnalysisParser(FileParser):
         for __ in self.universe.trajectory:
             rg_results['times'].append(self.universe.trajectory.time)
             rg_results['value'].append(molecule.radius_of_gyration())
-        rg_results['times'] = np.array(rg_results['times'])
-        rg_results['value'] = np.array(rg_results['value'])
-        n_hist_bins = self.universe.trajectory.n_frames if self.universe.trajectory.n_frames < 50 else 50
-        hist, bins = np.histogram(np.array(rg_results['value']), bins=n_hist_bins)
-        centers = (bins[:-1] + bins[1:]) / 2
-        rg_results['hist_bins'] = centers * ureg.angstrom
-        rg_results['hist'] = hist
-        rg_results['times'] *= ureg.picosecond
-        rg_results['value'] *= ureg.angstrom
+        rg_results['times'] = np.array(rg_results['times']) * ureg.picosecond
+        rg_results['value'] = np.array(rg_results['value']) * ureg.angstrom
 
         return rg_results
 

@@ -32,11 +32,10 @@ from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, RadiusOfGyration, RadiusOfGyrationValues,
 )
 from nomad.datamodel.metainfo.workflow import (
-    MolecularDynamicsResults, RadiusOfGyration, RadiusOfGyrationHistogram, RadiusOfGyrationValues,
-    BarostatParameters, ThermostatParameters, IntegrationParameters,
+    MolecularDynamicsResults, BarostatParameters, ThermostatParameters, IntegrationParameters,
     DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
     MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
     Workflow, MolecularDynamics, GeometryOptimization
@@ -658,25 +657,22 @@ class LammpsParser:
         sec_sccs = sec_run.calculation
 
         n_thermo = len(thermo_data.get('Step', []))
-        n_steps = len([n for n in range(n_thermo) if n % self.frame_rate == 0])
         create_scc = True
         if sec_sccs:
-            if len(sec_sccs) != n_steps:
+            if len(sec_sccs) != n_thermo:
                 self.logger.warn(
                     '''Mismatch in number of calculations and number of property
                     evaluations!, will create new sections''',
-                    data=dict(n_calculations=len(sec_sccs), n_evaluations=n_steps))
+                    data=dict(n_calculations=len(sec_sccs), n_evaluations=n_thermo))
 
             else:
                 create_scc = False
         for n in range(n_thermo):
-            if (n % self.frame_rate) > 0:
-                continue
 
             if create_scc:
                 sec_scc = sec_run.m_create(Calculation)
             else:
-                sec_scc = sec_sccs[n // self.frame_rate]
+                sec_scc = sec_sccs[n]
 
             sec_energy = sec_scc.m_create(Energy)
             for key, val in thermo_data.items():
@@ -700,6 +696,7 @@ class LammpsParser:
     def parse_workflow(self):
         sec_workflow = self.archive.m_create(Workflow)
         sec_run = self.archive.run[-1]
+        sec_calc = sec_run.get('calculation')
         sec_lammps = sec_run.x_lammps_section_control_parameters[-1]
 
         units = self.log_parser.units
@@ -747,7 +744,6 @@ class LammpsParser:
                 sec_go.convergence_tolerance_force_maximum = minimize_parameters[0][1] * force_conversion
                 sec_go.convergence_tolerance_energy_difference = minimize_parameters[0][0] * energy_conversion
 
-            sec_calc = self.archive.run[-1].calculation
             energies = []
             steps = []
             for calc in sec_calc:
@@ -966,13 +962,14 @@ class LammpsParser:
             # calculate molecular radial distribution functions
             sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
             sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            rdf_results = self.traj_parsers.eval('calc_molecular_rdf', n_traj_split=n_traj_split, n_prune=1, interval_indices=interval_indices)
+            rdf_results = self.traj_parsers.eval('calc_molecular_rdf', n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
             if rdf_results is None:
-                rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=1, interval_indices=interval_indices)
+                rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
             if rdf_results is not None:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
                 sec_rdfs.type = 'molecular'
                 sec_rdfs.n_smooth = rdf_results.get('n_smooth')
+                sec_rdfs.n_prune = self._frame_rate
                 sec_rdfs.variables_name = np.array(['distance'])
                 for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
                     sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
@@ -988,6 +985,7 @@ class LammpsParser:
                         'frame_end') is not None else []
 
             # calculate radius of gyration for polymers
+            flag_warned = False
             sec_rgs = None
             sec_system = self.archive.run[-1].system[0]
             sec_molecule_groups = sec_system.get('atoms_group')
@@ -1001,25 +999,30 @@ class LammpsParser:
                     group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
                     if group_type != 'monomer_group':
                         continue
-                    if not sec_rgs:
-                        sec_rgs = sec_results.m_create(RadiusOfGyration)
-                        sec_rgs.type = 'molecular'
-                    sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
-                    sec_rg_values.molecule_ref = molecule
-                    sec_rg_values.label = molgroup.label + '-index_' + str(molecule.index)
                     molecule_atom_indices = molecule.atom_indices
                     rg_results = self.traj_parsers.eval('calc_radius_of_gyration', molecule_atom_indices)
                     if rg_results is None:
                         rg_results = self._mdanalysistraj_parser.calc_radius_of_gyration(molecule_atom_indices)
-
                     if rg_results is not None:
-                        sec_rg_values.n_frames = len(rg_results['times'])
-                        sec_rg_values.times = rg_results['times']
-                        sec_rg_values.value = rg_results['value']
-                        sec_rg_hist = sec_rg_values.m_create(RadiusOfGyrationHistogram)
-                        sec_rg_hist.n_bins = len(rg_results['hist_bins'])
-                        sec_rg_hist.bins = rg_results['hist_bins']
-                        sec_rg_hist.value = rg_results['hist']
+                        n_frames = len(rg_results['times'])
+                        if n_frames != len(sec_calc):
+                            if not flag_warned:
+                                self.logger.warn(
+                                    'Unexpected mismatch in number of calculations and number of'
+                                    'trajectory frames. Not storing Rg values.')
+                                flag_warned = True
+                            continue
+                        for i_calc, calc in enumerate(sec_calc):
+                            sec_rgs = calc.get('radius_of_gyration')
+                            if not sec_rgs:
+                                sec_rgs = calc.m_create(RadiusOfGyration)
+                                sec_rgs.kind = 'molecular'
+                            else:
+                                sec_rgs = sec_rgs[0]
+                            sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
+                            sec_rg_values.molecule_ref = molecule
+                            sec_rg_values.label = molgroup.label + '-index_' + str(molecule.index)
+                            sec_rg_values.value = rg_results['value'][i_calc]
 
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')

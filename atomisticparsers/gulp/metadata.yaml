@@ -2,7 +2,7 @@ codeLabel: GULP
 codeLabelStyle: All in capitals
 codeName: gulp
 codeUrl: http://gulp.curtin.edu.au/gulp/
-codeCategory: Atomistic
+codeCategory: Atomistic code
 parserDirName: dependencies/parsers/atomistic/atomisticparsers/gulp/
 parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
 parserSpecific: ''

@@ -1,7 +1,7 @@
 codeLabel: DFTB+
 codeLabelStyle: all in capitals; use + instead of word
 codeName: dftbplus
-codeCategory: Atomistic
+codeCategory: Atomistic code
 codeUrl: http://www.dftbplus.org/
 parserDirName: dependencies/parsers/atomistic/atomisticparsers/dftbplus/
 parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git

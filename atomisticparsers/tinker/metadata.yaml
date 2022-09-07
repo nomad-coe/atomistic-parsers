@@ -2,7 +2,7 @@ codeLabel: Tinker
 codeLabelStyle: 'Capitals: T'
 codeName: tinker
 codeUrl: https://dasher.wustl.edu/tinker/
-codeCategory: Atomistic
+codeCategory: Atomistic code
 parserDirName: dependencies/parsers/atomistic/atomisticparsers/tinker/
 parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
 parserSpecific: ''

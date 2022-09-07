@@ -2,7 +2,7 @@ codeLabel: libAtoms
 codeLabelStyle: 'Capitals: A'
 codeName: lib-atoms
 codeUrl: http://libatoms.github.io/
-codeCategory: Atomistic
+codeCategory: Atomistic code
 parserDirName: dependencies/parsers/atomistic/atomisticparsers/lib-atoms/
 parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
 parserSpecific: ''

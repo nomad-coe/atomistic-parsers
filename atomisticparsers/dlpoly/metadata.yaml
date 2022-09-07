@@ -1,7 +1,7 @@
 codeLabel: DL_POLY
 codeLabelStyle: all capitals and underscore, not dash (minus)
 codeName: dl-poly
-codeCategory: Atomistic
+codeCategory: Atomistic code
 codeUrl: https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx
 parserDirName: dependencies/parsers/atomistic/atomisticparsers/dl-poly/
 parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git

@@ -3,6 +3,7 @@ codeLabelStyle: All in capitals
 codeName: gromacs
 codeUrl: http://www.gromacs.org/
 codeCategory: Atomistic code
+status: production
 parserDirName: dependencies/parsers/atomistic/atomisticparsers/gromacs/
 parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
 parserSpecific: ''

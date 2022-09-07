@@ -2,6 +2,7 @@ codeLabel: ASAP
 codeLabelStyle: all in capitals
 codeName: asap
 codeCategory: Atomistic code
+status: production
 codeUrl: https://wiki.fysik.dtu.dk/asap
 parserDirName: dependencies/parsers/atomistic/atomisticparsers/asap/
 parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git

@@ -3,6 +3,7 @@ codeLabelStyle: All in capitals
 codeName: namd
 codeUrl: http://www.ks.uiuc.edu/Research/namd/
 codeCategory: Atomistic code
+status: production
 parserDirName: dependencies/parsers/atomistic/atomisticparsers/namd/
 parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
 parserSpecific: ''

@@ -40,7 +40,7 @@ from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, RadiusOfGyration, RadiusOfGyrationValues,
 )
 from nomad.datamodel.metainfo.workflow import (
     BarostatParameters, GeometryOptimization, ThermostatParameters, IntegrationParameters, DiffusionConstantValues,
@@ -578,6 +578,9 @@ class GromacsParser:
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
 
+        if len(files) == 0:
+            return ''
+
         if len(files) == 1:
             return os.path.join(self._maindir, files[0])
 
@@ -614,11 +617,10 @@ class GromacsParser:
         # forces = self.traj_parser.get('forces')
         n_frames = self.traj_parser.get('n_frames')
         for n in range(n_frames):
-            if (n % self.frame_rate) > 0:
-                continue
             sec_scc = sec_run.m_create(Calculation)
-            sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(n)))
-            sec_scc.system_ref = sec_run.system[n // self.frame_rate]
+            if (n % self.frame_rate) == 0:
+                sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(n)))
+            sec_scc.system_ref = sec_run.system[n]
             sec_scc.method_ref = sec_run.method[-1]
 
         # get it from edr file
@@ -662,13 +664,10 @@ class GromacsParser:
         energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']
 
         for n in range(n_evaluations):
-            if (n % self.frame_rate) > 0:
-                continue
-
             if create_scc:
                 sec_scc = sec_run.m_create(Calculation)
             else:
-                sec_scc = sec_run.calculation[n // self._frame_rate]
+                sec_scc = sec_run.calculation[n]
             sec_energy = sec_scc.m_create(Energy)
             for key in thermo_data.keys():
                 val = thermo_data.get(key)[n]
@@ -725,7 +724,7 @@ class GromacsParser:
                 sec_atoms.velocities = velocities
 
         # parse atomsgroup (segments --> molecules --> residues)
-        atoms_info = self.traj_parser._results['atom_info']
+        atoms_info = self.traj_parser._results['atoms_info']
         atoms_moltypes = np.array(atoms_info['moltypes'])
         atoms_molnums = np.array(atoms_info['molnums'])
         atoms_resids = np.array(atoms_info['resids'])
@@ -817,17 +816,17 @@ class GromacsParser:
             self.traj_parser.mainfile = gro_file
             n_atoms = self.traj_parser.get('n_atoms', 0)
 
-        atom_info = self.traj_parser.get('atom_info', {})
+        atoms_info = self.traj_parser.get('atoms_info', {})
         for n in range(n_atoms):
             sec_atom = sec_method.m_create(AtomParameters)
-            sec_atom.charge = atom_info.get('charges', [None] * (n + 1))[n]
-            sec_atom.mass = atom_info.get('masses', [None] * (n + 1))[n]
-            sec_atom.label = atom_info.get('names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_name = atom_info.get('atom_names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resid = atom_info.get('resids', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resname = atom_info.get('resnames', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_molnum = atom_info.get('molnums', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_moltype = atom_info.get('moltypes', [None] * (n + 1))[n]
+            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
+            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+            sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
 
         if n_atoms == 0:
             self.logger.error('Error parsing interactions.')
@@ -860,6 +859,8 @@ class GromacsParser:
 
     def parse_workflow(self):
 
+        sec_run = self.archive.run[-1]
+        sec_calc = sec_run.get('calculation')
         sec_workflow = self.archive.m_create(Workflow)
         input_parameters = self.log_parser.get('input_parameters', {})
 
@@ -884,7 +885,6 @@ class GromacsParser:
             force_conversion = ureg.convert(1.0, ureg.kilojoule * ureg.avogadro_number / ureg.nanometer, ureg.newton)
             sec_go.convergence_tolerance_force_maximum = float(force_maximum) * force_conversion if force_maximum else None
 
-            sec_calc = self.archive.run[-1].calculation
             energies = []
             steps = []
             for calc in sec_calc:
@@ -899,7 +899,7 @@ class GromacsParser:
             sec_go.optimization_steps = len(energies) + 1
 
             final_force_maximum = self.log_parser.get('maximum_force')
-            final_force_maximum = float(final_force_maximum.split('=')[-1]) if final_force_maximum else None
+            final_force_maximum = float(re.split('=|\n', final_force_maximum)[1]) if final_force_maximum else None
             sec_go.final_force_maximum = float(final_force_maximum) * force_conversion if final_force_maximum else None
         else:
             sec_workflow.type = 'molecular_dynamics'
@@ -980,11 +980,23 @@ class GromacsParser:
             # calculate molecular radial distribution functions
             sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
             sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            rdf_results = self.traj_parser.calc_molecular_rdf()
+            n_traj_split = 10
+            interval_indices = []
+            # first 20% of trajectory
+            interval_indices.append([0, 1])
+            # last 80% of trajectory
+            interval_indices.append([2, 3, 4, 5, 6, 7, 8, 9])
+            # last 60% of trajectory
+            interval_indices.append([4, 5, 6, 7, 8, 9])
+            # last 40% of trajectory
+            interval_indices.append([6, 7, 8, 9])
+
+            rdf_results = self.traj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
             if rdf_results is not None:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
                 sec_rdfs.type = 'molecular'
                 sec_rdfs.n_smooth = rdf_results.get('n_smooth')
+                sec_rdfs.n_prune = self._frame_rate
                 sec_rdfs.n_variables = 1
                 sec_rdfs.variables_name = np.array(['distance'])
                 for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
@@ -995,6 +1007,45 @@ class GromacsParser:
                         'bins') is not None else []
                     sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
                         'value') is not None else []
+                    sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
+                        'frame_start') is not None else []
+                    sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
+                        'frame_end') is not None else []
+
+            # calculate radius of gyration for polymers
+            flag_warned = False
+            sec_rgs = None
+            sec_system = self.archive.run[-1].system[0]
+            sec_molecule_groups = sec_system.get('atoms_group')
+            for molgroup in sec_molecule_groups:
+                sec_molecules = molgroup.get('atoms_group')
+                for molecule in sec_molecules:
+                    sec_monomer_groups = molecule.get('atoms_group')
+                    group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
+                    if group_type != 'monomer_group':
+                        continue
+                    molecule_atom_indices = molecule.atom_indices
+                    rg_results = self.traj_parser.calc_radius_of_gyration(molecule_atom_indices)
+                    if rg_results is not None:
+                        n_frames = len(rg_results['times'])
+                        if n_frames != len(sec_calc):
+                            if not flag_warned:
+                                self.logger.warn(
+                                    'Unexpected mismatch in number of calculations and number of'
+                                    'trajectory frames. Not storing Rg values.')
+                                flag_warned = True
+                            continue
+                        for i_calc, calc in enumerate(sec_calc):
+                            sec_rgs = calc.get('radius_of_gyration')
+                            if not sec_rgs:
+                                sec_rgs = calc.m_create(RadiusOfGyration)
+                                sec_rgs.kind = 'molecular'
+                            else:
+                                sec_rgs = sec_rgs[0]
+                            sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
+                            sec_rg_values.molecule_ref = molecule
+                            sec_rg_values.label = molgroup.label + '-index_' + str(molecule.index)
+                            sec_rg_values.value = rg_results['value'][i_calc]
 
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()
@@ -1083,7 +1134,17 @@ class GromacsParser:
 
         topology_file = self.get_gromacs_file('tpr')
         # I have no idea if output trajectory file can be specified in input
-        trajectory_file = self.get_gromacs_file('trr')
+        trr_file = self.get_gromacs_file('trr')
+        trr_file_nopath = trr_file.rsplit('.', 1)[0]
+        trr_file_nopath = trr_file_nopath.rsplit('/')[-1]
+        if not trr_file_nopath.startswith(self._basename):
+            xtc_file = self.get_gromacs_file('xtc')
+            xtc_file_nopath = xtc_file.rsplit('.', 1)[0]
+            xtc_file_nopath = xtc_file_nopath.rsplit('/')[-1]
+            trajectory_file = xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
+        else:
+            trajectory_file = trr_file
+
         self.traj_parser.mainfile = topology_file
         self.traj_parser.auxilliary_files = [trajectory_file]
 

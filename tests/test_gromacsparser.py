@@ -164,12 +164,16 @@ def test_rdf(parser):
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(7.624056451320648 * 10**(-10))
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(1.093694948374587)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_end == 2
 
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].label == 'SOL-SOL'
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(6.389391438961029 * 10**(-10))
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.8368052672121375)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_end == 2
 
 
 def test_msd(parser):
@@ -212,3 +216,27 @@ def test_geometry_optimization(parser):
     assert section_go.energies[2].units == 'joule'
     assert len(section_go.steps) == 11
     assert section_go.steps[4] == 5000
+
+
+def test_radius_of_gyration(parser):
+    archive = EntryArchive()
+    parser.parse('tests/data/gromacs/protein_fsfg/nvt.log', archive, None)
+
+    sec_calc = archive.run[0].calculation[4]
+    sec_rg = sec_calc.radius_of_gyration[0]
+    sec_rgvals = sec_rg.radius_of_gyration_values[0]
+
+    assert sec_rg.kind == 'molecular'
+
+    assert sec_rgvals.label == 'group_Protein-index_0'
+    assert sec_rgvals.value.magnitude == approx(5.464423436523278e-10)
+    assert sec_rgvals.value.units == 'meter'
+
+    sec_calc = archive.run[0].calculation[7]
+    sec_rg = sec_calc.radius_of_gyration[0]
+    sec_rgvals = sec_rg.radius_of_gyration_values[1]
+
+    assert sec_rg.kind == 'molecular'
+    assert sec_rgvals.label == 'group_Protein-index_1'
+    assert sec_rgvals.value.magnitude == approx(7.326346215313874e-10)
+    assert sec_rgvals.value.units == 'meter'

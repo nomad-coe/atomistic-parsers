@@ -620,7 +620,7 @@ class GromacsParser:
             sec_scc = sec_run.m_create(Calculation)
             if (n % self.frame_rate) == 0:
                 sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(n)))
-            sec_scc.system_ref = sec_run.system[n]
+                sec_scc.system_ref = sec_run.system[n // self.frame_rate]
             sec_scc.method_ref = sec_run.method[-1]
 
         # get it from edr file

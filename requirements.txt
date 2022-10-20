@@ -8,5 +8,6 @@ pytest-cov==2.7.1
 astroid==2.5.1
 lxml==4.7.1
 panedr==0.2
-MDAnalysis==2.3.0
+# TODO fix target
+MDAnalysis
 scipy==1.7.1

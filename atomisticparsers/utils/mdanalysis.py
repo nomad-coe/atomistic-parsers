@@ -83,9 +83,7 @@ class MDAnalysisParser(FileParser):
                 selection = ' '.join([str(i) for i in np.where(atoms_moltypes == moltype)[0]])
                 selection = f'index {selection}'
                 AGs_by_moltype = self.universe.select_atoms(selection)
-            if len(AGs_by_moltype.fragments) > len(AGs_by_moltype.residues):  # needed for models with virtual-type sites (e.g., 4-bead water models)
-                compound = 'residues'
-                AGs_by_moltype = AGs_by_moltype[AGs_by_moltype.masses > abs(1e-2)]  # remove the virtual sites
+            AGs_by_moltype = AGs_by_moltype[AGs_by_moltype.masses > abs(1e-2)]  # remove any virtual/massless sites (needed for, e.g., 4-bead water models)
             bead_groups[moltype] = BeadGroup(AGs_by_moltype, compound=compound)
 
         return bead_groups

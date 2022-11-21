@@ -1048,7 +1048,7 @@ class GromacsParser:
                             sec_rg_values.value = rg_results['value'][i_calc]
 
             # calculate the molecular mean squared displacements
-            msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()
+            msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
             if msd_results is not None:
                 sec_msds = sec_results.m_create(MeanSquaredDisplacement)
                 sec_msds.type = 'molecular'

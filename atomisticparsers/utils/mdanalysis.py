@@ -78,13 +78,13 @@ class MDAnalysisParser(FileParser):
         compound = 'fragments'
         for moltype in moltypes:
             if hasattr(self.universe.atoms, 'moltypes'):
-                AGs_by_moltype = self.universe.select_atoms('moltype ' + moltype)
+                ags_by_moltype = self.universe.select_atoms('moltype ' + moltype)
             else:  # this is easier than adding something to the universe
                 selection = ' '.join([str(i) for i in np.where(atoms_moltypes == moltype)[0]])
                 selection = f'index {selection}'
-                AGs_by_moltype = self.universe.select_atoms(selection)
-            AGs_by_moltype = AGs_by_moltype[AGs_by_moltype.masses > abs(1e-2)]  # remove any virtual/massless sites (needed for, e.g., 4-bead water models)
-            bead_groups[moltype] = BeadGroup(AGs_by_moltype, compound=compound)
+                ags_by_moltype = self.universe.select_atoms(selection)
+            ags_by_moltype = ags_by_moltype[ags_by_moltype.masses > abs(1e-2)]  # remove any virtual/massless sites (needed for, e.g., 4-bead water models)
+            bead_groups[moltype] = BeadGroup(ags_by_moltype, compound=compound)
 
         return bead_groups
 
@@ -214,18 +214,6 @@ class MDAnalysisParser(FileParser):
         bead_groups = self.bead_groups
         atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
         moltypes = np.unique(atoms_moltypes)
-        # bead_groups = {}
-        # compound = 'fragments'
-        # for moltype in moltypes:
-        #     if hasattr(self.universe.atoms, 'moltypes'):
-        #         AGs_by_moltype = self.universe.select_atoms('moltype ' + moltype)
-        #     else:  # this is easier than adding something to the universe
-        #         selection = ' '.join([str(i) for i in np.where(atoms_moltypes == moltype)[0]])
-        #         selection = f'index {selection}'
-        #         AGs_by_moltype = self.universe.select_atoms(selection)
-        #     if len(AGs_by_moltype.fragments) > len(AGs_by_moltype.residues):  # needed for models with virtual-type sites (e.g., 4-bead water models)
-        #         compound = 'residues'
-        #     bead_groups[moltype] = BeadGroup(AGs_by_moltype, compound=compound)
         if bead_groups is None:
             return {}
         else:

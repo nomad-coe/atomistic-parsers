@@ -216,55 +216,55 @@ class MDAnalysisParser(FileParser):
         moltypes = np.unique(atoms_moltypes)
         if bead_groups is None:
             return {}
-        else:
-            min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
-            max_rdf_dist = min_box_dimension / 2
-            n_bins = 200
-            n_smooth = 2
 
-            rdf_results = {}
-            rdf_results['n_smooth'] = n_smooth
-            rdf_results['types'] = []
-            rdf_results['variables_name'] = []
-            rdf_results['bins'] = []
-            rdf_results['value'] = []
-            rdf_results['frame_start'] = []
-            rdf_results['frame_end'] = []
-            for i, moltype_i in enumerate(moltypes):
-                for j, moltype_j in enumerate(moltypes):
-                    if j > i:
-                        continue
-                    elif i == j and bead_groups[moltype_i].positions.shape[0] == 1:  # skip if only 1 mol in group
-                        continue
+        min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
+        max_rdf_dist = min_box_dimension / 2
+        n_bins = 200
+        n_smooth = 2
 
-                    if i == j:
-                        exclusion_block = (1, 1)  # remove self-distance
-                    else:
-                        exclusion_block = None
-                    pair_type = moltype_i + '-' + moltype_j
-                    rdf_results_tmp = {}
-                    rdf_results_tmp['types'] = []
-                    rdf_results_tmp['variables_name'] = []
-                    rdf_results_tmp['bins'] = []
-                    rdf_results_tmp['value'] = []
-                    rdf_results_tmp['frame_start'] = []
-                    rdf_results_tmp['frame_end'] = []
-                    for i_interval in range(n_traj_split):
-                        rdf_results_tmp['types'].append(pair_type)
-                        rdf_results_tmp['variables_name'].append(['distance'])
-                        rdf = MDA_RDF.InterRDF(bead_groups[moltype_i], bead_groups[moltype_j],
-                                               range=(0, max_rdf_dist), exclusion_block=exclusion_block,
-                                               nbins=n_bins).run(frames_start[i_interval], frames_end[i_interval], n_prune)
-                        rdf_results_tmp['frame_start'].append(frames_start[i_interval])
-                        rdf_results_tmp['frame_end'].append(frames_end[i_interval])
+        rdf_results = {}
+        rdf_results['n_smooth'] = n_smooth
+        rdf_results['types'] = []
+        rdf_results['variables_name'] = []
+        rdf_results['bins'] = []
+        rdf_results['value'] = []
+        rdf_results['frame_start'] = []
+        rdf_results['frame_end'] = []
+        for i, moltype_i in enumerate(moltypes):
+            for j, moltype_j in enumerate(moltypes):
+                if j > i:
+                    continue
+                elif i == j and bead_groups[moltype_i].positions.shape[0] == 1:  # skip if only 1 mol in group
+                    continue
 
-                        rdf_results_tmp['bins'].append(rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)] * ureg.angstrom)
-                        rdf_results_tmp['value'].append(np.convolve(
-                            rdf.results.rdf, np.ones((n_smooth,)) / n_smooth,
-                            mode='same')[int(n_smooth / 2):-int(n_smooth / 2)])
+                if i == j:
+                    exclusion_block = (1, 1)  # remove self-distance
+                else:
+                    exclusion_block = None
+                pair_type = moltype_i + '-' + moltype_j
+                rdf_results_tmp = {}
+                rdf_results_tmp['types'] = []
+                rdf_results_tmp['variables_name'] = []
+                rdf_results_tmp['bins'] = []
+                rdf_results_tmp['value'] = []
+                rdf_results_tmp['frame_start'] = []
+                rdf_results_tmp['frame_end'] = []
+                for i_interval in range(n_traj_split):
+                    rdf_results_tmp['types'].append(pair_type)
+                    rdf_results_tmp['variables_name'].append(['distance'])
+                    rdf = MDA_RDF.InterRDF(bead_groups[moltype_i], bead_groups[moltype_j],
+                                            range=(0, max_rdf_dist), exclusion_block=exclusion_block,
+                                            nbins=n_bins).run(frames_start[i_interval], frames_end[i_interval], n_prune)
+                    rdf_results_tmp['frame_start'].append(frames_start[i_interval])
+                    rdf_results_tmp['frame_end'].append(frames_end[i_interval])
 
-                    for interval_group in interval_indices:
-                        get_rdf_avg(rdf_results_tmp, rdf_results, interval_group, n_frames_split)
+                    rdf_results_tmp['bins'].append(rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)] * ureg.angstrom)
+                    rdf_results_tmp['value'].append(np.convolve(
+                        rdf.results.rdf, np.ones((n_smooth,)) / n_smooth,
+                        mode='same')[int(n_smooth / 2):-int(n_smooth / 2)])
+
+                for interval_group in interval_indices:
+                    get_rdf_avg(rdf_results_tmp, rdf_results, interval_group, n_frames_split)
 
             return rdf_results
 

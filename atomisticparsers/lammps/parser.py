@@ -1032,6 +1032,7 @@ class LammpsParser:
             if msd_results is not None:
                 sec_msds = sec_results.m_create(MeanSquaredDisplacement)
                 sec_msds.type = 'molecular'
+                sec_msds.direction = 'xyz'
                 for i_type, moltype in enumerate(msd_results.get('types', [])):
                     sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
                     sec_msd_values.label = str(moltype)

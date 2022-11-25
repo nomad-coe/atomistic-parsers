@@ -1,0 +1,11 @@
+codeLabel: HOOMDBLUE
+codeLabelStyle: All in capitals
+codeName: hoomdblue
+codeUrl: https://github.com/glotzerlab/hoomd-blue/
+codeCategory: Atomistic code
+status: production
+parserDirName: dependencies/parsers/atomistic/atomisticparsers/hoomdblue/
+parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+parserSpecific: ''
+preamble: ''
+tableOfFiles: ''

@@ -218,6 +218,7 @@ def test_geometry_optimization(parser):
     assert len(section_go.steps) == 11
     assert section_go.steps[4] == 5000
 
+
 def test_radius_of_gyration(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/protein_fsfg/nvt.log', archive, None)

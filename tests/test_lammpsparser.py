@@ -296,7 +296,7 @@ def test_radius_of_gyration(parser):
     sec_rgvals = sec_rg.radius_of_gyration_values[10]
 
     assert sec_rg.kind == 'molecular'
-    assert sec_rgvals.label == 'group_0-index_10'
+    assert sec_rgvals.label == '0-index_10'
     assert sec_rgvals.value.magnitude == approx(6.892062676599172e-10)
     assert sec_rgvals.value.units == 'meter'
 
@@ -305,6 +305,6 @@ def test_radius_of_gyration(parser):
     sec_rgvals = sec_rg.radius_of_gyration_values[27]
 
     assert sec_rg.kind == 'molecular'
-    assert sec_rgvals.label == 'group_0-index_27'
+    assert sec_rgvals.label == '0-index_27'
     assert sec_rgvals.value.magnitude == approx(5.233325827723867e-10)
     assert sec_rgvals.value.units == 'meter'

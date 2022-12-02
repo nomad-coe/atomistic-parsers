@@ -1021,7 +1021,7 @@ class LammpsParser:
                                 sec_rgs = sec_rgs[0]
                             sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
                             sec_rg_values.atomsgroup_ref = molecule
-                            sec_rg_values.label = molgroup.label + '-index_' + str(molecule.index)
+                            sec_rg_values.label = molecule.label + '-index_' + str(molecule.index)
                             sec_rg_values.value = rg_results['value'][i_calc]
 
             # calculate the molecular mean squared displacements

@@ -166,106 +166,6 @@ class MDAnalysisParser(FileParser):
                 ctr_fragtype += 1
         return atoms_fragtypes
 
-    def calc_molecular_rdf(self, n_traj_split=10, n_prune=1, interval_indices=None, n_bins=200, n_smooth=2):
-        '''
-        Calculates the radial distribution functions between for each unique pair of
-        molecule types as a function of their center of mass distance.
-
-        interval_indices: 2D array specifying the groups of the n_traj_split intervals to be averaged
-        '''
-        def get_rdf_avg(rdf_results_tmp, rdf_results, interval_indices, n_frames_split):
-            split_weights = n_frames_split[np.array(interval_indices)] / np.sum(n_frames_split[np.array(interval_indices)])
-            assert abs(np.sum(split_weights) - 1.0) < 1e-6
-            rdf_values_avg = split_weights[0] * rdf_results_tmp['value'][interval_indices[0]]
-            for i_interval, interval in enumerate(interval_indices[1:]):
-                assert (rdf_results_tmp['types'][interval] == rdf_results_tmp['types'][interval - 1])
-                assert (rdf_results_tmp['variables_name'][interval] == rdf_results_tmp['variables_name'][interval - 1])
-                assert (rdf_results_tmp['bins'][interval] == rdf_results_tmp['bins'][interval - 1]).all()
-                rdf_values_avg += split_weights[i_interval + 1] * rdf_results_tmp['value'][interval]
-            rdf_results['types'].append(rdf_results_tmp['types'][interval_indices[0]])
-            rdf_results['variables_name'].append(rdf_results_tmp['variables_name'][interval_indices[0]])
-            rdf_results['bins'].append(rdf_results_tmp['bins'][interval_indices[0]])
-            rdf_results['value'].append(rdf_values_avg)
-            rdf_results['frame_start'].append(int(rdf_results_tmp['frame_start'][interval_indices[0]]))
-            rdf_results['frame_end'].append(int(rdf_results_tmp['frame_end'][interval_indices[-1]]))
-
-        if self.universe is None:
-            return
-        if self.universe.trajectory[0].dimensions is None:
-            return
-
-        n_frames = self.universe.trajectory.n_frames
-        if n_frames < n_traj_split:
-            n_traj_split = 1
-            frames_start = np.array([0])
-            frames_end = np.array([n_frames])
-            n_frames_split = np.array([n_frames])
-            interval_indices = [[0]]
-        else:
-            run_len = int(n_frames / n_traj_split)
-            frames_start = np.arange(n_traj_split) * run_len
-            frames_end = frames_start + run_len
-            frames_end[-1] = n_frames
-            n_frames_split = frames_end - frames_start
-            assert np.sum(n_frames_split) == n_frames
-            if not interval_indices:
-                interval_indices = [[i] for i in range(n_traj_split)]
-
-        bead_groups = self.bead_groups
-        atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
-        moltypes = np.unique(atoms_moltypes)
-        if bead_groups is None:
-            return {}
-
-        min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
-        max_rdf_dist = min_box_dimension / 2
-
-        rdf_results = {}
-        rdf_results['n_smooth'] = n_smooth
-        rdf_results['types'] = []
-        rdf_results['variables_name'] = []
-        rdf_results['bins'] = []
-        rdf_results['value'] = []
-        rdf_results['frame_start'] = []
-        rdf_results['frame_end'] = []
-        for i, moltype_i in enumerate(moltypes):
-            for j, moltype_j in enumerate(moltypes):
-                if j > i:
-                    continue
-                elif i == j and bead_groups[moltype_i].positions.shape[0] == 1:  # skip if only 1 mol in group
-                    continue
-
-                if i == j:
-                    exclusion_block = (1, 1)  # remove self-distance
-                else:
-                    exclusion_block = None
-                pair_type = moltype_i + '-' + moltype_j
-                rdf_results_tmp = {}
-                rdf_results_tmp['types'] = []
-                rdf_results_tmp['variables_name'] = []
-                rdf_results_tmp['bins'] = []
-                rdf_results_tmp['value'] = []
-                rdf_results_tmp['frame_start'] = []
-                rdf_results_tmp['frame_end'] = []
-                for i_interval in range(n_traj_split):
-                    rdf_results_tmp['types'].append(pair_type)
-                    rdf_results_tmp['variables_name'].append(['distance'])
-                    rdf = MDA_RDF.InterRDF(bead_groups[moltype_i], bead_groups[moltype_j],
-                                           range=(0, max_rdf_dist), exclusion_block=exclusion_block,
-                                           nbins=n_bins).run(frames_start[i_interval], frames_end[i_interval], n_prune)
-                    rdf_results_tmp['frame_start'].append(frames_start[i_interval])
-                    rdf_results_tmp['frame_end'].append(frames_end[i_interval])
-
-                    rdf_results_tmp['bins'].append(rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)] * ureg.angstrom)
-                    rdf_results_tmp['value'].append(np.convolve(
-                        rdf.results.rdf, np.ones((n_smooth,)) / n_smooth,
-                        mode='same')[int(n_smooth / 2):-int(n_smooth / 2)])
-
-                for interval_group in interval_indices:
-                    get_rdf_avg(rdf_results_tmp, rdf_results, interval_group, n_frames_split)
-
-        return rdf_results
-
     @property
     def with_trajectory(self):
         '''
@@ -364,123 +264,6 @@ class MDAnalysisParser(FileParser):
         self._results['interactions'] = interactions
 
         return interactions
-
-    def calc_molecular_mean_squared_displacements(self):
-        '''
-        Calculates the mean squared displacement for the center of mass of each
-        molecule type.
-        '''
-        if self.universe is None:
-            return
-        if self.universe.trajectory[0].dimensions is None:
-            return
-
-        atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
-        moltypes = np.unique(atoms_moltypes)
-        dt = self.universe.trajectory.dt
-        n_frames = self.universe.trajectory.n_frames
-        times = np.arange(n_frames) * dt
-
-        if n_frames < 50:
-            return
-
-        bead_groups = self.bead_groups
-        msd_results = {}
-        msd_results['value'] = []
-        msd_results['times'] = []
-        msd_results['diffusion_constant'] = []
-        msd_results['error_diffusion_constant'] = []
-        for moltype in moltypes:
-            positions = self.get_nojump_positions(bead_groups[moltype])
-            results = shifted_correlation(
-                mean_squared_displacement, times, positions, average=True
-            )
-            msd_results['value'].append(results[1])
-            msd_results['times'].append(results[0])
-            diffusion_constant, error = calc_diffusion_constant(*results)
-            msd_results['diffusion_constant'].append(diffusion_constant)
-            msd_results['error_diffusion_constant'].append(error)
-
-        msd_results['types'] = moltypes
-        msd_results['times'] = np.array(msd_results['times']) * ureg.picosecond
-        msd_results['value'] = np.array(msd_results['value']) * ureg.angstrom**2
-        msd_results['diffusion_constant'] = (np.array(
-            msd_results['diffusion_constant']) * ureg.angstrom**2 / ureg.picosecond)
-        msd_results['error_diffusion_constant'] = np.array(msd_results['error_diffusion_constant'])
-
-        return msd_results
-
-    def parse_jumps(self, selection):
-        from copy import deepcopy
-        __ = self.universe.trajectory[0]
-        prev = deepcopy(selection.positions)
-        box = self.universe.trajectory[0].dimensions[:3]
-        sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])
-        jump_data = (
-            sparse_data(data=array('b'), row=array('l'), col=array('l')),
-            sparse_data(data=array('b'), row=array('l'), col=array('l')),
-            sparse_data(data=array('b'), row=array('l'), col=array('l'))
-        )
-
-        for i_frame, _ in enumerate(self.universe.trajectory[1:]):
-            curr = deepcopy(selection.positions)
-            delta = ((curr - prev) / box).round().astype(np.int8)
-            prev = deepcopy(curr)
-            for d in range(3):
-                col, = np.where(delta[:, d] != 0)
-                jump_data[d].col.extend(col)
-                jump_data[d].row.extend([i_frame] * len(col))
-                jump_data[d].data.extend(delta[col, d])
-
-        return jump_data
-
-    def generate_nojump_matrices(self, selection):
-        jump_data = self.parse_jumps(selection)
-        N = len(self.universe.trajectory)
-        M = selection.positions.shape[0]
-
-        nojump_matrices = tuple(
-            sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(N, M)) for m in jump_data
-        )
-        return nojump_matrices
-
-    def get_nojump_positions(self, selection):
-        nojump_matrices = self.generate_nojump_matrices(selection)
-        box = self.universe.trajectory[0].dimensions[:3]
-
-        nojump_positions = []
-        for i_frame, __ in enumerate(self.universe.trajectory):
-            delta = np.array(np.vstack(
-                [m[:i_frame, :].sum(axis=0) for m in nojump_matrices]
-            ).T) * box
-            nojump_positions.append(selection.positions - delta)
-
-        return np.array(nojump_positions)
-
-    def calc_radius_of_gyration(self, molecule_atom_indices):
-        '''
-        Calculates the radius of gyration as a function of time for the atoms "molecule_atom_indices"
-        as well of the corresponding histogram.
-        '''
-
-        if self.universe is None:
-            return
-        if self.universe.trajectory[0].dimensions is None:
-            return
-
-        selection = ' '.join([str(i) for i in molecule_atom_indices])
-        selection = f'index {selection}'
-        molecule = self.universe.select_atoms(selection)
-        rg_results = {}
-        rg_results['times'] = []
-        rg_results['value'] = []
-        for __ in self.universe.trajectory:
-            rg_results['times'].append(self.universe.trajectory.time)
-            rg_results['value'].append(molecule.radius_of_gyration())
-        rg_results['times'] = np.array(rg_results['times']) * ureg.picosecond
-        rg_results['value'] = np.array(rg_results['value']) * ureg.angstrom
-
-        return rg_results
 
 
 class BeadGroup(object):
@@ -652,3 +435,241 @@ def calc_diffusion_constant(times, values, dim=3):
     slope = linear_model.slope
     error = linear_model.rvalue
     return slope * 1 / (2 * dim), error
+
+
+def get_molecular_bead_groups(universe, moltypes=None):
+
+    if moltypes is None:
+        atoms_moltypes = getattr(universe.atoms, "moltypes", [])
+        moltypes = np.unique(atoms_moltypes)
+    bead_groups = {}
+    for moltype in moltypes:
+        ags_by_moltype = universe.select_atoms('moltype ' + moltype)
+        ags_by_moltype = ags_by_moltype[ags_by_moltype.masses > abs(1e-2)]  # remove any virtual/massless sites (needed for, e.g., 4-bead water models)
+        bead_groups[moltype] = BeadGroup(ags_by_moltype, compound="fragments")
+
+    return bead_groups
+
+
+def calc_molecular_rdf(universe, n_traj_split=10, n_prune=1, interval_indices=None):
+    '''
+    Calculates the radial distribution functions between for each unique pair of
+    molecule types as a function of their center of mass distance.
+
+    interval_indices: 2D array specifying the groups of the n_traj_split intervals to be averaged
+    '''
+    def get_rdf_avg(rdf_results_tmp, rdf_results, interval_indices, n_frames_split):
+        split_weights = n_frames_split[np.array(interval_indices)] / np.sum(n_frames_split[np.array(interval_indices)])
+        assert abs(np.sum(split_weights) - 1.0) < 1e-6
+        rdf_values_avg = split_weights[0] * rdf_results_tmp['value'][interval_indices[0]]
+        for i_interval, interval in enumerate(interval_indices[1:]):
+            assert (rdf_results_tmp['types'][interval] == rdf_results_tmp['types'][interval - 1])
+            assert (rdf_results_tmp['variables_name'][interval] == rdf_results_tmp['variables_name'][interval - 1])
+            assert (rdf_results_tmp['bins'][interval] == rdf_results_tmp['bins'][interval - 1]).all()
+            rdf_values_avg += split_weights[i_interval + 1] * rdf_results_tmp['value'][interval]
+        rdf_results['types'].append(rdf_results_tmp['types'][interval_indices[0]])
+        rdf_results['variables_name'].append(rdf_results_tmp['variables_name'][interval_indices[0]])
+        rdf_results['bins'].append(rdf_results_tmp['bins'][interval_indices[0]])
+        rdf_results['value'].append(rdf_values_avg)
+        rdf_results['frame_start'].append(int(rdf_results_tmp['frame_start'][interval_indices[0]]))
+        rdf_results['frame_end'].append(int(rdf_results_tmp['frame_end'][interval_indices[-1]]))
+
+    if universe is None:
+        return
+    if universe.trajectory[0].dimensions is None:
+        return
+
+    n_frames = universe.trajectory.n_frames
+    if n_frames < n_traj_split:
+        n_traj_split = 1
+        frames_start = np.array([0])
+        frames_end = np.array([n_frames])
+        n_frames_split = np.array([n_frames])
+        interval_indices = [[0]]
+    else:
+        run_len = int(n_frames / n_traj_split)
+        frames_start = np.arange(n_traj_split) * run_len
+        frames_end = frames_start + run_len
+        frames_end[-1] = n_frames
+        n_frames_split = frames_end - frames_start
+        assert np.sum(n_frames_split) == n_frames
+        if not interval_indices:
+            interval_indices = [[i] for i in range(n_traj_split)]
+
+    atoms_moltypes = getattr(universe.atoms, "moltypes", [])
+    moltypes = np.unique(atoms_moltypes)
+    bead_groups = get_molecular_bead_groups(universe, moltypes=moltypes)
+
+    min_box_dimension = np.min(universe.trajectory[0].dimensions[:3])
+    max_rdf_dist = min_box_dimension / 2
+    n_bins = 200
+    n_smooth = 2
+
+    rdf_results = {}
+    rdf_results['n_smooth'] = n_smooth
+    rdf_results['types'] = []
+    rdf_results['variables_name'] = []
+    rdf_results['bins'] = []
+    rdf_results['value'] = []
+    rdf_results['frame_start'] = []
+    rdf_results['frame_end'] = []
+    for i, moltype_i in enumerate(moltypes):
+        for j, moltype_j in enumerate(moltypes):
+            if j > i:
+                continue
+            elif i == j and bead_groups[moltype_i].positions.shape[0] == 1:  # skip if only 1 mol in group
+                continue
+
+            if i == j:
+                exclusion_block = (1, 1)  # remove self-distance
+            else:
+                exclusion_block = None
+            pair_type = moltype_i + '-' + moltype_j
+            rdf_results_tmp = {}
+            rdf_results_tmp['types'] = []
+            rdf_results_tmp['variables_name'] = []
+            rdf_results_tmp['bins'] = []
+            rdf_results_tmp['value'] = []
+            rdf_results_tmp['frame_start'] = []
+            rdf_results_tmp['frame_end'] = []
+            for i_interval in range(n_traj_split):
+                rdf_results_tmp['types'].append(pair_type)
+                rdf_results_tmp['variables_name'].append(['distance'])
+                rdf = MDA_RDF.InterRDF(bead_groups[moltype_i], bead_groups[moltype_j],
+                                       range=(0, max_rdf_dist),
+                                       exclusion_block=exclusion_block,
+                                       nbins=n_bins).run(frames_start[i_interval], frames_end[i_interval], n_prune)
+                rdf_results_tmp['frame_start'].append(frames_start[i_interval])
+                rdf_results_tmp['frame_end'].append(frames_end[i_interval])
+
+                rdf_results_tmp['bins'].append(rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)] * ureg.angstrom)
+                rdf_results_tmp['value'].append(np.convolve(
+                    rdf.results.rdf, np.ones((n_smooth,)) / n_smooth,
+                    mode='same')[int(n_smooth / 2):-int(n_smooth / 2)])
+
+            for interval_group in interval_indices:
+                get_rdf_avg(rdf_results_tmp, rdf_results, interval_group, n_frames_split)
+
+    return rdf_results
+
+
+def calc_molecular_mean_squard_displacements(universe):
+    '''
+    Calculates the mean squared displacement for the center of mass of each
+    molecule type.
+    '''
+    if universe is None:
+        return
+    if universe.trajectory[0].dimensions is None:
+        return
+
+    n_frames = universe.trajectory.n_frames
+    if n_frames < 50:
+        return
+
+    atoms_moltypes = getattr(universe.atoms, "moltypes", [])
+    moltypes = np.unique(atoms_moltypes)
+    bead_groups = get_molecular_bead_groups(universe, moltypes=moltypes)
+    dt = universe.trajectory.dt
+    times = np.arange(n_frames) * dt
+
+    msd_results = {}
+    msd_results['value'] = []
+    msd_results['times'] = []
+    msd_results['diffusion_constant'] = []
+    msd_results['error_diffusion_constant'] = []
+    for moltype in moltypes:
+        positions = get_nojump_positions(universe, bead_groups[moltype])
+        results = shifted_correlation(
+            mean_squared_displacement, times, positions, average=True
+        )
+        msd_results['value'].append(results[1])
+        msd_results['times'].append(results[0])
+        diffusion_constant, error = calc_diffusion_constant(*results)
+        msd_results['diffusion_constant'].append(diffusion_constant)
+        msd_results['error_diffusion_constant'].append(error)
+
+    msd_results['types'] = moltypes
+    msd_results['times'] = np.array(msd_results['times']) * ureg.picosecond
+    msd_results['value'] = np.array(msd_results['value']) * ureg.angstrom**2
+    msd_results['diffusion_constant'] = (np.array(
+        msd_results['diffusion_constant']) * ureg.angstrom**2 / ureg.picosecond)
+    msd_results['error_diffusion_constant'] = np.array(msd_results['error_diffusion_constant'])
+
+    return msd_results
+
+
+def parse_jumps(universe, selection):
+    from copy import deepcopy
+    __ = universe.trajectory[0]
+    prev = deepcopy(selection.positions)
+    box = universe.trajectory[0].dimensions[:3]
+    sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])
+    jump_data = (
+        sparse_data(data=array('b'), row=array('l'), col=array('l')),
+        sparse_data(data=array('b'), row=array('l'), col=array('l')),
+        sparse_data(data=array('b'), row=array('l'), col=array('l'))
+    )
+
+    for i_frame, _ in enumerate(universe.trajectory[1:]):
+        curr = deepcopy(selection.positions)
+        delta = ((curr - prev) / box).round().astype(np.int8)
+        prev = deepcopy(curr)
+        for d in range(3):
+            col, = np.where(delta[:, d] != 0)
+            jump_data[d].col.extend(col)
+            jump_data[d].row.extend([i_frame] * len(col))
+            jump_data[d].data.extend(delta[col, d])
+
+    return jump_data
+
+
+def generate_nojump_matrices(universe, selection):
+    jump_data = parse_jumps(universe, selection)
+    N = len(universe.trajectory)
+    M = selection.positions.shape[0]
+
+    nojump_matrices = tuple(
+        sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(N, M)) for m in jump_data
+    )
+    return nojump_matrices
+
+
+def get_nojump_positions(universe, selection):
+    nojump_matrices = generate_nojump_matrices(universe, selection)
+    box = universe.trajectory[0].dimensions[:3]
+
+    nojump_positions = []
+    for i_frame, __ in enumerate(universe.trajectory):
+        delta = np.array(np.vstack(
+            [m[:i_frame, :].sum(axis=0) for m in nojump_matrices]
+        ).T) * box
+        nojump_positions.append(selection.positions - delta)
+
+    return np.array(nojump_positions)
+
+
+def calc_radius_of_gyration(universe, molecule_atom_indices):
+    '''
+    Calculates the radius of gyration as a function of time for the atoms "molecule_atom_indices"
+    as well of the corresponding histogram.
+    '''
+
+    if universe is None:
+        return
+    if universe.trajectory[0].dimensions is None:
+        return
+
+    selection = ' '.join([str(i) for i in molecule_atom_indices])
+    selection = f'index {selection}'
+    molecule = universe.select_atoms(selection)
+    rg_results = {}
+    rg_results['times'] = []
+    rg_results['value'] = []
+    for __ in universe.trajectory:
+        rg_results['times'].append(universe.trajectory.time)
+        rg_results['value'].append(molecule.radius_of_gyration())
+    rg_results['times'] = np.array(rg_results['times']) * ureg.picosecond
+    rg_results['value'] = np.array(rg_results['value']) * ureg.angstrom
+
+    return rg_results

@@ -810,7 +810,7 @@ class GromacsParser:
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
         try:
-            n_atoms = self.traj_parser.get('n_atoms')
+            n_atoms = self.traj_parser.get('n_atoms', 0)
         except Exception:
             gro_file = self.get_gromacs_file('gro')
             self.traj_parser.mainfile = gro_file
@@ -977,96 +977,96 @@ class GromacsParser:
             else:
                 sec_md.thermodynamic_ensemble = 'NVE'
 
-            # calculate molecular radial distribution functions
-            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            n_traj_split = 10
-            interval_indices = []
-            # first 20% of trajectory
-            interval_indices.append([0, 1])
-            # last 80% of trajectory
-            interval_indices.append([2, 3, 4, 5, 6, 7, 8, 9])
-            # last 60% of trajectory
-            interval_indices.append([4, 5, 6, 7, 8, 9])
-            # last 40% of trajectory
-            interval_indices.append([6, 7, 8, 9])
+            # # calculate molecular radial distribution functions
+            # sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+            # sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
+            # n_traj_split = 10
+            # interval_indices = []
+            # # first 20% of trajectory
+            # interval_indices.append([0, 1])
+            # # last 80% of trajectory
+            # interval_indices.append([2, 3, 4, 5, 6, 7, 8, 9])
+            # # last 60% of trajectory
+            # interval_indices.append([4, 5, 6, 7, 8, 9])
+            # # last 40% of trajectory
+            # interval_indices.append([6, 7, 8, 9])
 
-            rdf_results = self.traj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
-            if rdf_results is not None:
-                sec_rdfs = sec_results.m_create(RadialDistributionFunction)
-                sec_rdfs.type = 'molecular'
-                sec_rdfs.n_smooth = rdf_results.get('n_smooth')
-                sec_rdfs.n_prune = self._frame_rate
-                sec_rdfs.n_variables = 1
-                sec_rdfs.variables_name = np.array(['distance'])
-                for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
-                    sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
-                    sec_rdf_values.label = str(pair_type)
-                    sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
-                    sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
-                        'bins') is not None else []
-                    sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
-                        'value') is not None else []
-                    sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
-                        'frame_start') is not None else []
-                    sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
-                        'frame_end') is not None else []
+            # rdf_results = self.traj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
+            # if rdf_results is not None:
+            #     sec_rdfs = sec_results.m_create(RadialDistributionFunction)
+            #     sec_rdfs.type = 'molecular'
+            #     sec_rdfs.n_smooth = rdf_results.get('n_smooth')
+            #     sec_rdfs.n_prune = self._frame_rate
+            #     sec_rdfs.n_variables = 1
+            #     sec_rdfs.variables_name = np.array(['distance'])
+            #     for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
+            #         sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
+            #         sec_rdf_values.label = str(pair_type)
+            #         sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
+            #         sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
+            #             'bins') is not None else []
+            #         sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
+            #             'value') is not None else []
+            #         sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
+            #             'frame_start') is not None else []
+            #         sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
+            #             'frame_end') is not None else []
 
-            # calculate radius of gyration for polymers
-            flag_warned = False
-            sec_rgs = None
-            sec_system = self.archive.run[-1].system[0]
-            sec_molecule_groups = sec_system.get('atoms_group')
-            for molgroup in sec_molecule_groups:
-                sec_molecules = molgroup.get('atoms_group')
-                for molecule in sec_molecules:
-                    sec_monomer_groups = molecule.get('atoms_group')
-                    group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
-                    if group_type != 'monomer_group':
-                        continue
-                    molecule_atom_indices = molecule.atom_indices
-                    rg_results = self.traj_parser.calc_radius_of_gyration(molecule_atom_indices)
-                    if rg_results is not None:
-                        n_frames = len(rg_results['times'])
-                        if n_frames != len(sec_calc):
-                            if not flag_warned:
-                                self.logger.warn(
-                                    'Unexpected mismatch in number of calculations and number of'
-                                    'trajectory frames. Not storing Rg values.')
-                                flag_warned = True
-                            continue
-                        for i_calc, calc in enumerate(sec_calc):
-                            sec_rgs = calc.get('radius_of_gyration')
-                            if not sec_rgs:
-                                sec_rgs = calc.m_create(RadiusOfGyration)
-                                sec_rgs.kind = 'molecular'
-                            else:
-                                sec_rgs = sec_rgs[0]
-                            sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
-                            sec_rg_values.atomsgroup_ref = molecule
-                            sec_rg_values.label = molecule.label + '-index_' + str(molecule.index)
-                            sec_rg_values.value = rg_results['value'][i_calc]
+            # # calculate radius of gyration for polymers
+            # flag_warned = False
+            # sec_rgs = None
+            # sec_system = self.archive.run[-1].system[0]
+            # sec_molecule_groups = sec_system.get('atoms_group')
+            # for molgroup in sec_molecule_groups:
+            #     sec_molecules = molgroup.get('atoms_group')
+            #     for molecule in sec_molecules:
+            #         sec_monomer_groups = molecule.get('atoms_group')
+            #         group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
+            #         if group_type != 'monomer_group':
+            #             continue
+            #         molecule_atom_indices = molecule.atom_indices
+            #         rg_results = self.traj_parser.calc_radius_of_gyration(molecule_atom_indices)
+            #         if rg_results is not None:
+            #             n_frames = len(rg_results['times'])
+            #             if n_frames != len(sec_calc):
+            #                 if not flag_warned:
+            #                     self.logger.warn(
+            #                         'Unexpected mismatch in number of calculations and number of'
+            #                         'trajectory frames. Not storing Rg values.')
+            #                     flag_warned = True
+            #                 continue
+            #             for i_calc, calc in enumerate(sec_calc):
+            #                 sec_rgs = calc.get('radius_of_gyration')
+            #                 if not sec_rgs:
+            #                     sec_rgs = calc.m_create(RadiusOfGyration)
+            #                     sec_rgs.kind = 'molecular'
+            #                 else:
+            #                     sec_rgs = sec_rgs[0]
+            #                 sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
+            #                 sec_rg_values.atomsgroup_ref = molecule
+            #                 sec_rg_values.label = molgroup.label + '-index_' + str(molecule.index)
+            #                 sec_rg_values.value = rg_results['value'][i_calc]
 
-            # calculate the molecular mean squared displacements
-            msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
-            if msd_results is not None:
-                sec_msds = sec_results.m_create(MeanSquaredDisplacement)
-                sec_msds.type = 'molecular'
-                sec_msds.direction = 'xyz'
-                for i_type, moltype in enumerate(msd_results.get('types', [])):
-                    sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
-                    sec_msd_values.label = str(moltype)
-                    sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
-                    sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
-                        'times') is not None else []
-                    sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
-                        'value') is not None else []
-                    sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-                    sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
-                        'diffusion_constant') is not None else []
-                    sec_diffusion.error_type = 'Pearson correlation coefficient'
-                    sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
-                        'error_diffusion_constant') is not None else []
+            # # calculate the molecular mean squared displacements
+            # msd_results = self.traj_parser.calc_molecular_mean_squard_displacements()
+            # if msd_results is not None:
+            #     sec_msds = sec_results.m_create(MeanSquaredDisplacement)
+            #     sec_msds.type = 'molecular'
+            #     sec_msds.direction = 'xyz'
+            #     for i_type, moltype in enumerate(msd_results.get('types', [])):
+            #         sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
+            #         sec_msd_values.label = str(moltype)
+            #         sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
+            #         sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
+            #             'times') is not None else []
+            #         sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
+            #             'value') is not None else []
+            #         sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
+            #         sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
+            #             'diffusion_constant') is not None else []
+            #         sec_diffusion.error_type = 'Pearson correlation coefficient'
+            #         sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
+            #             'error_diffusion_constant') is not None else []
 
     def parse_input(self):
         sec_run = self.archive.run[-1]

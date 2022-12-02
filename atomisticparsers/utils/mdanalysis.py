@@ -253,8 +253,8 @@ class MDAnalysisParser(FileParser):
                     rdf_results_tmp['types'].append(pair_type)
                     rdf_results_tmp['variables_name'].append(['distance'])
                     rdf = MDA_RDF.InterRDF(bead_groups[moltype_i], bead_groups[moltype_j],
-                                            range=(0, max_rdf_dist), exclusion_block=exclusion_block,
-                                            nbins=n_bins).run(frames_start[i_interval], frames_end[i_interval], n_prune)
+                                           range=(0, max_rdf_dist), exclusion_block=exclusion_block,
+                                           nbins=n_bins).run(frames_start[i_interval], frames_end[i_interval], n_prune)
                     rdf_results_tmp['frame_start'].append(frames_start[i_interval])
                     rdf_results_tmp['frame_end'].append(frames_end[i_interval])
 

@@ -184,6 +184,7 @@ def test_msd(parser):
     section_md = sec_workflow.molecular_dynamics.results
 
     assert section_md.mean_squared_displacements[0].type == 'molecular'
+    assert section_md.mean_squared_displacements[0].direction == 'xyz'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].label == 'LJ'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].magnitude == approx(95.0 * 10**(-12))
@@ -228,7 +229,7 @@ def test_radius_of_gyration(parser):
 
     assert sec_rg.kind == 'molecular'
 
-    assert sec_rgvals.label == 'group_Protein-index_0'
+    assert sec_rgvals.label == 'Protein-index_0'
     assert sec_rgvals.value.magnitude == approx(5.464423436523278e-10)
     assert sec_rgvals.value.units == 'meter'
 
@@ -237,6 +238,6 @@ def test_radius_of_gyration(parser):
     sec_rgvals = sec_rg.radius_of_gyration_values[1]
 
     assert sec_rg.kind == 'molecular'
-    assert sec_rgvals.label == 'group_Protein-index_1'
+    assert sec_rgvals.label == 'Protein-index_1'
     assert sec_rgvals.value.magnitude == approx(7.326346215313874e-10)
     assert sec_rgvals.value.units == 'meter'

@@ -383,7 +383,7 @@ class MDAnalysisParser(FileParser):
         n_frames = self.universe.trajectory.n_frames
         times = np.arange(n_frames) * dt
 
-        if n_frames < 10:
+        if n_frames < 50:
             return
 
         bead_groups = self.bead_groups

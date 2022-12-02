@@ -1043,8 +1043,8 @@ class GromacsParser:
                             else:
                                 sec_rgs = sec_rgs[0]
                             sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
-                            sec_rg_values.molecule_ref = molecule
-                            sec_rg_values.label = molgroup.label + '-index_' + str(molecule.index)
+                            sec_rg_values.atomsgroup_ref = molecule
+                            sec_rg_values.label = molecule.label + '-index_' + str(molecule.index)
                             sec_rg_values.value = rg_results['value'][i_calc]
 
             # calculate the molecular mean squared displacements
@@ -1052,6 +1052,7 @@ class GromacsParser:
             if msd_results is not None:
                 sec_msds = sec_results.m_create(MeanSquaredDisplacement)
                 sec_msds.type = 'molecular'
+                sec_msds.direction = 'xyz'
                 for i_type, moltype in enumerate(msd_results.get('types', [])):
                     sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
                     sec_msd_values.label = str(moltype)

@@ -166,7 +166,7 @@ class MDAnalysisParser(FileParser):
                 ctr_fragtype += 1
         return atoms_fragtypes
 
-    def calc_molecular_rdf(self, n_traj_split=10, n_prune=1, interval_indices=None):
+    def calc_molecular_rdf(self, n_traj_split=10, n_prune=1, interval_indices=None, n_bins=200, n_smooth=2):
         '''
         Calculates the radial distribution functions between for each unique pair of
         molecule types as a function of their center of mass distance.
@@ -219,8 +219,6 @@ class MDAnalysisParser(FileParser):
 
         min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
         max_rdf_dist = min_box_dimension / 2
-        n_bins = 200
-        n_smooth = 2
 
         rdf_results = {}
         rdf_results['n_smooth'] = n_smooth
@@ -266,7 +264,7 @@ class MDAnalysisParser(FileParser):
                 for interval_group in interval_indices:
                     get_rdf_avg(rdf_results_tmp, rdf_results, interval_group, n_frames_split)
 
-            return rdf_results
+        return rdf_results
 
     @property
     def with_trajectory(self):

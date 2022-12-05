@@ -70,6 +70,24 @@ class MDAnalysisParser(FileParser):
                 self.logger.error('Error creating MDAnalysis universe.', exc_info=e)
         return self._file_handler
 
+    @property
+    def bead_groups(self):
+        atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
+        moltypes = np.unique(atoms_moltypes)
+        bead_groups = {}
+        compound = 'fragments'
+        for moltype in moltypes:
+            if hasattr(self.universe.atoms, 'moltypes'):
+                ags_by_moltype = self.universe.select_atoms('moltype ' + moltype)
+            else:  # this is easier than adding something to the universe
+                selection = ' '.join([str(i) for i in np.where(atoms_moltypes == moltype)[0]])
+                selection = f'index {selection}'
+                ags_by_moltype = self.universe.select_atoms(selection)
+            ags_by_moltype = ags_by_moltype[ags_by_moltype.masses > abs(1e-2)]  # remove any virtual/massless sites (needed for, e.g., 4-bead water models)
+            bead_groups[moltype] = BeadGroup(ags_by_moltype, compound=compound)
+
+        return bead_groups
+
     def parse(self, quantity_key: str = None, **kwargs):
         if self._results is None:
             self._results: Dict[str, Any] = dict()
@@ -148,7 +166,7 @@ class MDAnalysisParser(FileParser):
                 ctr_fragtype += 1
         return atoms_fragtypes
 
-    def calc_molecular_rdf(self, n_traj_split=10, n_prune=1, interval_indices=None):
+    def calc_molecular_rdf(self, n_traj_split=10, n_prune=1, interval_indices=None, n_bins=200, n_smooth=2):
         '''
         Calculates the radial distribution functions between for each unique pair of
         molecule types as a function of their center of mass distance.
@@ -193,22 +211,14 @@ class MDAnalysisParser(FileParser):
             if not interval_indices:
                 interval_indices = [[i] for i in range(n_traj_split)]
 
+        bead_groups = self.bead_groups
         atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
         moltypes = np.unique(atoms_moltypes)
-        bead_groups = {}
-        for moltype in moltypes:
-            if hasattr(self.universe.atoms, 'moltypes'):
-                AGs_by_moltype = self.universe.select_atoms('moltype ' + moltype)
-            else:  # this is easier than adding something to the universe
-                selection = ' '.join([str(i) for i in np.where(atoms_moltypes == moltype)[0]])
-                selection = f'index {selection}'
-                AGs_by_moltype = self.universe.select_atoms(selection)
-            bead_groups[moltype] = BeadGroup(AGs_by_moltype, compound="fragments")
+        if bead_groups is None:
+            return {}
 
         min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
         max_rdf_dist = min_box_dimension / 2
-        n_bins = 200
-        n_smooth = 2
 
         rdf_results = {}
         rdf_results['n_smooth'] = n_smooth
@@ -241,8 +251,7 @@ class MDAnalysisParser(FileParser):
                     rdf_results_tmp['types'].append(pair_type)
                     rdf_results_tmp['variables_name'].append(['distance'])
                     rdf = MDA_RDF.InterRDF(bead_groups[moltype_i], bead_groups[moltype_j],
-                                           range=(0, max_rdf_dist),
-                                           exclusion_block=exclusion_block,
+                                           range=(0, max_rdf_dist), exclusion_block=exclusion_block,
                                            nbins=n_bins).run(frames_start[i_interval], frames_end[i_interval], n_prune)
                     rdf_results_tmp['frame_start'].append(frames_start[i_interval])
                     rdf_results_tmp['frame_end'].append(frames_end[i_interval])
@@ -356,7 +365,7 @@ class MDAnalysisParser(FileParser):
 
         return interactions
 
-    def calc_molecular_mean_squard_displacements(self):
+    def calc_molecular_mean_squared_displacements(self):
         '''
         Calculates the mean squared displacement for the center of mass of each
         molecule type.
@@ -375,21 +384,13 @@ class MDAnalysisParser(FileParser):
         if n_frames < 50:
             return
 
-        bead_groups = {}
+        bead_groups = self.bead_groups
         msd_results = {}
         msd_results['value'] = []
         msd_results['times'] = []
         msd_results['diffusion_constant'] = []
         msd_results['error_diffusion_constant'] = []
         for moltype in moltypes:
-            if hasattr(self.universe.atoms, 'moltypes'):
-                AGs_by_moltype = self.universe.select_atoms('moltype ' + moltype)
-            else:  # this is easier than adding something to the universe
-                selection = ' '.join([str(i) for i in np.where(atoms_moltypes == moltype)[0]])
-                selection = f'index {selection}'
-                AGs_by_moltype = self.universe.select_atoms(selection)
-            bead_groups[moltype] = BeadGroup(AGs_by_moltype, compound="fragments")
-
             positions = self.get_nojump_positions(bead_groups[moltype])
             results = shifted_correlation(
                 mean_squared_displacement, times, positions, average=True

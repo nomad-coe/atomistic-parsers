@@ -1028,7 +1028,7 @@ class LammpsParser:
             msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')
             msd_results = msd_results() if msd_results is not None else None
             if msd_results is None:
-                msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squard_displacements()
+                msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squared_displacements()
             if msd_results is not None:
                 sec_msds = sec_results.m_create(MeanSquaredDisplacement)
                 sec_msds.type = 'molecular'
@@ -1099,10 +1099,10 @@ class LammpsParser:
             atoms_moltypes = np.array(atoms_info.get('moltypes', []))
             atoms_molnums = np.array(atoms_info.get('molnums', []))
             atoms_resids = np.array(atoms_info.get('resids', []))
-            atoms_elements = np.array(atoms_info.get('elements', []))
+            atoms_elements = np.array(atoms_info.get('elements', ['X'] * sec_atoms.n_atoms))
             atoms_types = np.array(atoms_info.get('types', []))
             atom_labels = sec_system.atoms.get('labels')
-            if 'X' in atoms_elements or not atoms_elements:
+            if 'X' in atoms_elements:
                 atoms_elements = np.array(atom_labels) if atom_labels and 'X' not in atom_labels else atoms_types
             atoms_resnames = np.array(atoms_info.get('resnames', []))
             moltypes = np.unique(atoms_moltypes)

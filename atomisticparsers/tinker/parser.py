@@ -37,6 +37,7 @@ from nomad.datamodel.metainfo.simulation.calculation import (
 from nomad.datamodel.metainfo.workflow import (
     Workflow, GeometryOptimization, MolecularDynamics, IntegrationParameters
 )
+from nomad.datamodel.metainfo.simulation import workflow as workflow2
 from atomisticparsers.utils import MDAnalysisParser
 from .metainfo.tinker import x_tinker_section_control_parameters
 
@@ -52,12 +53,17 @@ class KeyParser(TextParser):
     def init_quantities(self):
         def to_key_val(val_in):
             val = val_in.strip().split()
-            return [val[0], True] if len(val) == 1 else val
+            if len(val) == 1:
+                return [val[0], True]
+            elif len(val) == 2:
+                return val
+            else:
+                return [val[0], val[1:]]
 
         self._quantities = [Quantity(
             'key_val',
             rf'([a-z\-]+) *([^#]*?) *{re_n}',
-            str_operation=to_key_val, repeats=True)]
+            str_operation=to_key_val, repeats=True, convert=False)]
 
 
 class RunParser(TextParser):
@@ -284,6 +290,7 @@ class TinkerParser:
             labels=[atom.name for atom in list(self.traj_parser.universe.atoms)])
         if trajectory.triclinic_dimensions is not None:
             sec_system.atoms.lattice_vectors = trajectory.triclinic_dimensions * ureg.angstrom
+            sec_system.atoms.periodic = [True, True, True]
         if trajectory.has_velocities:
             sec_system.atoms.velocities = trajectory.velocities * (ureg.angstrom / ureg.ps)
 
@@ -329,34 +336,44 @@ class TinkerParser:
 
             return ensemble_type
 
+        # TODO handle multiple workflow sections
+        workflow = None
         workflow_type = self.archive.workflow[-1].type
+        self.archive.workflow[-1].calculations_ref = []
         parameters = list(program.get('parameters', []))
         # so we cover the case when optional parameters are missing
         parameters.extend([None] * 6)
         if workflow_type == 'molecular_dynamics':
             sec_md = self.archive.workflow[-1].m_create(MolecularDynamics)
+            workflow = workflow2.MolecularDynamics(method=workflow2.MolecularDynamicsMethod())
             sec_integration_parameters = sec_md.m_create(IntegrationParameters)
             control_parameters = self.archive.run[-1].x_tinker_control_parameters
             # TODO verify this! I am sure it is wrong but tinker documentation does not specify clearly
             ensemble_types = ['NVE', 'NVT', 'NPT', None, None]
             sec_md.thermodynamic_ensemble = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
-            sec_integration_parameters.integration_timestep = parameters[1] * ureg.fs
+            workflow.method.thermodynamic_ensemble = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
+            sec_integration_parameters.integration_timestep = parameters[1] * ureg.fs if parameters[1] else parameters[1]
+            workflow.method.integration_timestep = parameters[1] * ureg.fs if parameters[1] else parameters[1]
             sec_md.x_tinker_barostat_tau = control_parameters.get('tau-pressure')
             sec_md.x_tinker_barostat_type = control_parameters.get('barostat')
             sec_md.x_tinker_integrator_type = control_parameters.get('integrator')
             sec_md.x_tinker_number_of_steps_requested = parameters[0]
-            sec_md.x_tinker_integrator_dt = parameters[1] * ureg.ps
-            sec_md.x_tinker_thermostat_target_temperature = parameters[4] * ureg.kelvin
-            sec_md.x_tinker_barostat_target_pressure = parameters[5] * ureg.atmosphere
+            sec_md.x_tinker_integrator_dt = parameters[1] * ureg.ps if parameters[1] else parameters
+            sec_md.x_tinker_thermostat_target_temperature = parameters[4] * ureg.kelvin if parameters[4] else parameters[4]
+            sec_md.x_tinker_barostat_target_pressure = parameters[5] * ureg.atmosphere if parameters[5] else parameters[5]
             sec_md.x_tinker_thermostat_tau = control_parameters.get('tau-temperature')
             sec_md.x_tinker_thermostat_type = control_parameters.get('thermostat')
 
         elif workflow_type == 'geometry_optimization':
             sec_opt = self.archive.workflow[-1].m_create(GeometryOptimization)
+            workflow = workflow2.GeometryOptimization(method=workflow2.GeometryOptimizationMethod())
             sec_opt.method = run.minimize.get('method')
+            workflow.method.method = run.minimize.get('method')
             sec_opt.x_tinker_convergence_tolerance_rms_gradient = parameters[0]
             for key, val in run.minimize.items():
                 setattr(sec_opt, key, val)
+
+        self.archive.workflow2 = workflow
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)
@@ -466,6 +483,7 @@ class TinkerParser:
                 # or tinker.key
                 self.key_parser.mainfile = self._get_tinker_file('key')
 
+            print(self.key_parser.get('key_val'))
             parameters = {key.lower(): val for key, val in self.key_parser.get('key_val', [])}
             sec_run.x_tinker_control_parameters = parameters
             # TODO should this be removed and only have a dictionary of control parameters

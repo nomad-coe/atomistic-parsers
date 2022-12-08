@@ -32,6 +32,11 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     ChargesValue
 )
 from nomad.datamodel.metainfo.workflow import Workflow, GeometryOptimization
+from nomad.datamodel.metainfo.simulation.workflow import (
+    GeometryOptimization as GeometryOptimization2, GeometryOptimizationMethod,
+    SinglePoint as SinglePoint2, MolecularDynamics as MolecularDynamics2
+)
+
 from atomisticparsers.bopfox.metainfo.bopfox import x_bopfox_onsite_levels, x_bopfox_onsite_levels_value
 
 
@@ -534,8 +539,10 @@ class BOPfoxParser:
         sec_calc = parse_calculation(self.mainfile_parser)
         sec_calc.system_ref = sec_system
         sec_workflow = archive.m_create(Workflow)
+        workflow = None
         if task in ['energy', 'force']:
             sec_workflow.type = 'single_point'
+            workflow = SinglePoint2()
 
         elif task == 'relax':
             # relaxation trajectory from struc.RX.xyz
@@ -563,6 +570,9 @@ class BOPfoxParser:
                 convergence_tolerance_energy_difference=parameters.get('rxeconv', 0) * ureg.eV,
                 convergence_tolerance_force_maximum=parameters.get('rxfconv', 0) * ureg.eV / ureg.angstrom
             )
+            workflow = GeometryOptimization2(method=GeometryOptimizationMethod())
+            workflow.method.convergence_tolerance_energy_difference = parameters.get('rxeconv', 0) * ureg.eV
+            workflow.method.convergence_tolerance_force_maximum = parameters.get('rxfconv', 0) * ureg.eV / ureg.angstrom
 
         elif task == 'md':
             # md trajectory from struc.MD.xyz
@@ -586,3 +596,6 @@ class BOPfoxParser:
                 # read frame from trajectory
                 sec_system = parse_system(frames.get(data[0]))
                 sec_calc.system_ref = sec_system
+            workflow = MolecularDynamics2()
+
+        archive.workflow2 = workflow

@@ -40,6 +40,7 @@ from nomad.datamodel.metainfo.workflow import (
     MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
     Workflow, MolecularDynamics, GeometryOptimization
 )
+from nomad.datamodel.metainfo.simulation import workflow as workflow2
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
 from atomisticparsers.utils import MDAnalysisParser
 
@@ -709,10 +710,14 @@ class LammpsParser:
         pressure_conversion = ureg.convert(1.0, units.get('pressure'), ureg.pascal)
 
         minimization_stats = self.log_parser.get('minimization_stats', None)
+        workflow = None
         if minimization_stats is not None:
+            workflow = workflow2.GeometryOptimization(
+                method=workflow2.GeometryOptimizationMethod(), results=workflow2.GeometryOptimizationResults())
             sec_workflow.type = 'geometry_optimization'
             sec_go = sec_workflow.m_create(GeometryOptimization)
             sec_go.type = 'atomic'
+            workflow.method.type = 'atomic'
 
             min_style = self.log_parser.get('min_style')
             min_style = min_style[0].lower() if min_style else 'none'
@@ -723,18 +728,21 @@ class LammpsParser:
             value = min_style_map.get(min_style, [val for key, val in min_style_map.items() if key in min_style])
             value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
             sec_go.method = value
+            workflow.method.method = value
 
             minimization_stats = minimization_stats.split('\n')
             energy_index = [i for i, s in enumerate(minimization_stats) if 'Energy initial, next-to-last, final' in s]
             if len(energy_index) != 0:
                 energy_stats = minimization_stats[energy_index[0] + 1].split()
                 sec_go.final_energy_difference = (float(energy_stats[-1]) - float(energy_stats[-2])) * energy_conversion
+                workflow.results.final_energy_difference = (float(energy_stats[-1]) - float(energy_stats[-2])) * energy_conversion
 
             force_index = [i for i, s in enumerate(minimization_stats) if 'Force two-norm initial, final = 3167.24 0.509175' in s]
             if len(force_index) != 0:
                 force_stats = minimization_stats[force_index[0]].split('=')[1]
                 force_stats = force_stats.split()
                 sec_go.final_force_maximum = float(force_stats[-1]) * force_conversion
+                workflow.results.final_force_maximum = float(force_stats[-1]) * force_conversion
 
             minimize_parameters = self.log_parser.get('minimize')
             if not minimize_parameters:
@@ -743,6 +751,9 @@ class LammpsParser:
                 sec_go.optimization_steps_maximum = int(minimize_parameters[0][2])
                 sec_go.convergence_tolerance_force_maximum = minimize_parameters[0][1] * force_conversion
                 sec_go.convergence_tolerance_energy_difference = minimize_parameters[0][0] * energy_conversion
+                workflow.method.optimization_steps_maximum = int(minimize_parameters[0][2])
+                workflow.method.convergence_tolerance_force_maximum = minimize_parameters[0][1] * force_conversion
+                workflow.method.convergence_tolerance_energy_difference = minimize_parameters[0][0] * energy_conversion
 
             energies = []
             steps = []
@@ -756,14 +767,20 @@ class LammpsParser:
             sec_go.energies = energies
             sec_go.steps = steps
             sec_go.optimization_steps = len(energies) + 1
+            workflow.results.energies = energies
+            workflow.results.steps = steps
+            workflow.results.optimization_steps = len(energies) + 1
 
         else:  # for now, only allow one workflow per runtime file
             sec_workflow.type = 'molecular_dynamics'
+            workflow = workflow2.MolecularDynamics(
+                method=workflow2.MolecularDynamicsMethod(), results=workflow2.MolecularDynamicsResults())
             sec_md = sec_workflow.m_create(MolecularDynamics)
             sec_md.finished_normally = self.log_parser.get('finished') is not None
             sec_md.with_trajectory = self.traj_parsers.eval('with_trajectory')
             sec_md.with_thermodynamics = self.log_parser.get('thermo_data') is not None or\
                 self.aux_log_parser.get('thermo_data') is not None
+            workflow.results.finished_normally = self.log_parser.get('finished') is not None
 
             dump_params = sec_lammps.x_lammps_inout_control_dump.split()
             sec_integration_parameters = sec_md.m_create(IntegrationParameters)
@@ -772,26 +789,38 @@ class LammpsParser:
             else:
                 coordinate_save_frequency = dump_params[3]
             sec_integration_parameters.coordinate_save_frequency = int(coordinate_save_frequency)
+            workflow.method.coordinate_save_frequency = int(coordinate_save_frequency)
             sec_integration_parameters.n_steps = (len(sec_run.system) - 1) * sec_integration_parameters.coordinate_save_frequency
+            workflow.method.n_steps = (len(sec_run.system) - 1) * sec_integration_parameters.coordinate_save_frequency
             if 'vx' in dump_params[7:] or 'vy' in dump_params[7:] or 'vz' in dump_params[7:]:
                 sec_integration_parameters.velocity_save_frequency = int(dump_params[3])
+                workflow.method.velocity_save_frequency = int(dump_params[3])
             if 'fx' in dump_params[7:] or 'fy' in dump_params[7:] or 'fz' in dump_params[7:]:
                 sec_integration_parameters.force_save_frequency = int(dump_params[3])
+                workflow.method.force_save_frequency = int(dump_params[3])
             if sec_lammps.x_lammps_inout_control_thermo is not None:
                 sec_integration_parameters.thermodynamics_save_frequency = int(sec_lammps.x_lammps_inout_control_thermo.split()[0])
+                workflow.method.thermodynamics_save_frequency = int(sec_lammps.x_lammps_inout_control_thermo.split()[0])
 
             # runstyle has 2 options: Velocity-Verlet (default) or rRESPA Multi-Timescale
             runstyle = sec_lammps.x_lammps_inout_control_runstyle
             if runstyle is not None:
                 if 'respa' in runstyle.lower:
                     sec_integration_parameters.integrator_type = 'rRESPA_multitimescale'
+                    workflow.method.integrator_type = 'rRESPA_multitimescale'
                 else:
                     sec_integration_parameters.integrator_type = 'velocity_verlet'
+                    workflow.method.integrator_type = 'velocity_verlet'
             else:
                 sec_integration_parameters.integrator_type = 'velocity_verlet'
-            sec_integration_parameters.integration_timestep = self.get_time_step()
+                workflow.method.integrator_type = 'velocity_verlet'
+            integration_timestep = self.get_time_step()
+            sec_integration_parameters.integration_timestep = integration_timestep
+            workflow.method.integration_timestep = integration_timestep
             sec_thermostat_parameters = sec_integration_parameters.m_create(ThermostatParameters)
+            sec_thermostat_parameters2 = workflow.method.m_create(workflow2.ThermostatParameters)
             sec_barostat_parameters = sec_integration_parameters.m_create(BarostatParameters)
+            sec_barostat_parameters2 = workflow.method.m_create(workflow2.BarostatParameters)
 
             val = self.log_parser.get('fix', None)
             flag_thermostat = False
@@ -821,42 +850,50 @@ class LammpsParser:
                     if 'nvt' in fix_style or 'npt' in fix_style:
                         flag_thermostat = True
                         sec_thermostat_parameters.thermostat_type = 'nose_hoover'
+                        sec_thermostat_parameters2.thermostat_type = 'nose_hoover'
                         if 'temp' in fix:
                             i_temp = np.where(fix == 'temp')[0]
                             reference_temperature = float(fix[i_temp + 2])  # stop temp
-                            coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
+                            coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif fix_style == 'temp/berendsen':
                         flag_thermostat = True
                         sec_thermostat_parameters.thermostat_type = 'berendsen'
+                        sec_thermostat_parameters2.thermostat_type = 'berendsen'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
-                        coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
+                        coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif fix_style == 'temp/csvr':
                         flag_thermostat = True
                         sec_thermostat_parameters.thermostat_type = 'velocity_rescaling'
+                        sec_thermostat_parameters2.thermostat_type = 'velocity_rescaling'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
-                        coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
+                        coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif fix_style == 'temp/csld':
                         flag_thermostat = True
                         sec_thermostat_parameters.thermostat_type = 'velocity_rescaling_langevin'
+                        sec_thermostat_parameters2.thermostat_type = 'velocity_rescaling_langevin'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
-                        coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
+                        coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif fix_style == 'langevin':
                         flag_thermostat = True
                         sec_thermostat_parameters.thermostat_type = 'langevin_schneider'
+                        sec_thermostat_parameters2.thermostat_type = 'langevin_schneider'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
-                        coupling_constant = float(fix[i_temp + 3]) * sec_integration_parameters.integration_timestep
+                        coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif 'brownian' in fix_style:
                         flag_thermostat = True
                         sec_thermostat_parameters.thermostat_type = 'brownian'
+                        sec_thermostat_parameters2.thermostat_type = 'brownian'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
                         # coupling_constant =  # ignore multiple coupling parameters
                     sec_thermostat_parameters.reference_temperature = reference_temperature * temperature_conversion
                     sec_thermostat_parameters.coupling_constant = coupling_constant
+                    sec_thermostat_parameters2.reference_temperature = reference_temperature * temperature_conversion
+                    sec_thermostat_parameters2.coupling_constant = coupling_constant
 
                     if 'npt' in fix_style or 'nph' in fix_style:
                         flag_barostat = True
@@ -902,23 +939,30 @@ class LammpsParser:
                             reference_pressure[0, 3] = float(fix[i_baro + 2])
                             reference_pressure[3, 0] = float(fix[i_baro + 2])
                         sec_barostat_parameters.reference_pressure = reference_pressure * pressure_conversion  # stop pressure
-                        sec_barostat_parameters.coupling_constant = coupling_constant * sec_integration_parameters.integration_timestep
+                        sec_barostat_parameters.coupling_constant = coupling_constant * integration_timestep
                         sec_barostat_parameters.compressibility = compressibility
+                        sec_barostat_parameters2.reference_pressure = reference_pressure * pressure_conversion  # stop pressure
+                        sec_barostat_parameters2.coupling_constant = coupling_constant * integration_timestep
+                        sec_barostat_parameters2.compressibility = compressibility
 
                     if fix_style == 'press/berendsen':
                         flag_barostat = False
                         sec_barostat_parameters.barostat_type = 'berendsen'
+                        sec_barostat_parameters2.barostat_type = 'berendsen'
                         if 'iso' in fix:
                             i_baro = np.where(fix == 'iso')[0]
                             sec_barostat_parameters.coupling_type = 'isotropic'
+                            sec_barostat_parameters2.coupling_type = 'isotropic'
                             np.fill_diagonal(coupling_constant, float(fix[i_baro + 3]))
                         elif 'aniso' in fix:
                             i_baro = np.where(fix == 'aniso')[0]
                             sec_barostat_parameters.coupling_type = 'anisotropic'
+                            sec_barostat_parameters2.coupling_type = 'anisotropic'
                             coupling_constant[:3] += 1.
                             coupling_constant[:3] *= float(fix[i_baro + 3])
                         else:
                             sec_barostat_parameters.coupling_type = 'anisotropic'
+                            sec_barostat_parameters2.coupling_type = 'anisotropic'
                         if 'x' in fix:
                             i_baro = np.where(fix == 'x')[0]
                             coupling_constant[0] = float(fix[i_baro + 3])
@@ -933,17 +977,24 @@ class LammpsParser:
                             couple = fix[i_baro]
                             if couple == 'xyz':
                                 sec_barostat_parameters.coupling_type = 'isotropic'
+                                sec_barostat_parameters2.coupling_type = 'isotropic'
                             elif couple == 'xy' or couple == 'yz' or couple == 'xz':
                                 sec_barostat_parameters.coupling_type = 'anisotropic'
+                                sec_barostat_parameters2.coupling_type = 'anisotropic'
                         sec_barostat_parameters.reference_pressure = float(fix[i_baro + 2]) * pressure_conversion  # stop pressure
-                        sec_barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(fix[i_baro + 3]) * sec_integration_parameters.integration_timestep
+                        sec_barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(fix[i_baro + 3]) * integration_timestep
+                        sec_barostat_parameters2.reference_pressure = float(fix[i_baro + 2]) * pressure_conversion  # stop pressure
+                        sec_barostat_parameters2.coupling_constant = np.ones(shape=(3, 3)) * float(fix[i_baro + 3]) * integration_timestep
 
             if flag_thermostat:
                 sec_md.thermodynamic_ensemble = 'NPT' if flag_barostat else 'NVT'
+                workflow.method.thermodynamic_ensemble = 'NPT' if flag_barostat else 'NVT'
             elif flag_barostat:
                 sec_md.thermodynamic_ensemble = 'NPH'
+                workflow.method.thermodynamic_ensemble = 'NPH'
             else:
                 sec_md.thermodynamic_ensemble = 'NVE'
+                workflow.method.thermodynamic_ensemble = 'NVE'
 
             # calculate molecular radial distribution functions
             sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
@@ -967,21 +1018,37 @@ class LammpsParser:
                 rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
             if rdf_results is not None:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
+                sec_rdfs2 = workflow.results.m_create(workflow2.RadialDistributionFunction)
                 sec_rdfs.type = 'molecular'
+                sec_rdfs2.type = 'molecular'
                 sec_rdfs.n_smooth = rdf_results.get('n_smooth')
+                sec_rdfs2.n_smooth = rdf_results.get('n_smooth')
                 sec_rdfs.n_prune = self._frame_rate
+                sec_rdfs2.n_prune = self._frame_rate
                 sec_rdfs.variables_name = np.array(['distance'])
+                sec_rdfs2.variables_name = np.array(['distance'])
                 for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
                     sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
+                    sec_rdf_values2 = sec_rdfs2.m_create(workflow2.RadialDistributionFunctionValues)
                     sec_rdf_values.label = str(pair_type)
+                    sec_rdf_values2.label = str(pair_type)
                     sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
+                    sec_rdf_values2.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
                     sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
+                        'bins') is not None else []
+                    sec_rdf_values2.bins = rdf_results['bins'][i_pair] if rdf_results.get(
                         'bins') is not None else []
                     sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
                         'value') is not None else []
+                    sec_rdf_values2.value = rdf_results['value'][i_pair] if rdf_results.get(
+                        'value') is not None else []
                     sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
                         'frame_start') is not None else []
+                    sec_rdf_values2.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
+                        'frame_start') is not None else []
                     sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
+                        'frame_end') is not None else []
+                    sec_rdf_values2.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
                         'frame_end') is not None else []
 
             # calculate radius of gyration for polymers
@@ -1031,22 +1098,40 @@ class LammpsParser:
                 msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squared_displacements()
             if msd_results is not None:
                 sec_msds = sec_results.m_create(MeanSquaredDisplacement)
+                sec_msds2 = workflow.results.m_create(workflow2.MeanSquaredDisplacement)
                 sec_msds.type = 'molecular'
+                sec_msds2.type = 'molecular'
                 sec_msds.direction = 'xyz'
+                sec_msds2.direction = 'xyz'
                 for i_type, moltype in enumerate(msd_results.get('types', [])):
                     sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
+                    sec_msd_values2 = sec_msds2.m_create(workflow2.MeanSquaredDisplacementValues)
                     sec_msd_values.label = str(moltype)
+                    sec_msd_values2.label = str(moltype)
                     sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
+                    sec_msd_values2.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
                     sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
+                        'times') is not None else []
+                    sec_msd_values2.times = msd_results['times'][i_type] if msd_results.get(
                         'times') is not None else []
                     sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
                         'value') is not None else []
+                    sec_msd_values2.value = msd_results['value'][i_type] if msd_results.get(
+                        'value') is not None else []
                     sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
+                    sec_diffusion2 = sec_msd_values2.m_create(workflow2.DiffusionConstantValues)
                     sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
                         'diffusion_constant') is not None else []
+                    sec_diffusion2.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
+                        'diffusion_constant') is not None else []
                     sec_diffusion.error_type = 'Pearson correlation coefficient'
+                    sec_diffusion2.error_type = 'Pearson correlation coefficient'
                     sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
                         'error_diffusion_constant') is not None else []
+                    sec_diffusion2.errors2 = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
+                        'error_diffusion_constant') is not None else []
+
+        self.archive.workflow2 = workflow
 
     def parse_system(self):
         sec_run = self.archive.run[-1]

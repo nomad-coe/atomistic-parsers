@@ -273,7 +273,7 @@ class FieldParser(TextParser):
                         'constraints',
                         rf'[Cc][Oo][Nn][Ss][Tt][Rr][Aa][Ii][Nn][Tt][Ss] +\d+\s+((?:\d+ +\d+ +{re_f}.*\s*)+)',
                         convert=False, str_operation=lambda x: [dict(
-                            atom_indices=[int(v) -1 for v in val[:2]],
+                            atom_indices=[int(v) - 1 for v in val[:2]],
                             parameters=val[2:3]) for val in [v.split() for v in x.strip().splitlines()]]
                     ),
                     # TODO add pmf constraints

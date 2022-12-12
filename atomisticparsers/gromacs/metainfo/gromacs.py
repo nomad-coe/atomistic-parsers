@@ -1410,8 +1410,8 @@ class x_gromacs_section_control_parameters(MSection):
         ''',)
 
     x_gromacs_inout_control_acc = Quantity(
-        type=np.dtype(np.float64),
-        shape=[3],
+        type=str,
+        shape=[],
         description='''
         Gromacs running environment and control parameters.
         ''',)

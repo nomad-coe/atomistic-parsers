@@ -32,12 +32,13 @@ from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, RadiusOfGyration, RadiusOfGyrationValues,
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry,
+    # RadiusOfGyration, RadiusOfGyrationValues
 )
 from nomad.datamodel.metainfo.workflow import (
-    MolecularDynamicsResults, BarostatParameters, ThermostatParameters, IntegrationParameters,
-    DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
-    MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
+    BarostatParameters, ThermostatParameters, IntegrationParameters,
+    # MolecularDynamicsResults, DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
+    # MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
     Workflow, MolecularDynamics, GeometryOptimization
 )
 from nomad.datamodel.metainfo.simulation import workflow as workflow2
@@ -1175,11 +1176,20 @@ class LammpsParser:
                 sec_scc.forces = Forces(total=ForcesEntry(value=apply_unit(forces, 'force')))
 
         # parse atomsgroup (moltypes --> molecules --> residues)
+<<<<<<< HEAD
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         if atoms_info is None:
             atoms_info = self.traj_parsers.eval('atoms_info')
             if isinstance(atoms_info, list):
                 atoms_info = atoms_info[0] if atoms_info else None  # using info from the initial frame
+=======
+        # JFR - Is there any reason to use the text parser?! I think MDA is safer??
+        # atoms_info = self.traj_parsers.eval('atoms_info')
+        # if isinstance(atoms_info, list):
+        #     atoms_info = atoms_info[0] if atoms_info else None  # using info from the initial frame
+        # if atoms_info is None:
+        atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
+>>>>>>> c9afae1 (finished gromacs normalized workflow test, some system/method parsing info for lammps fixed, tests still fail)
         if atoms_info is not None:
             atoms_moltypes = np.array(atoms_info.get('moltypes', []))
             atoms_molnums = np.array(atoms_info.get('molnums', []))
@@ -1275,13 +1285,23 @@ class LammpsParser:
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
 
+<<<<<<< HEAD
         # get charges, masses, and interactions with MDAnalysis
+=======
+>>>>>>> c9afae1 (finished gromacs normalized workflow test, some system/method parsing info for lammps fixed, tests still fail)
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         for n in range(n_atoms):
             sec_atom = sec_method.m_create(AtomParameters)
             sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
             sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+<<<<<<< HEAD
+=======
+
+        interactions = self.log_parser.get_interactions()
+        if not interactions:
+            interactions = self.data_parser.get_interactions()
+>>>>>>> c9afae1 (finished gromacs normalized workflow test, some system/method parsing info for lammps fixed, tests still fail)
 
         interactions = self._mdanalysistraj_parser.get_interactions()
         interactions = interactions if interactions is not None else []

@@ -26,18 +26,19 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import Quantity, TextParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
-    NeighborSearching, ForceCalculations, ForceField, Method, Interaction, Model
+    NeighborSearching, ForceCalculations, ForceField, Method, Interaction, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, RadiusOfGyration, RadiusOfGyrationValues,
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry,
+    # RadiusOfGyration, RadiusOfGyrationValues
 )
 from nomad.datamodel.metainfo.workflow import (
-    MolecularDynamicsResults, BarostatParameters, ThermostatParameters, IntegrationParameters,
-    DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
-    MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
+    BarostatParameters, ThermostatParameters, IntegrationParameters,
+    # MolecularDynamicsResults, DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
+    # MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
     Workflow, MolecularDynamics, GeometryOptimization
 )
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
@@ -945,110 +946,6 @@ class LammpsParser:
             else:
                 sec_md.thermodynamic_ensemble = 'NVE'
 
-<<<<<<< HEAD
-            # calculate molecular radial distribution functions
-            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            n_traj_split = 10
-            interval_indices = []
-            # first 20% of trajectory
-            interval_indices.append([0, 1])
-            # last 80% of trajectory
-            interval_indices.append([2, 3, 4, 5, 6, 7, 8, 9])
-            # last 60% of trajectory
-            interval_indices.append([4, 5, 6, 7, 8, 9])
-            # last 40% of trajectory
-            interval_indices.append([6, 7, 8, 9])
-
-            # calculate molecular radial distribution functions
-            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            rdf_results = self.traj_parsers.eval('calc_molecular_rdf', n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
-            if rdf_results is None:
-                rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
-            if rdf_results is not None:
-                sec_rdfs = sec_results.m_create(RadialDistributionFunction)
-                sec_rdfs.type = 'molecular'
-                sec_rdfs.n_smooth = rdf_results.get('n_smooth')
-                sec_rdfs.n_prune = self._frame_rate
-                sec_rdfs.variables_name = np.array(['distance'])
-                for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
-                    sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
-                    sec_rdf_values.label = str(pair_type)
-                    sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
-                    sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
-                        'bins') is not None else []
-                    sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
-                        'value') is not None else []
-                    sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
-                        'frame_start') is not None else []
-                    sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
-                        'frame_end') is not None else []
-
-            # calculate radius of gyration for polymers
-            flag_warned = False
-            sec_rgs = None
-            sec_system = self.archive.run[-1].system[0]
-            sec_molecule_groups = sec_system.get('atoms_group')
-            sec_molecule_groups = sec_molecule_groups if sec_molecule_groups else []
-            for molgroup in sec_molecule_groups:
-                sec_molecules = molgroup.get('atoms_group')
-                sec_molecules = sec_molecules if sec_molecules else []
-                for molecule in sec_molecules:
-                    sec_monomer_groups = molecule.get('atoms_group')
-                    sec_monomer_groups = sec_monomer_groups if sec_monomer_groups else []
-                    group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
-                    if group_type != 'monomer_group':
-                        continue
-                    molecule_atom_indices = molecule.atom_indices
-                    rg_results = self.traj_parsers.eval('calc_radius_of_gyration', molecule_atom_indices)
-                    if rg_results is None:
-                        rg_results = self._mdanalysistraj_parser.calc_radius_of_gyration(molecule_atom_indices)
-                    if rg_results is not None:
-                        n_frames = len(rg_results['times'])
-                        if n_frames != len(sec_calc):
-                            if not flag_warned:
-                                self.logger.warn(
-                                    'Unexpected mismatch in number of calculations and number of'
-                                    'trajectory frames. Not storing Rg values.')
-                                flag_warned = True
-                            continue
-                        for i_calc, calc in enumerate(sec_calc):
-                            sec_rgs = calc.get('radius_of_gyration')
-                            if not sec_rgs:
-                                sec_rgs = calc.m_create(RadiusOfGyration)
-                                sec_rgs.kind = 'molecular'
-                            else:
-                                sec_rgs = sec_rgs[0]
-                            sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
-                            sec_rg_values.atomsgroup_ref = molecule
-                            sec_rg_values.label = molecule.label + '-index_' + str(molecule.index)
-                            sec_rg_values.value = rg_results['value'][i_calc]
-
-            # calculate the molecular mean squared displacements
-            msd_results = self.traj_parsers.eval('calc_molecular_mean_squard_displacements')
-            msd_results = msd_results() if msd_results is not None else None
-            if msd_results is None:
-                msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squared_displacements()
-            if msd_results is not None:
-                sec_msds = sec_results.m_create(MeanSquaredDisplacement)
-                sec_msds.type = 'molecular'
-                sec_msds.direction = 'xyz'
-                for i_type, moltype in enumerate(msd_results.get('types', [])):
-                    sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
-                    sec_msd_values.label = str(moltype)
-                    sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
-                    sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
-                        'times') is not None else []
-                    sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
-                        'value') is not None else []
-                    sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-                    sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
-                        'diffusion_constant') is not None else []
-                    sec_diffusion.error_type = 'Pearson correlation coefficient'
-                    sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
-                        'error_diffusion_constant') is not None else []
-=======
             # # calculate molecular radial distribution functions
             # sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
             # sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
@@ -1151,7 +1048,6 @@ class LammpsParser:
             #         sec_diffusion.error_type = 'Pearson correlation coefficient'
             #         sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
             #             'error_diffusion_constant') is not None else []
->>>>>>> MD workflow results moved to normalizer
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
@@ -1195,11 +1091,12 @@ class LammpsParser:
                 sec_scc.forces = Forces(total=ForcesEntry(value=apply_unit(forces, 'force')))
 
         # parse atomsgroup (moltypes --> molecules --> residues)
-        atoms_info = self.traj_parsers.eval('atoms_info')
-        if isinstance(atoms_info, list):
-            atoms_info = atoms_info[0] if atoms_info else None  # using info from the initial frame
-        if atoms_info is None:
-            atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
+        # JFR - Is there any reason to use the text parser?! I think MDA is safer??
+        # atoms_info = self.traj_parsers.eval('atoms_info')
+        # if isinstance(atoms_info, list):
+        #     atoms_info = atoms_info[0] if atoms_info else None  # using info from the initial frame
+        # if atoms_info is None:
+        atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         if atoms_info is not None:
             atoms_moltypes = np.array(atoms_info.get('moltypes', []))
             atoms_molnums = np.array(atoms_info.get('molnums', []))
@@ -1294,6 +1191,13 @@ class LammpsParser:
         sec_method = sec_run.m_create(Method)
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
+
+        n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
+        atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
+        for n in range(n_atoms):
+            sec_atom = sec_method.m_create(AtomParameters)
+            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
+            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
 
         interactions = self.log_parser.get_interactions()
         if not interactions:

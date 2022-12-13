@@ -553,7 +553,7 @@ def calc_molecular_rdf(universe, n_traj_split=10, n_prune=1, interval_indices=No
     return rdf_results
 
 
-def calc_molecular_mean_squard_displacements(universe):
+def calc_molecular_mean_squared_displacements(universe):
     '''
     Calculates the mean squared displacement for the center of mass of each
     molecule type.

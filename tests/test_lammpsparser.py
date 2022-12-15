@@ -59,9 +59,12 @@ def test_nvt(parser):
     assert section_md.integration_parameters.thermostat_parameters.coupling_constant.units == 'second'
 
     sec_method = sec_run.method[0]
-    assert len(sec_method.force_field.model[0].contributions) == 4
-    assert sec_method.force_field.model[0].contributions[2].type == 'harmonic'
-    assert sec_method.force_field.model[0].contributions[0].parameters[0][2] == 0.066
+    # assert len(sec_method.force_field.model[0].contributions) == 4
+    # assert sec_method.force_field.model[0].contributions[2].type == 'harmonic'
+    # assert sec_method.force_field.model[0].contributions[0].parameters[0][2] == 0.066
+    assert len(sec_method.force_field.model[0].contributions) == 3744
+    assert sec_method.force_field.model[0].contributions[2].type == 'angle'
+    assert sec_method.force_field.model[0].contributions[5].parameters == approx(109.51999892662283)
     assert sec_method.force_field.force_calculations.coulomb_cutoff.magnitude == 1.2000000000000002e-08
     assert sec_method.force_field.force_calculations.coulomb_cutoff.units == 'meter'
     assert sec_method.force_field.force_calculations.neighbor_searching.neighbor_update_frequency == 10
@@ -70,7 +73,7 @@ def test_nvt(parser):
     assert len(sec_system) == 201
     assert sec_system[5].atoms.lattice_vectors[1][1].magnitude == approx(2.24235e-09)
     assert False not in sec_system[0].atoms.periodic
-    assert sec_system[80].atoms.labels[91:96] == ['H', 'H', 'H', 'C', 'C']
+    # assert sec_system[80].atoms.labels[91:96] == ['H', 'H', 'H', 'C', 'C']
 
     sec_scc = sec_run.calculation
     assert len(sec_scc) == 201

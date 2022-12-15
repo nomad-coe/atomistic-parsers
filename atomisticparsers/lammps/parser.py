@@ -192,6 +192,7 @@ class TrajParser(TextParser):
 
         def get_pbc_cell(val):
             val = val.split()
+
             pbc = [v == 'pp' for v in val[:3]]
 
             cell = np.zeros((3, 3))
@@ -215,10 +216,10 @@ class TrajParser(TextParser):
                 'n_atoms', r'\s*ITEM:\s*NUMBER OF ATOMS\s*\n\s*(\d+)\s*\n', comment='#',
                 repeats=True),
             Quantity(
-                'pbc_cell', r'\s*ITEM: BOX BOUNDS\s*([\s\w]+)([\+\-\d\.eE\s]+)\n',
+                'pbc_cell', r'\s*ITEM: BOX BOUNDS\s*([\s\w]+)\n([\+\-\d\.eE\s]+)\n',
                 str_operation=get_pbc_cell, comment='#', repeats=True),
             Quantity(
-                'atoms_info', r's*ITEM:\s*ATOMS\s*([ \w]+\n)*?([\+\-eE\d\.\n ]+)',
+                'atoms_info', r'\s*ITEM:\s*ATOMS\s*([ \w]+\n)*?([\+\-eE\d\.\n ]+)',
                 str_operation=get_atoms_info, comment='#', repeats=True)
         ]
 
@@ -1184,14 +1185,27 @@ class LammpsParser:
         if self.traj_parsers[0].mainfile is None or self.data_parser.mainfile is None:
             return
 
-        masses = self.data_parser.get('Masses', None)
-
-        self.traj_parsers[0].masses = masses
-
         sec_method = sec_run.m_create(Method)
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
 
+        # Old parsing of method with text parser
+        # masses = self.data_parser.get('Masses', None)
+
+        # self.traj_parsers[0].masses = masses
+
+        # interactions = self.log_parser.get_interactions()
+        # if not interactions:
+        #     interactions = self.data_parser.get_interactions()
+
+        # for interaction in interactions:
+        #     if not interaction[0] or interaction[1] is None or np.size(interaction[1]) == 0:
+        #         continue
+        #     sec_interaction = sec_model.m_create(Interaction)
+        #     sec_interaction.type = str(interaction[0])
+        #     sec_interaction.parameters = [[float(ai) for ai in a] for a in interaction[1]]
+
+        # parse method with MDAnalysis
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         for n in range(n_atoms):
@@ -1199,17 +1213,14 @@ class LammpsParser:
             sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
             sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
 
-        interactions = self.log_parser.get_interactions()
-        if not interactions:
-            interactions = self.data_parser.get_interactions()
-
+        interactions = self._mdanalysistraj_parser.get_interactions()
+        interactions = interactions if interactions is not None else []
         for interaction in interactions:
-            if not interaction[0] or interaction[1] is None or np.size(interaction[1]) == 0:
-                continue
             sec_interaction = sec_model.m_create(Interaction)
-            sec_interaction.type = str(interaction[0])
-            sec_interaction.parameters = [[float(ai) for ai in a] for a in interaction[1]]
+            for key, val in interaction.items():
+                setattr(sec_interaction, key, val)
 
+        # Force Calculation Parameters
         sec_force_calculations = sec_force_field.m_create(ForceCalculations)
         for pairstyle in self.log_parser.get('pair_style', []):
             pairstyle_args = pairstyle[1:]

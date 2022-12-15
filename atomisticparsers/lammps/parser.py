@@ -1276,8 +1276,23 @@ class LammpsParser:
         # Old parsing of method with text parser
         masses = self.data_parser.get('Masses', None)
         self.traj_parsers[0].masses = masses
+        # @Landinesa: we should be able to set the atom masses with the TrajParser, but I don't quite understand how to use this.
+        # Can you add the implementation here, and then we can make the MDA implementation below as a backup?
+        # Can you also get the charges somehow?
 
-        # parse method with MDAnalysis
+        # This is storing the input parameters/command for the interaction at the moment, which is already stored in the "force_calculations" section
+        # interactions = self.log_parser.get_interactions()
+        # if not interactions:
+        #     interactions = self.data_parser.get_interactions()
+
+        # for interaction in interactions:
+        #     if not interaction[0] or interaction[1] is None or np.size(interaction[1]) == 0:
+        #         continue
+        #     sec_interaction = sec_model.m_create(Interaction)
+        #     sec_interaction.type = str(interaction[0])
+        #     sec_interaction.parameters = [[float(ai) for ai in a] for a in interaction[1]]
+
+        # parse method with MDAnalysis (should be a backup for the charges and masses...but the interactions are most easily read from the MDA universe right now)
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         for n in range(n_atoms):

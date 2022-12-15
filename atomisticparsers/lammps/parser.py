@@ -193,6 +193,7 @@ class TrajParser(TextParser):
 
         def get_pbc_cell(val):
             val = val.split()
+
             pbc = [v == 'pp' for v in val[:3]]
 
             cell = np.zeros((3, 3))
@@ -1176,20 +1177,11 @@ class LammpsParser:
                 sec_scc.forces = Forces(total=ForcesEntry(value=apply_unit(forces, 'force')))
 
         # parse atomsgroup (moltypes --> molecules --> residues)
-<<<<<<< HEAD
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         if atoms_info is None:
             atoms_info = self.traj_parsers.eval('atoms_info')
             if isinstance(atoms_info, list):
                 atoms_info = atoms_info[0] if atoms_info else None  # using info from the initial frame
-=======
-        # JFR - Is there any reason to use the text parser?! I think MDA is safer??
-        # atoms_info = self.traj_parsers.eval('atoms_info')
-        # if isinstance(atoms_info, list):
-        #     atoms_info = atoms_info[0] if atoms_info else None  # using info from the initial frame
-        # if atoms_info is None:
-        atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
->>>>>>> c9afae1 (finished gromacs normalized workflow test, some system/method parsing info for lammps fixed, tests still fail)
         if atoms_info is not None:
             atoms_moltypes = np.array(atoms_info.get('moltypes', []))
             atoms_molnums = np.array(atoms_info.get('molnums', []))
@@ -1277,32 +1269,25 @@ class LammpsParser:
         if self.traj_parsers[0].mainfile is None or self.data_parser.mainfile is None:
             return
 
-        # mass "types" for identifying chemical element
-        masses = self.data_parser.get('Masses', None)
-        self.traj_parsers[0].masses = masses
-
         sec_method = sec_run.m_create(Method)
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
 
-<<<<<<< HEAD
-        # get charges, masses, and interactions with MDAnalysis
-=======
->>>>>>> c9afae1 (finished gromacs normalized workflow test, some system/method parsing info for lammps fixed, tests still fail)
+        # Old parsing of method with text parser
+        masses = self.data_parser.get('Masses', None)
+        self.traj_parsers[0].masses = masses
+
+        # parse method with MDAnalysis
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         for n in range(n_atoms):
             sec_atom = sec_method.m_create(AtomParameters)
             sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
             sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
-<<<<<<< HEAD
-=======
 
         interactions = self.log_parser.get_interactions()
         if not interactions:
             interactions = self.data_parser.get_interactions()
->>>>>>> c9afae1 (finished gromacs normalized workflow test, some system/method parsing info for lammps fixed, tests still fail)
-
         interactions = self._mdanalysistraj_parser.get_interactions()
         interactions = interactions if interactions is not None else []
         for interaction in interactions:
@@ -1310,7 +1295,7 @@ class LammpsParser:
             for key, val in interaction.items():
                 setattr(sec_interaction, key, val)
 
-        # parse force calculation input parameters
+        # Force Calculation Parameters
         sec_force_calculations = sec_force_field.m_create(ForceCalculations)
         for pairstyle in self.log_parser.get('pair_style', []):
             pairstyle_args = pairstyle[1:]

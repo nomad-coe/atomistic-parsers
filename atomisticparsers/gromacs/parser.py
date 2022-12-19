@@ -810,7 +810,7 @@ class GromacsParser:
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
         try:
-            n_atoms = self.traj_parser.get('n_atoms')
+            n_atoms = self.traj_parser.get('n_atoms', 0)
         except Exception:
             gro_file = self.get_gromacs_file('gro')
             self.traj_parser.mainfile = gro_file

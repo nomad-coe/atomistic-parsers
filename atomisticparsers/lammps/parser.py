@@ -214,10 +214,10 @@ class TrajParser(TextParser):
                 'n_atoms', r'\s*ITEM:\s*NUMBER OF ATOMS\s*\n\s*(\d+)\s*\n', comment='#',
                 repeats=True),
             Quantity(
-                'pbc_cell', r'\s*ITEM: BOX BOUNDS\s*([\s\w]+)([\+\-\d\.eE\s]+)\n',
+                'pbc_cell', r'\s*ITEM: BOX BOUNDS\s*([\s\w]+)\n([\+\-\d\.eE\s]+)\n',
                 str_operation=get_pbc_cell, comment='#', repeats=True),
             Quantity(
-                'atoms_info', r's*ITEM:\s*ATOMS\s*([ \w]+\n)*?([\+\-eE\d\.\n ]+)',
+                'atoms_info', r'\s*ITEM:\s*ATOMS\s*([ \w]+\n)*?([\+\-eE\d\.\n ]+)',
                 str_operation=get_atoms_info, comment='#', repeats=True)
         ]
 

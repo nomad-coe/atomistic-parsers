@@ -27,7 +27,7 @@ try:
     import MDAnalysis
     from MDAnalysis.topology.tpr import utils as tpr_utils, setting as tpr_setting
 except Exception:
-    logging.warn('Required module MDAnalysis not found.')
+    logging.warning('Required module MDAnalysis not found.')
     MDAnalysis = False
 
 from nomad.units import ureg
@@ -283,7 +283,7 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
         # copied from MDAnalysis.topology.tpr.utils
         # TODO maybe a better implementation exists
         if MDAnalysis.__version__ != '2.0.0':
-            self.logger.warn('Incompatible version of MDAnalysis.')
+            self.logger.warning('Incompatible version of MDAnalysis.')
 
         with open(self.mainfile, 'rb') as f:
             data = tpr_utils.TPXUnpacker(f.read())
@@ -651,7 +651,7 @@ class GromacsParser:
 
         create_scc = False
         if n_frames != n_evaluations:
-            self.logger.warn(
+            self.logger.warning(
                 'Mismatch in number of calculations and number of thermodynamic '
                 'evaluations, will create new sections')
             create_scc = True
@@ -1030,7 +1030,7 @@ class GromacsParser:
                         n_frames = len(rg_results['times'])
                         if n_frames != len(sec_calc):
                             if not flag_warned:
-                                self.logger.warn(
+                                self.logger.warning(
                                     'Unexpected mismatch in number of calculations and number of'
                                     'trajectory frames. Not storing Rg values.')
                                 flag_warned = True

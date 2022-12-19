@@ -26,7 +26,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import Quantity, TextParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
-    NeighborSearching, ForceCalculations, ForceField, Method, Interaction, Model
+    NeighborSearching, ForceCalculations, ForceField, Method, Interaction, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
@@ -474,7 +474,7 @@ class LogParser(TextParser):
     def get_traj_files(self):
         dump = self.get('dump')
         if dump is None:
-            self.logger.warn('Trajectory not specified in directory, will scan.')
+            self.logger.warning('Trajectory not specified in directory, will scan.')
             # TODO improve matching of traj file
             traj_files = os.listdir(self.maindir)
             traj_files = [f for f in traj_files if f.endswith('trj') or f.endswith('xyz')]
@@ -494,7 +494,7 @@ class LogParser(TextParser):
     def get_data_files(self):
         read_data = self.get('read_data')
         if read_data is None or 'CPU' in read_data:
-            self.logger.warn('Data file not specified in directory, will scan.')
+            self.logger.warning('Data file not specified in directory, will scan.')
             # TODO improve matching of data file
             data_files = os.listdir(self.maindir)
             data_files = [f for f in data_files if f.endswith('data') or f.startswith('data')]
@@ -562,7 +562,7 @@ class LogParser(TextParser):
                 pass
 
         else:
-            self.logger.warn('Fix style not supported', data=dict(style=fix_style))
+            self.logger.warning('Fix style not supported', data=dict(style=fix_style))
 
         return res
 
@@ -660,7 +660,7 @@ class LammpsParser:
         create_scc = True
         if sec_sccs:
             if len(sec_sccs) != n_thermo:
-                self.logger.warn(
+                self.logger.warning(
                     '''Mismatch in number of calculations and number of property
                     evaluations!, will create new sections''',
                     data=dict(n_calculations=len(sec_sccs), n_evaluations=n_thermo))
@@ -701,7 +701,7 @@ class LammpsParser:
 
         units = self.log_parser.units
         if not units:
-            self.logger.warn('Unit information not available. Assuming "real" units in workflow metainfo!')
+            self.logger.warning('Unit information not available. Assuming "real" units in workflow metainfo!')
             units = get_unit('real')
         energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule)
         force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton)
@@ -1007,7 +1007,7 @@ class LammpsParser:
                         n_frames = len(rg_results['times'])
                         if n_frames != len(sec_calc):
                             if not flag_warned:
-                                self.logger.warn(
+                                self.logger.warning(
                                     'Unexpected mismatch in number of calculations and number of'
                                     'trajectory frames. Not storing Rg values.')
                                 flag_warned = True
@@ -1090,11 +1090,11 @@ class LammpsParser:
                 sec_scc.forces = Forces(total=ForcesEntry(value=apply_unit(forces, 'force')))
 
         # parse atomsgroup (moltypes --> molecules --> residues)
-        atoms_info = self.traj_parsers.eval('atoms_info')
-        if isinstance(atoms_info, list):
-            atoms_info = atoms_info[0] if atoms_info else None  # using info from the initial frame
+        atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         if atoms_info is None:
-            atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
+            atoms_info = self.traj_parsers.eval('atoms_info')
+            if isinstance(atoms_info, list):
+                atoms_info = atoms_info[0] if atoms_info else None  # using info from the initial frame
         if atoms_info is not None:
             atoms_moltypes = np.array(atoms_info.get('moltypes', []))
             atoms_molnums = np.array(atoms_info.get('molnums', []))
@@ -1182,25 +1182,30 @@ class LammpsParser:
         if self.traj_parsers[0].mainfile is None or self.data_parser.mainfile is None:
             return
 
+        # mass "types" for identifying chemical element
         masses = self.data_parser.get('Masses', None)
-
         self.traj_parsers[0].masses = masses
 
         sec_method = sec_run.m_create(Method)
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
 
-        interactions = self.log_parser.get_interactions()
-        if not interactions:
-            interactions = self.data_parser.get_interactions()
+        # get charges, masses, and interactions with MDAnalysis
+        n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
+        atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
+        for n in range(n_atoms):
+            sec_atom = sec_method.m_create(AtomParameters)
+            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
+            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
 
+        interactions = self._mdanalysistraj_parser.get_interactions()
+        interactions = interactions if interactions is not None else []
         for interaction in interactions:
-            if not interaction[0] or interaction[1] is None or np.size(interaction[1]) == 0:
-                continue
             sec_interaction = sec_model.m_create(Interaction)
-            sec_interaction.type = str(interaction[0])
-            sec_interaction.parameters = [[float(ai) for ai in a] for a in interaction[1]]
+            for key, val in interaction.items():
+                setattr(sec_interaction, key, val)
 
+        # parse force calculation input parameters
         sec_force_calculations = sec_force_field.m_create(ForceCalculations)
         for pairstyle in self.log_parser.get('pair_style', []):
             pairstyle_args = pairstyle[1:]
@@ -1293,14 +1298,14 @@ class LammpsParser:
         # parse data file associated with calculation
         data_files = self.log_parser.get_data_files()
         if len(data_files) > 1:
-            self.logger.warn('Multiple data files are specified')
+            self.logger.warning('Multiple data files are specified')
         if data_files:
             self.data_parser.mainfile = data_files[0]
 
         # parse trajectorty file associated with calculation
         traj_files = self.log_parser.get_traj_files()
         if len(traj_files) > 1:
-            self.logger.warn('Multiple traj files are specified')
+            self.logger.warning('Multiple traj files are specified')
 
         parsers = []
         for n, traj_file in enumerate(traj_files):

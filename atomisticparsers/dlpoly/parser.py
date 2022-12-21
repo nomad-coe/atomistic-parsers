@@ -34,6 +34,9 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
 from nomad.datamodel.metainfo.workflow import IntegrationParameters, Workflow, MolecularDynamics
+from nomad.datamodel.metainfo.simulation.workflow import (
+    MolecularDynamics as MolecularDynamics2, MolecularDynamicsMethod
+)
 
 
 re_f = r'[-+]?\d*\.\d*(?:[Ee][-+]\d+)?'
@@ -113,8 +116,8 @@ class FieldParser(TextParser):
                 interactions.append(dict(
                     functional_form=potentials.get(val_n[0], val_n[0]),
                     # atom index starts from 1
-                    atom_indices=np.array(val_n[1:3], dtype=np.dtype(np.int32)) - 1,
-                    parameters=np.array(val_n[3:], dtype=np.dtype(np.float64))
+                    atom_indices=[int(n) - 1 for n in val_n[1:3]],
+                    parameters=[float(v) for v in val_n[3:]]
                 ))
             return interactions
 
@@ -130,8 +133,8 @@ class FieldParser(TextParser):
             for val_n in val:
                 interactions.append(dict(
                     functional_form=potentials.get(val_n[0], val_n[0]),
-                    atom_indices=np.array(val_n[1:4], dtype=np.dtype(np.int32)) - 1,
-                    parameters=np.array(val_n[4:], dtype=np.dtype(np.float64))
+                    atom_indices=[int(n) - 1 for n in val_n[1:4]],
+                    parameters=[float(v) for v in val_n[4:]]
                 ))
             return interactions
 
@@ -145,8 +148,8 @@ class FieldParser(TextParser):
             for val_n in val:
                 interactions.append(dict(
                     functional_form=potentials.get(val_n[0], val_n[0]),
-                    atom_indices=np.array(val_n[1:5], dtype=np.dtype(np.int32)) - 1,
-                    parameters=np.array(val_n[5:], dtype=np.dtype(np.float64))
+                    atom_indices=[int(n) - 1 for n in val_n[1:5]],
+                    parameters=[float(v) for v in val_n[5:]]
                 ))
             return interactions
 
@@ -157,8 +160,8 @@ class FieldParser(TextParser):
             for val_n in val:
                 interactions.append(dict(
                     functional_form=potentials.get(val_n[0], val_n[0]),
-                    atom_indices=np.array(val_n[1:5], dtype=np.dtype(np.int32)) - 1,
-                    parameters=np.array(val_n[5:], dtype=np.dtype(np.float64))
+                    atom_indices=[int(n) - 1 for n in val_n[1:5]],
+                    parameters=[float(v) for v in val_n[5:]]
                 ))
             return interactions
 
@@ -169,14 +172,14 @@ class FieldParser(TextParser):
             for val_n in val:
                 interactions.append(dict(
                     functional_form=potentials.get(val_n[0], val_n[0]),
-                    atom_indices=np.array(val_n[1:2], dtype=np.dtype(np.int32)) - 1,
-                    parameters=np.array(val_n[2:], dtype=np.dtype(np.float64))
+                    atom_indices=[int(n) - 1 for n in val_n[1:2]],
+                    parameters=[float(v) for v in val_n[2:]]
                 ))
             return interactions
 
         def to_rigid(val_in):
             val = [v.split() for v in val_in.strip().splitlines()]
-            return [np.array(v[1: int(v[0]) + 1], np.dtype(np.int32)) - 1 for v in val]
+            return [[int(vi) - 1 for vi in v[1: int(v[0]) + 1]] for v in val]
 
         def to_vdw(val_in):
             val = [v.split() for v in val_in.strip().splitlines()]
@@ -190,7 +193,7 @@ class FieldParser(TextParser):
                 interactions.append(dict(
                     functional_form=potentials.get(val_n[2], val_n[2]),
                     atom_labels=val_n[:2],
-                    parameters=np.array(val_n[3:], dtype=np.dtype(np.float64))
+                    parameters=[float(v) for v in val_n[3:]]
                 ))
             return interactions
 
@@ -205,7 +208,7 @@ class FieldParser(TextParser):
                 interactions.append(dict(
                     functional_form=potentials.get(val_n[3], val_n[3]),
                     atom_labels=val_n[:3],
-                    parameters=np.array(val_n[4:], dtype=np.dtype(np.float64))
+                    parameters=[float(v) for v in val_n[4:]]
                 ))
             return interactions
 
@@ -217,7 +220,7 @@ class FieldParser(TextParser):
                 interactions.append(dict(
                     functional_form=potentials.get(val_n[4], val_n[4]),
                     atom_labels=val_n[:4],
-                    parameters=np.array(val_n[5:], dtype=np.dtype(np.float64))
+                    parameters=[float(v) for v in val_n[5:]]
                 ))
             return interactions
 
@@ -229,7 +232,7 @@ class FieldParser(TextParser):
                 interactions.append(dict(
                     functional_form=potentials.get(val_n[2], val_n[2]),
                     atom_labels=val_n[:2],
-                    parameters=np.array(val_n[3:], dtype=np.dtype(np.float64))
+                    parameters=[float(v) for v in val_n[3:]]
                 ))
             return interactions
 
@@ -254,45 +257,45 @@ class FieldParser(TextParser):
                     Quantity(
                         'shell',
                         rf'[Ss][Hh][Ee][Ll][Ll] +\d+ +\d+\s+((?:\d+ +\d+ +{re_f}.+\s*)+)',
-                        str_operation=to_shell
+                        str_operation=to_shell, convert=False
                     ),
                     Quantity(
                         'bonds',
                         rf'[Bb][Oo][Nn][Dd][Ss] +\d+\s+((?:\w+ +\d+ +\d+ +{re_f}.+\s*)+)',
-                        str_operation=to_bonds
+                        str_operation=to_bonds, convert=False
                     ),
                     Quantity(
                         'angles',
                         rf'[Aa][Nn][Gg][Ll][Ee][Ss] +\d+\s+((?:\w+ +\d+ +\d+ +\d+ +{re_f} +{re_f}.+\s*)+)',
-                        str_operation=to_angles
+                        str_operation=to_angles, convert=False
                     ),
                     Quantity(
                         'constraints',
                         rf'[Cc][Oo][Nn][Ss][Tt][Rr][Aa][Ii][Nn][Tt][Ss] +\d+\s+((?:\d+ +\d+ +{re_f}.*\s*)+)',
-                        str_operation=lambda x: [dict(
-                            atom_indices=np.array(val[:2], np.dtype(np.int32)) - 1,
-                            parameters=val[2:3]) for val in [v.split() for v in x.strip().splitlines()]]
+                        convert=False, str_operation=lambda x: [dict(
+                            atom_indices=[int(v) - 1 for v in val[:2]],
+                            parameters=[float(v) for v in val[2:3]]) for val in [v.split() for v in x.strip().splitlines()]]
                     ),
                     # TODO add pmf constraints
                     Quantity(
                         'dihedrals',
                         rf'[Dd][Ii][Hh][Ee][Dd][Rr][Aa][Ll][Ss] +\d+\s+((?:\w+ +\d+ +\d+ +\d+ +\d+ +{re_f}.+\s*)+)',
-                        str_operation=to_dihedrals
+                        str_operation=to_dihedrals, convert=False
                     ),
                     Quantity(
                         'inversions',
                         rf'[Ii][Nn][Vv][Ee][Rr][Ss][Ii][Oo][Nn][Ss] +\d+\s+((?:\w+ +\d+ +\d+ +\d+ +\d+ +{re_f}.+\s*)+)',
-                        str_operation=to_inversions
+                        str_operation=to_inversions, convert=False
                     ),
                     Quantity(
                         'rigid',
                         r'[Rr][Ii][Gg][Ii][Dd].+?\d+\s+((?:\d+.+\s+)+)',
-                        str_operation=to_rigid
+                        str_operation=to_rigid, convert=False
                     ),
                     Quantity(
                         'teth',
                         rf'[Tt][Ee][Tt][Hh] +\d+\s+((?:\w+ +\d+ +{re_f}.+\s+)+)',
-                        str_operation=to_teth
+                        str_operation=to_teth, convert=False
                     ),
                 ]),
             ),
@@ -300,22 +303,22 @@ class FieldParser(TextParser):
             Quantity(
                 'vdw',
                 rf'[Vv][Dd][Ww].+\d+\s+((?:[A-Z][\w\-\+]* +[A-Z][\w\-\+]* +\w+.*\s*)+)',
-                str_operation=to_vdw
+                str_operation=to_vdw, convert=False
             ),
             Quantity(
                 'tbp',
                 r'[Tt][Bb][Pp].+\d+\s+((?:[A-Z][\w\-\+]* +[A-Z][\w\-\+]*.*\s*)+)',
-                str_operation=to_tbp
+                str_operation=to_tbp, convert=False
             ),
             Quantity(
                 'fbp',
                 r'[Ff][Bb][Pp].+\d+\s+((?:[A-Z][\w\-\+]* +[A-Z][\w\-\+]*.*\s*)+)',
-                str_operation=to_fbp
+                str_operation=to_fbp, convert=False
             ),
             Quantity(
                 'metal',
                 r'[Mm][Ee][Tt][Aa][Ll].+\d+\s+((?:[A-Z][\w\-\+]* +[A-Z][\w\-\+]*.*\s*)+)',
-                str_operation=to_metal
+                str_operation=to_metal, convert=False
             ),
             # TODO implement Tersoff and external fields
         ]
@@ -565,3 +568,8 @@ class DLPolyParser:
         sec_md.thermodynamic_ensemble = ensemble_type.split()[0] if ensemble_type is not None else None
         sec_integration_parameters = sec_md.m_create(IntegrationParameters)
         sec_integration_parameters.integration_timestep = control_parameters.get('fixed simulation timestep', 0) * ureg.ps
+
+        workflow = MolecularDynamics2(method=MolecularDynamicsMethod())
+        workflow.method.thermodynamic_ensemble = ensemble_type.split()[0] if ensemble_type is not None else None
+        workflow.method.integration_timestep = control_parameters.get('fixed simulation timestep', 0) * ureg.ps
+        archive.workflow2 = workflow

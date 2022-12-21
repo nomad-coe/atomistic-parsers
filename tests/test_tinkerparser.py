@@ -41,7 +41,7 @@ def test_minimize_dynamic(parser):
     assert sec_run[0].program.version == '8.0'
     assert sec_run[0].x_tinker_section_control_parameters[0].x_tinker_inout_control_vdw_cutoff == '12.0'
     assert sec_run[0].x_tinker_section_control_parameters[0].x_tinker_inout_control_lights
-    assert sec_run[0].x_tinker_control_parameters['randomseed'] == 123456789
+    assert sec_run[0].x_tinker_control_parameters['randomseed'] == '123456789'
 
     assert len(sec_run[0].calculation) == 70
     assert sec_run[0].calculation[60].energy.total.value.magnitude == approx(-1.01001845e-16)

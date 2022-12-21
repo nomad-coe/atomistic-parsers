@@ -483,7 +483,6 @@ class TinkerParser:
                 # or tinker.key
                 self.key_parser.mainfile = self._get_tinker_file('key')
 
-            print(self.key_parser.get('key_val'))
             parameters = {key.lower(): val for key, val in self.key_parser.get('key_val', [])}
             sec_run.x_tinker_control_parameters = parameters
             # TODO should this be removed and only have a dictionary of control parameters

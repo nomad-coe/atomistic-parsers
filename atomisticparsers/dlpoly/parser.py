@@ -274,7 +274,7 @@ class FieldParser(TextParser):
                         rf'[Cc][Oo][Nn][Ss][Tt][Rr][Aa][Ii][Nn][Tt][Ss] +\d+\s+((?:\d+ +\d+ +{re_f}.*\s*)+)',
                         convert=False, str_operation=lambda x: [dict(
                             atom_indices=[int(v) - 1 for v in val[:2]],
-                            parameters=val[2:3]) for val in [v.split() for v in x.strip().splitlines()]]
+                            parameters=[float(v) for v in val[2:3]]) for val in [v.split() for v in x.strip().splitlines()]]
                     ),
                     # TODO add pmf constraints
                     Quantity(
@@ -508,7 +508,6 @@ class DLPolyParser:
             for interaction in self.field_parser.get(interaction_type, []):
                 sec_interaction = sec_model.m_create(Interaction)
                 for key, val in interaction.items():
-                    print(key, val, type(val))
                     setattr(sec_interaction, key, val)
 
         system_spec = self.mainfile_parser.get('system_specification', {})

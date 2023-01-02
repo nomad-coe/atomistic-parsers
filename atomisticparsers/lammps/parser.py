@@ -1020,38 +1020,38 @@ class LammpsParser:
                 rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
             if rdf_results is not None:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
-                sec_rdfs2 = workflow.results.m_create(workflow2.RadialDistributionFunction)
+                # sec_rdfs2 = workflow.results.m_create(workflow2.RadialDistributionFunction)
                 sec_rdfs.type = 'molecular'
-                sec_rdfs2.type = 'molecular'
+                # sec_rdfs2.type = 'molecular'
                 sec_rdfs.n_smooth = rdf_results.get('n_smooth')
-                sec_rdfs2.n_smooth = rdf_results.get('n_smooth')
+                # sec_rdfs2.n_smooth = rdf_results.get('n_smooth')
                 sec_rdfs.n_prune = self._frame_rate
-                sec_rdfs2.n_prune = self._frame_rate
+                # sec_rdfs2.n_prune = self._frame_rate
                 sec_rdfs.variables_name = np.array(['distance'])
-                sec_rdfs2.variables_name = np.array(['distance'])
+                # sec_rdfs2.variables_name = np.array(['distance'])
                 for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
                     sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
-                    sec_rdf_values2 = sec_rdfs2.m_create(workflow2.RadialDistributionFunctionValues)
+                    # sec_rdf_values2 = sec_rdfs2.m_create(workflow2.RadialDistributionFunctionValues)
                     sec_rdf_values.label = str(pair_type)
-                    sec_rdf_values2.label = str(pair_type)
+                    # sec_rdf_values2.label = str(pair_type)
                     sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
-                    sec_rdf_values2.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
+                    # sec_rdf_values2.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
                     sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
                         'bins') is not None else []
-                    sec_rdf_values2.bins = rdf_results['bins'][i_pair] if rdf_results.get(
-                        'bins') is not None else []
+                    # sec_rdf_values2.bins = rdf_results['bins'][i_pair] if rdf_results.get(
+                    #     'bins') is not None else []
                     sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
                         'value') is not None else []
-                    sec_rdf_values2.value = rdf_results['value'][i_pair] if rdf_results.get(
-                        'value') is not None else []
+                    # sec_rdf_values2.value = rdf_results['value'][i_pair] if rdf_results.get(
+                    #     'value') is not None else []
                     sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
                         'frame_start') is not None else []
-                    sec_rdf_values2.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
-                        'frame_start') is not None else []
+                    # sec_rdf_values2.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
+                    #     'frame_start') is not None else []
                     sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
                         'frame_end') is not None else []
-                    sec_rdf_values2.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
-                        'frame_end') is not None else []
+                    # sec_rdf_values2.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
+                    #     'frame_end') is not None else []
 
             # calculate radius of gyration for polymers
             flag_warned = False
@@ -1100,38 +1100,38 @@ class LammpsParser:
                 msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squared_displacements()
             if msd_results is not None:
                 sec_msds = sec_results.m_create(MeanSquaredDisplacement)
-                sec_msds2 = workflow.results.m_create(workflow2.MeanSquaredDisplacement)
+                # sec_msds2 = workflow.results.m_create(workflow2.MeanSquaredDisplacement)
                 sec_msds.type = 'molecular'
-                sec_msds2.type = 'molecular'
+                # sec_msds2.type = 'molecular'
                 sec_msds.direction = 'xyz'
-                sec_msds2.direction = 'xyz'
+                # sec_msds2.direction = 'xyz'
                 for i_type, moltype in enumerate(msd_results.get('types', [])):
                     sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
-                    sec_msd_values2 = sec_msds2.m_create(workflow2.MeanSquaredDisplacementValues)
+                    # sec_msd_values2 = sec_msds2.m_create(workflow2.MeanSquaredDisplacementValues)
                     sec_msd_values.label = str(moltype)
-                    sec_msd_values2.label = str(moltype)
+                    # sec_msd_values2.label = str(moltype)
                     sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
-                    sec_msd_values2.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
+                    # sec_msd_values2.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
                     sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
                         'times') is not None else []
-                    sec_msd_values2.times = msd_results['times'][i_type] if msd_results.get(
-                        'times') is not None else []
+                    # sec_msd_values2.times = msd_results['times'][i_type] if msd_results.get(
+                    #     'times') is not None else []
                     sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
                         'value') is not None else []
-                    sec_msd_values2.value = msd_results['value'][i_type] if msd_results.get(
-                        'value') is not None else []
+                    # sec_msd_values2.value = msd_results['value'][i_type] if msd_results.get(
+                    #     'value') is not None else []
                     sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-                    sec_diffusion2 = sec_msd_values2.m_create(workflow2.DiffusionConstantValues)
+                    # sec_diffusion2 = sec_msd_values2.m_create(workflow2.DiffusionConstantValues)
                     sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
                         'diffusion_constant') is not None else []
-                    sec_diffusion2.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
-                        'diffusion_constant') is not None else []
+                    # sec_diffusion2.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
+                    #     'diffusion_constant') is not None else []
                     sec_diffusion.error_type = 'Pearson correlation coefficient'
-                    sec_diffusion2.error_type = 'Pearson correlation coefficient'
+                    # sec_diffusion2.error_type = 'Pearson correlation coefficient'
                     sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
                         'error_diffusion_constant') is not None else []
-                    sec_diffusion2.errors2 = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
-                        'error_diffusion_constant') is not None else []
+                    # sec_diffusion2.errors2 = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
+                    #     'error_diffusion_constant') is not None else []
 
         self.archive.workflow2 = workflow
 

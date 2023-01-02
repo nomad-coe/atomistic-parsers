@@ -41,12 +41,12 @@ from nomad.datamodel.metainfo.simulation.system import (
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry,
-    # RadiusOfGyration, RadiusOfGyrationValues
+    RadiusOfGyration, RadiusOfGyrationValues
 )
 from nomad.datamodel.metainfo.workflow import (
     BarostatParameters, GeometryOptimization, ThermostatParameters, IntegrationParameters,
-    # DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
-    # RadialDistributionFunction, RadialDistributionFunctionValues,
+    DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
+    RadialDistributionFunction, RadialDistributionFunctionValues,
     Workflow, MolecularDynamics
 )
 from nomad.datamodel.metainfo.simulation import workflow as workflow2
@@ -1011,19 +1011,19 @@ class GromacsParser:
                 sec_md.thermodynamic_ensemble = 'NVE'
                 workflow.method.thermodynamic_ensemble = 'NVE'
 
-            # # calculate molecular radial distribution functions
-            # sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-            # sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            # n_traj_split = 10
-            # interval_indices = []
-            # # first 20% of trajectory
-            # interval_indices.append([0, 1])
-            # # last 80% of trajectory
-            # interval_indices.append([2, 3, 4, 5, 6, 7, 8, 9])
-            # # last 60% of trajectory
-            # interval_indices.append([4, 5, 6, 7, 8, 9])
-            # # last 40% of trajectory
-            # interval_indices.append([6, 7, 8, 9])
+            # calculate molecular radial distribution functions
+            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
+            n_traj_split = 10  # number of intervals to split trajectory into for averaging
+            interval_indices = []  # 2D array specifying the groups of the n_traj_split intervals to be averaged
+            # first 20% of trajectory
+            interval_indices.append(np.arange(int(n_traj_split * 0.20)))
+            # last 80% of trajectory
+            interval_indices.append(np.arange(n_traj_split)[len(interval_indices[0]):])
+            # last 60% of trajectory
+            interval_indices.append(np.arange(n_traj_split)[len(interval_indices[0]) * 2:])
+            # last 40% of trajectory
+            interval_indices.append(np.arange(n_traj_split)[len(interval_indices[0]) * 3:])
 
             rdf_results = self.traj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
             if rdf_results is not None:

@@ -998,19 +998,19 @@ class LammpsParser:
                 sec_md.thermodynamic_ensemble = 'NVE'
                 workflow.method.thermodynamic_ensemble = 'NVE'
 
-            # calculate molecular radial distribution functions
-            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
-            n_traj_split = 10
-            interval_indices = []
-            # first 20% of trajectory
-            interval_indices.append([0, 1])
-            # last 80% of trajectory
-            interval_indices.append([2, 3, 4, 5, 6, 7, 8, 9])
-            # last 60% of trajectory
-            interval_indices.append([4, 5, 6, 7, 8, 9])
-            # last 40% of trajectory
-            interval_indices.append([6, 7, 8, 9])
+            # # calculate molecular radial distribution functions
+            # sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
+            # sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
+            # n_traj_split = 10
+            # interval_indices = []
+            # # first 20% of trajectory
+            # interval_indices.append([0, 1])
+            # # last 80% of trajectory
+            # interval_indices.append([2, 3, 4, 5, 6, 7, 8, 9])
+            # # last 60% of trajectory
+            # interval_indices.append([4, 5, 6, 7, 8, 9])
+            # # last 40% of trajectory
+            # interval_indices.append([6, 7, 8, 9])
 
             # calculate molecular radial distribution functions
             sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
@@ -1300,9 +1300,6 @@ class LammpsParser:
             sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
             sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
 
-        interactions = self.log_parser.get_interactions()
-        if not interactions:
-            interactions = self.data_parser.get_interactions()
         interactions = self._mdanalysistraj_parser.get_interactions()
         interactions = interactions if interactions is not None else []
         for interaction in interactions:

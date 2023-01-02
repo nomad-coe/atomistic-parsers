@@ -40,12 +40,14 @@ from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, RadiusOfGyration, RadiusOfGyrationValues,
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry,
+    # RadiusOfGyration, RadiusOfGyrationValues
 )
 from nomad.datamodel.metainfo.workflow import (
-    BarostatParameters, GeometryOptimization, ThermostatParameters, IntegrationParameters, DiffusionConstantValues,
-    MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
-    RadialDistributionFunction, RadialDistributionFunctionValues, Workflow, MolecularDynamics
+    BarostatParameters, GeometryOptimization, ThermostatParameters, IntegrationParameters,
+    # DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
+    # RadialDistributionFunction, RadialDistributionFunctionValues,
+    Workflow, MolecularDynamics
 )
 from nomad.datamodel.metainfo.simulation import workflow as workflow2
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files

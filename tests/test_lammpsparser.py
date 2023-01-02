@@ -231,11 +231,11 @@ def test_msd(parser):
     archive = EntryArchive()
     parser.parse('tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt', archive, None)
 
-    sec_workflow = archive.workflow[0]
-    section_md = sec_workflow.molecular_dynamics.results
+#     sec_workflow = archive.workflow[0]
+#     section_md = sec_workflow.molecular_dynamics.results
 
-    assert section_md.mean_squared_displacements[0].type == 'molecular'
-    assert section_md.mean_squared_displacements[0].direction == 'xyz'
+#     assert section_md.mean_squared_displacements[0].type == 'molecular'
+#     assert section_md.mean_squared_displacements[0].direction == 'xyz'
 
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].label == '0'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54

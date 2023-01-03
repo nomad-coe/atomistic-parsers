@@ -462,27 +462,27 @@ class MDAnalysisParser(FileParser):
 
         return np.array(nojump_positions)
 
-    def calc_radius_of_gyration(self, molecule_atom_indices):
-        '''
-        Calculates the radius of gyration as a function of time for the atoms "molecule_atom_indices"
-        as well of the corresponding histogram.
-        '''
+    # def calc_radius_of_gyration(self, molecule_atom_indices):
+    #     '''
+    #     Calculates the radius of gyration as a function of time for the atoms "molecule_atom_indices"
+    #     as well of the corresponding histogram.
+    #     '''
 
-        if self.universe is None:
-            return
-        if self.universe.trajectory[0].dimensions is None:
-            return
+    #     if self.universe is None:
+    #         return
+    #     if self.universe.trajectory[0].dimensions is None:
+    #         return
 
-        selection = ' '.join([str(i) for i in molecule_atom_indices])
-        selection = f'index {selection}'
-        molecule = self.universe.select_atoms(selection)
-        rg_results = {}
-        rg_results['times'] = []
-        rg_results['value'] = []
-        for __ in self.universe.trajectory:
-            rg_results['times'].append(self.universe.trajectory.time)
-            rg_results['value'].append(molecule.radius_of_gyration())
-        rg_results['times'] = np.array(rg_results['times']) * ureg.picosecond
-        rg_results['value'] = np.array(rg_results['value']) * ureg.angstrom
+    #     selection = ' '.join([str(i) for i in molecule_atom_indices])
+    #     selection = f'index {selection}'
+    #     molecule = self.universe.select_atoms(selection)
+    #     rg_results = {}
+    #     rg_results['times'] = []
+    #     rg_results['value'] = []
+    #     for __ in self.universe.trajectory:
+    #         rg_results['times'].append(self.universe.trajectory.time)
+    #         rg_results['value'].append(molecule.radius_of_gyration())
+    #     rg_results['times'] = np.array(rg_results['times']) * ureg.picosecond
+    #     rg_results['value'] = np.array(rg_results['value']) * ureg.angstrom
 
-        return rg_results
+    #     return rg_results

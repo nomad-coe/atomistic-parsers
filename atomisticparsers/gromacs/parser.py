@@ -41,7 +41,7 @@ from nomad.datamodel.metainfo.simulation.system import (
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry,
-    RadiusOfGyration, RadiusOfGyrationValues
+    # RadiusOfGyration, RadiusOfGyrationValues
 )
 from nomad.datamodel.metainfo.workflow import (
     BarostatParameters, GeometryOptimization, ThermostatParameters, IntegrationParameters,
@@ -1063,40 +1063,40 @@ class GromacsParser:
                     # sec_rdf_values2.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
                     #     'frame_end') is not None else []
 
-            # calculate radius of gyration for polymers
-            flag_warned = False
-            sec_rgs = None
-            sec_system = self.archive.run[-1].system[0]
-            sec_molecule_groups = sec_system.get('atoms_group')
-            for molgroup in sec_molecule_groups:
-                sec_molecules = molgroup.get('atoms_group')
-                for molecule in sec_molecules:
-                    sec_monomer_groups = molecule.get('atoms_group')
-                    group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
-                    if group_type != 'monomer_group':
-                        continue
-                    molecule_atom_indices = molecule.atom_indices
-                    rg_results = self.traj_parser.calc_radius_of_gyration(molecule_atom_indices)
-                    if rg_results is not None:
-                        n_frames = len(rg_results['times'])
-                        if n_frames != len(sec_calc):
-                            if not flag_warned:
-                                self.logger.warning(
-                                    'Unexpected mismatch in number of calculations and number of'
-                                    'trajectory frames. Not storing Rg values.')
-                                flag_warned = True
-                            continue
-                        for i_calc, calc in enumerate(sec_calc):
-                            sec_rgs = calc.get('radius_of_gyration')
-                            if not sec_rgs:
-                                sec_rgs = calc.m_create(RadiusOfGyration)
-                                sec_rgs.kind = 'molecular'
-                            else:
-                                sec_rgs = sec_rgs[0]
-                            sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
-                            sec_rg_values.atomsgroup_ref = molecule
-                            sec_rg_values.label = molecule.label + '-index_' + str(molecule.index)
-                            sec_rg_values.value = rg_results['value'][i_calc]
+            # # calculate radius of gyration for polymers
+            # flag_warned = False
+            # sec_rgs = None
+            # sec_system = self.archive.run[-1].system[0]
+            # sec_molecule_groups = sec_system.get('atoms_group')
+            # for molgroup in sec_molecule_groups:
+            #     sec_molecules = molgroup.get('atoms_group')
+            #     for molecule in sec_molecules:
+            #         sec_monomer_groups = molecule.get('atoms_group')
+            #         group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
+            #         if group_type != 'monomer_group':
+            #             continue
+            #         molecule_atom_indices = molecule.atom_indices
+            #         rg_results = self.traj_parser.calc_radius_of_gyration(molecule_atom_indices)
+            #         if rg_results is not None:
+            #             n_frames = len(rg_results['times'])
+            #             if n_frames != len(sec_calc):
+            #                 if not flag_warned:
+            #                     self.logger.warning(
+            #                         'Unexpected mismatch in number of calculations and number of'
+            #                         'trajectory frames. Not storing Rg values.')
+            #                     flag_warned = True
+            #                 continue
+            #             for i_calc, calc in enumerate(sec_calc):
+            #                 sec_rgs = calc.get('radius_of_gyration')
+            #                 if not sec_rgs:
+            #                     sec_rgs = calc.m_create(RadiusOfGyration)
+            #                     sec_rgs.kind = 'molecular'
+            #                 else:
+            #                     sec_rgs = sec_rgs[0]
+            #                 sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
+            #                 sec_rg_values.atomsgroup_ref = molecule
+            #                 sec_rg_values.label = molecule.label + '-index_' + str(molecule.index)
+            #                 sec_rg_values.value = rg_results['value'][i_calc]
 
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()

@@ -25,17 +25,17 @@ try:
 except Exception:
     MDAnalysis = None
 from typing import Any, Dict
+from nptyping import NDArray
 from collections import namedtuple
 from array import array
 from scipy import sparse
+from scipy.stats import linregress
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import FileParser
 from nomad.atomutils import (
     BeadGroup,
-    shifted_correlation,
-    mean_squared_displacement,
-    calc_diffusion_constant
+    shifted_correlation_average
 )
 
 MOL = 6.022140857e+23
@@ -370,11 +370,29 @@ class MDAnalysisParser(FileParser):
 
         return interactions
 
+    def __calc_diffusion_constant(self, times: NDArray, values: NDArray, dim: int = 3):
+        '''
+        Determines the diffusion constant from a fit of the mean squared displacement
+        vs. time according to the Einstein relation.
+        '''
+        linear_model = linregress(times, values)
+        slope = linear_model.slope
+        error = linear_model.rvalue
+        return slope * 1 / (2 * dim), error
+
     def calc_molecular_mean_squared_displacements(self):
         '''
         Calculates the mean squared displacement for the center of mass of each
         molecule type.
         '''
+
+        def mean_squared_displacement(start: np.ndarray, current: np.ndarray):
+            """
+            Calculates mean square displacement between current and initial (start) coordinates.
+            """
+            vec = start - current
+            return (vec ** 2).sum(axis=1).mean()
+
         if self.universe is None:
             return
         if self.universe.trajectory[0].dimensions is None:
@@ -397,12 +415,10 @@ class MDAnalysisParser(FileParser):
         msd_results['error_diffusion_constant'] = []
         for moltype in moltypes:
             positions = self.get_nojump_positions(bead_groups[moltype])
-            results = shifted_correlation(
-                mean_squared_displacement, times, positions, average=True
-            )
+            results = shifted_correlation_average(mean_squared_displacement, times, positions)
             msd_results['value'].append(results[1])
             msd_results['times'].append(results[0])
-            diffusion_constant, error = calc_diffusion_constant(*results)
+            diffusion_constant, error = self.__calc_diffusion_constant(*results)
             msd_results['diffusion_constant'].append(diffusion_constant)
             msd_results['error_diffusion_constant'].append(error)
 
@@ -416,9 +432,8 @@ class MDAnalysisParser(FileParser):
         return msd_results
 
     def parse_jumps(self, selection):
-        from copy import deepcopy
         __ = self.universe.trajectory[0]
-        prev = deepcopy(selection.positions)
+        prev = np.array(selection.positions)
         box = self.universe.trajectory[0].dimensions[:3]
         sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])
         jump_data = (
@@ -428,9 +443,9 @@ class MDAnalysisParser(FileParser):
         )
 
         for i_frame, _ in enumerate(self.universe.trajectory[1:]):
-            curr = deepcopy(selection.positions)
+            curr = np.array(selection.positions)
             delta = ((curr - prev) / box).round().astype(np.int8)
-            prev = deepcopy(curr)
+            prev = np.array(curr)
             for d in range(3):
                 col, = np.where(delta[:, d] != 0)
                 jump_data[d].col.extend(col)

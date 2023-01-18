@@ -616,15 +616,9 @@ class GromacsParser:
 
     def parse_thermodynamic_data(self):
         sec_run = self.archive.run[-1]
+        sec_system = sec_run.system
 
-        # forces = self.traj_parser.get('forces')
         n_frames = self.traj_parser.get('n_frames')
-        for n in range(n_frames):
-            sec_scc = sec_run.m_create(Calculation)
-            if (n % self.frame_rate) == 0:
-                sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(n)))
-                sec_scc.system_ref = sec_run.system[n // self.frame_rate]
-            sec_scc.method_ref = sec_run.method[-1]
 
         # get it from edr file
         if self.energy_parser.keys():
@@ -652,25 +646,41 @@ class GromacsParser:
             thermo_data = self.energy_parser
             n_evaluations = self.energy_parser.length
 
-        create_scc = False
-        if n_frames != n_evaluations:
-            self.logger.warning(
-                'Mismatch in number of calculations and number of thermodynamic '
-                'evaluations, will create new sections')
-            create_scc = True
+        system_times_ps = [frame.time.magnitude * ureg.convert(
+            1.0, frame.time.units, ureg.picosecond) for frame in sec_system]
+        calculation_times_ps = thermo_data.get('Time')
+        calculation_times_ps = calculation_times_ps.magnitude * ureg.convert(
+            1.0, calculation_times_ps.units, ureg.picosecond)
 
-        time_step = self.traj_parser.get('timestep')
-        if time_step is None:
-            time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
-
-        # TODO add other energy contributions, properties
-        energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']
+        map_calculation_to_system = {}
+        for i_calc, calc_time in enumerate(calculation_times_ps):
+            if calc_time is None:
+                map_calculation_to_system[str(i_calc)] = None
+                continue
+            flag_match = False
+            for i_sys, sys_time in enumerate(system_times_ps):
+                if sys_time is None:
+                    continue
+                elif abs(calc_time - sys_time) < 1e-6:
+                    flag_match = True
+                    map_calculation_to_system[str(i_calc)] = i_sys
+                    break
+            if not flag_match:
+                map_calculation_to_system[str(i_calc)] = None
 
         for n in range(n_evaluations):
-            if create_scc:
-                sec_scc = sec_run.m_create(Calculation)
-            else:
-                sec_scc = sec_run.calculation[n]
+            sec_scc = sec_run.m_create(Calculation)
+            system_index = map_calculation_to_system[str(n)]
+            if system_index is not None:
+                sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(system_index)))
+                sec_scc.system_ref = sec_run.system[system_index]
+            sec_scc.method_ref = sec_run.method[-1]
+
+            time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
+
+            # TODO add other energy contributions, properties
+            energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']
+
             sec_energy = sec_scc.m_create(Energy)
             for key in thermo_data.keys():
                 val = thermo_data.get(key)[n]
@@ -690,7 +700,7 @@ class GromacsParser:
                 elif key == 'Temperature':
                     sec_scc.temperature = val
                 elif key == 'Time':
-                    sec_scc.time = val
+                    sec_scc.time = val  # TODO Physical times should not be stored for GeometryOpt
                     sec_scc.step = int((val / time_step).magnitude)
                 if key in energy_keys:
                     sec_energy.contributions.append(
@@ -712,6 +722,10 @@ class GromacsParser:
                 continue
             positions = self.traj_parser.get_positions(n)
             sec_system = sec_run.m_create(System)
+            sec_system.time = self.traj_parser.get_time(n)  # TODO Physical times should not be stored for GeometryOpt
+            time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
+            if sec_system.time is not None:
+                sec_system.step = int(sec_system.time / time_step) if time_step else None
             if positions is None:
                 continue
 

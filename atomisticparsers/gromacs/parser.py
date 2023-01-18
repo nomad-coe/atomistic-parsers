@@ -679,7 +679,7 @@ class GromacsParser:
             if system_index is not None:
                 sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(system_index)))
                 sec_scc.system_ref = sec_run.system[system_index]
-            sec_scc.method_ref = sec_run.method[-1]
+                sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
 
             # TODO add other energy contributions, properties
             energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']
@@ -728,8 +728,8 @@ class GromacsParser:
             sec_system.time = self.traj_parser.get_time(n)  # TODO Physical times should not be stored for GeometryOpt
             time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
             if sec_system.time is not None:
-                sec_system.step = int(ureg.convert(sec_system.time.magnitude, sec_system.time.units, time_step.units) / time_step.magnitude) if time_step else None
-                # sec_system.step = int(sec_system.time / time_step) if time_step else None
+                sec_system.step = int(ureg.convert(
+                    sec_system.time.magnitude, sec_system.time.units, time_step.units) / time_step.magnitude) if time_step else None
             if positions is None:
                 continue
 

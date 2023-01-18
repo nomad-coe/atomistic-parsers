@@ -699,7 +699,7 @@ class LammpsParser:
             if system_index is not None:
                 sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parsers.eval('get_forces', system_index)))
                 sec_scc.system_ref = sec_run.system[system_index]
-            sec_scc.method_ref = sec_run.method[-1]
+            sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
 
             sec_energy = sec_scc.m_create(Energy)
             for key, val in thermo_data.items():

@@ -665,10 +665,12 @@ class LammpsParser:
             return
 
         n_thermo = len(thermo_data.get('Step', []))
+        system_steps = [frame.step for frame in sec_system]
         system_times_ps = [frame.time.magnitude * ureg.convert(
             1.0, frame.time.units, ureg.picosecond) if frame.time is not None else None for frame in sec_system]
-        calculation_times_ps = thermo_data.get('Step')
-        calculation_times_ps = [val * time_step for val in calculation_times_ps]
+        calculation_steps = thermo_data.get('Step')
+        calculation_steps = [int(val) if val is not None else None for val in calculation_steps]
+        calculation_times_ps = [val * time_step for val in calculation_steps]
         calculation_times_ps = [
             val.magnitude * ureg.convert(1.0, val.units, ureg.picosecond)
             for val in calculation_times_ps] if type(time_step) != float else [None] * len(calculation_times_ps)
@@ -676,7 +678,8 @@ class LammpsParser:
         map_calculation_to_system = {}
         for i_calc, calc_time in enumerate(calculation_times_ps):
             if calc_time is None:
-                map_calculation_to_system[str(i_calc)] = None
+                calc_index = system_steps.index(calculation_steps[i_calc]) if calculation_steps[i_calc] in system_steps else None
+                map_calculation_to_system[str(i_calc)] = calc_index
                 continue
             flag_match = False
             for i_sys, sys_time in enumerate(system_times_ps):
@@ -687,7 +690,8 @@ class LammpsParser:
                     map_calculation_to_system[str(i_calc)] = i_sys
                     break
             if not flag_match:
-                map_calculation_to_system[str(i_calc)] = None
+                calc_index = system_steps.index(calculation_steps[i_calc]) if calculation_steps[i_calc] in system_steps else None
+                map_calculation_to_system[str(i_calc)] = calc_index
 
         for n in range(n_thermo):
             sec_scc = sec_run.m_create(Calculation)
@@ -1105,6 +1109,7 @@ class LammpsParser:
 
             sec_system = sec_run.m_create(System)
             sec_system.step = self.traj_parsers.eval('get_step', i)  # TODO Physical times should not be stored for GeometryOpt
+            sec_system.step = int(sec_system.step) if sec_system.step is not None else None
             time_step = self.get_time_step()
             if sec_system.step is not None:
                 sec_system.time = sec_system.step * time_step if time_step else None

@@ -619,6 +619,7 @@ class GromacsParser:
         sec_system = sec_run.system
 
         n_frames = self.traj_parser.get('n_frames')
+        time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
 
         # get it from edr file
         if self.energy_parser.keys():
@@ -646,16 +647,19 @@ class GromacsParser:
             thermo_data = self.energy_parser
             n_evaluations = self.energy_parser.length
 
+        system_steps = [frame.step for frame in sec_system]
         system_times_ps = [frame.time.magnitude * ureg.convert(
             1.0, frame.time.units, ureg.picosecond) for frame in sec_system]
         calculation_times_ps = thermo_data.get('Time')
+        calculation_steps = [int((val / time_step).magnitude) for val in calculation_times_ps]
         calculation_times_ps = calculation_times_ps.magnitude * ureg.convert(
             1.0, calculation_times_ps.units, ureg.picosecond)
 
         map_calculation_to_system = {}
         for i_calc, calc_time in enumerate(calculation_times_ps):
             if calc_time is None:
-                map_calculation_to_system[str(i_calc)] = None
+                calc_index = system_steps.index(calculation_steps[i_calc]) if calculation_steps[i_calc] in system_steps else None
+                map_calculation_to_system[str(i_calc)] = calc_index
                 continue
             flag_match = False
             for i_sys, sys_time in enumerate(system_times_ps):
@@ -666,7 +670,8 @@ class GromacsParser:
                     map_calculation_to_system[str(i_calc)] = i_sys
                     break
             if not flag_match:
-                map_calculation_to_system[str(i_calc)] = None
+                calc_index = system_steps.index(calculation_steps[i_calc]) if calculation_steps[i_calc] in system_steps else None
+                map_calculation_to_system[str(i_calc)] = calc_index
 
         for n in range(n_evaluations):
             sec_scc = sec_run.m_create(Calculation)
@@ -675,8 +680,6 @@ class GromacsParser:
                 sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(system_index)))
                 sec_scc.system_ref = sec_run.system[system_index]
             sec_scc.method_ref = sec_run.method[-1]
-
-            time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
 
             # TODO add other energy contributions, properties
             energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']

@@ -564,7 +564,7 @@ class GromacsParser:
             'Potential': 'potential', 'Kinetic En.': 'kinetic'}
         self._frame_rate = None
         # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 1000000
+        self._cum_max_atoms = 10000000
 
     @property
     def frame_rate(self):

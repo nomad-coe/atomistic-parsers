@@ -655,7 +655,7 @@ class LammpsParser:
 
     def parse_thermodynamic_data(self):
         sec_run = self.archive.run[-1]
-        sec_system = sec_run.system
+        # sec_system = sec_run.system
 
         time_step = self.get_time_step()
         thermo_data = self.log_parser.get_thermodynamic_data()
@@ -665,9 +665,6 @@ class LammpsParser:
             return
 
         n_thermo = len(thermo_data.get('Step', []))
-        system_steps = [frame.step for frame in sec_system]
-        system_times_ps = [frame.time.magnitude * ureg.convert(
-            1.0, frame.time.units, ureg.picosecond) if frame.time is not None else None for frame in sec_system]
         calculation_steps = thermo_data.get('Step')
         calculation_steps = [int(val) if val is not None else None for val in calculation_steps]
         calculation_times_ps = [val * time_step for val in calculation_steps]
@@ -675,27 +672,12 @@ class LammpsParser:
             val.magnitude * ureg.convert(1.0, val.units, ureg.picosecond)
             for val in calculation_times_ps] if type(time_step) != float else [None] * len(calculation_times_ps)
 
-        map_calculation_to_system = {}
-        for i_calc, calc_time in enumerate(calculation_times_ps):
-            if calc_time is None:
-                calc_index = system_steps.index(calculation_steps[i_calc]) if calculation_steps[i_calc] in system_steps else None
-                map_calculation_to_system[str(i_calc)] = calc_index
-                continue
-            flag_match = False
-            for i_sys, sys_time in enumerate(system_times_ps):
-                if sys_time is None:
-                    continue
-                elif abs(calc_time - sys_time) < 1e-6:
-                    flag_match = True
-                    map_calculation_to_system[str(i_calc)] = i_sys
-                    break
-            if not flag_match:
-                calc_index = system_steps.index(calculation_steps[i_calc]) if calculation_steps[i_calc] in system_steps else None
-                map_calculation_to_system[str(i_calc)] = calc_index
-
         for n in range(n_thermo):
             sec_scc = sec_run.m_create(Calculation)
-            system_index = map_calculation_to_system[str(n)]
+            system_index = self._system_time_map.get(
+                round(calculation_times_ps[n], 5)) if calculation_times_ps[n] is not None else None
+            if system_index is None:
+                system_index = self._system_step_map.get(calculation_steps[n])
             if system_index is not None:
                 sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parsers.eval('get_forces', system_index)))
                 sec_scc.system_ref = sec_run.system[system_index]
@@ -1103,6 +1085,8 @@ class LammpsParser:
             formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
             return formula
 
+        self._system_time_map = {}
+        self._system_step_map = {}
         for i in range(n_frames):
             if (i % self.frame_rate) > 0:
                 continue
@@ -1112,7 +1096,12 @@ class LammpsParser:
             sec_system.step = int(sec_system.step) if sec_system.step is not None else None
             time_step = self.get_time_step()
             if sec_system.step is not None:
+                self._system_step_map[sec_system.step] = i
                 sec_system.time = sec_system.step * time_step if time_step else None
+                if sec_system.time is not None:
+                    self._system_time_map[round(ureg.convert(
+                        sec_system.time.magnitude, sec_system.time.units, ureg.picosecond), 5)] = i
+
             sec_atoms = sec_system.m_create(Atoms)
             sec_atoms.n_atoms = self.traj_parsers.eval('get_n_atoms', i)
             lattice_vectors = self.traj_parsers.eval('get_lattice_vectors', i)

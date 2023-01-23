@@ -616,7 +616,6 @@ class GromacsParser:
 
     def parse_thermodynamic_data(self):
         sec_run = self.archive.run[-1]
-        # sec_system = sec_run.system
 
         n_frames = self.traj_parser.get('n_frames')
         time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps

@@ -344,6 +344,12 @@ class TrajParser(TextParser):
             return len(self.get_positions(idx))
         return n_atoms[idx]
 
+    def get_step(self, idx):
+        step = self.get('time_step')
+        if step is None:
+            return
+        return step[idx]
+
 
 class XYZTrajParser(TrajParser):
     def __init__(self):
@@ -626,7 +632,7 @@ class LammpsParser:
             'e_tail': 'van der Waals long range', 'kineng': 'kinetic', 'poteng': 'potential'}
         self._frame_rate = None
         # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 1000000
+        self._cum_max_atoms = 10000000
 
     @property
     def frame_rate(self):
@@ -648,6 +654,9 @@ class LammpsParser:
         return time_step
 
     def parse_thermodynamic_data(self):
+        sec_run = self.archive.run[-1]
+        # sec_system = sec_run.system
+
         time_step = self.get_time_step()
         thermo_data = self.log_parser.get_thermodynamic_data()
         if thermo_data is None:
@@ -655,26 +664,24 @@ class LammpsParser:
         if not thermo_data:
             return
 
-        sec_run = self.archive.run[-1]
-        sec_sccs = sec_run.calculation
-
         n_thermo = len(thermo_data.get('Step', []))
-        create_scc = True
-        if sec_sccs:
-            if len(sec_sccs) != n_thermo:
-                self.logger.warning(
-                    '''Mismatch in number of calculations and number of property
-                    evaluations!, will create new sections''',
-                    data=dict(n_calculations=len(sec_sccs), n_evaluations=n_thermo))
+        calculation_steps = thermo_data.get('Step')
+        calculation_steps = [int(val) if val is not None else None for val in calculation_steps]
+        calculation_times_ps = [val * time_step for val in calculation_steps]
+        calculation_times_ps = [
+            val.magnitude * ureg.convert(1.0, val.units, ureg.picosecond)
+            for val in calculation_times_ps] if type(time_step) != float else [None] * len(calculation_times_ps)
 
-            else:
-                create_scc = False
         for n in range(n_thermo):
-
-            if create_scc:
-                sec_scc = sec_run.m_create(Calculation)
-            else:
-                sec_scc = sec_sccs[n]
+            sec_scc = sec_run.m_create(Calculation)
+            system_index = self._system_time_map.get(
+                round(calculation_times_ps[n], 5)) if calculation_times_ps[n] is not None else None
+            if system_index is None:
+                system_index = self._system_step_map.get(calculation_steps[n])
+            if system_index is not None:
+                sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parsers.eval('get_forces', system_index)))
+                sec_scc.system_ref = sec_run.system[system_index]
+            sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
 
             sec_energy = sec_scc.m_create(Energy)
             for key, val in thermo_data.items():
@@ -1078,11 +1085,23 @@ class LammpsParser:
             formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
             return formula
 
+        self._system_time_map = {}
+        self._system_step_map = {}
         for i in range(n_frames):
             if (i % self.frame_rate) > 0:
                 continue
 
             sec_system = sec_run.m_create(System)
+            sec_system.step = self.traj_parsers.eval('get_step', i)  # TODO Physical times should not be stored for GeometryOpt
+            sec_system.step = int(sec_system.step) if sec_system.step is not None else None
+            time_step = self.get_time_step()
+            if sec_system.step is not None:
+                self._system_step_map[sec_system.step] = i
+                sec_system.time = sec_system.step * time_step if time_step else None
+                if sec_system.time is not None:
+                    self._system_time_map[round(ureg.convert(
+                        sec_system.time.magnitude, sec_system.time.units, ureg.picosecond), 5)] = i
+
             sec_atoms = sec_system.m_create(Atoms)
             sec_atoms.n_atoms = self.traj_parsers.eval('get_n_atoms', i)
             lattice_vectors = self.traj_parsers.eval('get_lattice_vectors', i)
@@ -1097,11 +1116,6 @@ class LammpsParser:
             velocities = self.traj_parsers.eval('get_velocities', i)
             if velocities is not None:
                 sec_system.atoms.velocities = apply_unit(velocities, 'velocity')
-
-            forces = self.traj_parsers.eval('get_forces', i)
-            if forces is not None:
-                sec_scc = sec_run.m_create(Calculation)
-                sec_scc.forces = Forces(total=ForcesEntry(value=apply_unit(forces, 'force')))
 
         # parse atomsgroup (moltypes --> molecules --> residues)
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)

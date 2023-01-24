@@ -1087,7 +1087,6 @@ class LammpsParser:
 
         self._system_time_map = {}
         self._system_step_map = {}
-        system_counter = 0
         for i in range(n_frames):
             if (i % self.frame_rate) > 0:
                 continue
@@ -1097,11 +1096,11 @@ class LammpsParser:
             sec_system.step = int(sec_system.step) if sec_system.step is not None else None
             time_step = self.get_time_step()
             if sec_system.step is not None:
-                self._system_step_map[sec_system.step] = system_counter
+                self._system_step_map[sec_system.step] = len(self._system_step_map)
                 sec_system.time = sec_system.step * time_step if time_step else None
                 if sec_system.time is not None:
                     self._system_time_map[round(ureg.convert(
-                        sec_system.time.magnitude, sec_system.time.units, ureg.picosecond), 5)] = system_counter
+                        sec_system.time.magnitude, sec_system.time.units, ureg.picosecond), 5)] = len(self._system_time_map)
 
             sec_atoms = sec_system.m_create(Atoms)
             sec_atoms.n_atoms = self.traj_parsers.eval('get_n_atoms', i)
@@ -1117,8 +1116,6 @@ class LammpsParser:
             velocities = self.traj_parsers.eval('get_velocities', i)
             if velocities is not None:
                 sec_system.atoms.velocities = apply_unit(velocities, 'velocity')
-
-            system_counter += 1
 
         # parse atomsgroup (moltypes --> molecules --> residues)
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)

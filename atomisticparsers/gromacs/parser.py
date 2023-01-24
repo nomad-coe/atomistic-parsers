@@ -703,6 +703,7 @@ class GromacsParser:
         pbc = self.log_parser.get_pbc()
         self._system_time_map = {}
         self._system_step_map = {}
+        system_counter = 0
         for n in range(n_frames):
             if (n % self.frame_rate) > 0:
                 continue
@@ -712,12 +713,12 @@ class GromacsParser:
             time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
             if sec_system.time is not None:
                 self._system_time_map[round(ureg.convert(
-                    sec_system.time.magnitude, sec_system.time.units, ureg.picosecond), 5)] = n
+                    sec_system.time.magnitude, sec_system.time.units, ureg.picosecond), 5)] = system_counter
                 sec_system.step = int((ureg.convert(
                     sec_system.time.magnitude, sec_system.time.units,
                     time_step.units) / time_step.magnitude) + 1e-6) if time_step else None
                 if sec_system.step is not None:
-                    self._system_step_map[sec_system.step] = n
+                    self._system_step_map[sec_system.step] = system_counter
             if positions is None:
                 continue
 
@@ -731,6 +732,8 @@ class GromacsParser:
             velocities = self.traj_parser.get_velocities(n)
             if velocities is not None:
                 sec_atoms.velocities = velocities
+
+            system_counter += 1
 
         # parse atomsgroup (segments --> molecules --> residues)
         atoms_info = self.traj_parser._results['atoms_info']

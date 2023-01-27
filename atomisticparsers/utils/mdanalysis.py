@@ -302,15 +302,6 @@ class MDAnalysisParser(FileParser):
         # MDAnalysis assumes no change in atom configuration
         return [guess_atom_element(name) for name in self.get('atoms_info', {}).get('names', [])]
 
-    # def get_time_step(self, frame_index):
-    #     '''
-    #     Returns the integer time step of the frame with index frame_index.
-    #     '''
-    #     frame = self.get_frame(frame_index)
-    #     tmp = frame.dt
-    #     tmp2 = frame.time
-    #     return int(frame.time / frame.dt) if frame is not None else None
-
     def get_time(self, frame_index):
         '''
         Returns the elapsed simulated physical time since the start of the simulation for index frame_index.

@@ -616,6 +616,7 @@ class GromacsParser:
 
     def parse_thermodynamic_data(self):
         sec_run = self.archive.run[-1]
+        sec_system = sec_run.system
 
         n_frames = self.traj_parser.get('n_frames')
         time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
@@ -651,6 +652,7 @@ class GromacsParser:
         calculation_times_ps = calculation_times_ps.magnitude * ureg.convert(
             1.0, calculation_times_ps.units, ureg.picosecond)
 
+        system_indices_assigned = []
         for n in range(n_evaluations):
             sec_scc = sec_run.m_create(Calculation)
             system_index = self._system_time_map.get(
@@ -658,8 +660,9 @@ class GromacsParser:
             if system_index is None:
                 system_index = self._system_step_map.get(calculation_steps[n])
             if system_index is not None:
+                system_indices_assigned.append(system_index)
                 sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(system_index)))
-                sec_scc.system_ref = sec_run.system[system_index]
+                sec_scc.system_ref = sec_system[system_index]
                 sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
 
             # TODO add other energy contributions, properties
@@ -690,6 +693,33 @@ class GromacsParser:
                     sec_energy.contributions.append(
                         EnergyEntry(kind=self._metainfo_mapping[key], value=val))
 
+        if not self._system_step_map and not self._system_time_map:
+            if n_evaluations == len(sec_system):
+                for i_calc, calc in enumerate(sec_run.calculation):
+                    calc.system_ref = sec_system[i_calc]
+                self.logger.warning('Time and step information not available, but system and calculation are the same length.'
+                                    'Assuming correspondence and creating references between these two lists.')
+                return
+
+        for n in range(len(sec_system)):
+            if n not in system_indices_assigned:
+                sec_scc = sec_run.m_create(Calculation)
+                sec_scc.time = self._system_info[n]['time']
+                sec_scc.step = self._system_info[n]['step']
+
+        times = [calc.time for calc in sec_run.calculation]
+        steps = [calc.step for calc in sec_run.calculation]
+        if None not in times:
+            calculations_sorted = [[calc.time.magnitude, calc] for calc in sec_run.calculation]
+            calculations_sorted = sorted(calculations_sorted, key=lambda x: x[0], reverse=False)
+            sec_run.calculation = [calc[1] for calc in calculations_sorted]
+        elif None not in steps:
+            calculations_sorted = [[calc.step, calc] for calc in sec_run.calculation]
+            calculations_sorted = sorted(calculations_sorted, key=lambda x: x[0], reverse=False)
+            sec_run.calculation = [calc[1] for calc in calculations_sorted]
+        else:
+            self.logger.warning('Time and step information not available in section calculation, entries may be out of order.')
+
     def parse_system(self):
         sec_run = self.archive.run[-1]
 
@@ -703,21 +733,23 @@ class GromacsParser:
         pbc = self.log_parser.get_pbc()
         self._system_time_map = {}
         self._system_step_map = {}
+        self._system_info = []
         for n in range(n_frames):
             if (n % self.frame_rate) > 0:
                 continue
             positions = self.traj_parser.get_positions(n)
             sec_system = sec_run.m_create(System)
-            sec_system.time = self.traj_parser.get_time(n)  # TODO Physical times should not be stored for GeometryOpt
+            time = self.traj_parser.get_time(n)  # TODO Physical times should not be stored for GeometryOpt
             time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
-            if sec_system.time is not None:
+            if time is not None:
                 self._system_time_map[round(ureg.convert(
-                    sec_system.time.magnitude, sec_system.time.units, ureg.picosecond), 5)] = len(self._system_time_map)
-                sec_system.step = int((ureg.convert(
-                    sec_system.time.magnitude, sec_system.time.units,
+                    time.magnitude, time.units, ureg.picosecond), 5)] = len(self._system_time_map)
+                step = int((ureg.convert(
+                    time.magnitude, time.units,
                     time_step.units) / time_step.magnitude) + 1e-6) if time_step else None
-                if sec_system.step is not None:
-                    self._system_step_map[sec_system.step] = len(self._system_step_map)
+                if step is not None:
+                    self._system_step_map[step] = len(self._system_step_map)
+            self._system_info.append({'time': time, 'step': step})
             if positions is None:
                 continue
 

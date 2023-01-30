@@ -564,7 +564,7 @@ class GromacsParser:
             'Potential': 'potential', 'Kinetic En.': 'kinetic'}
         self._frame_rate = None
         # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 10000000
+        self._cum_max_atoms = 2500000
 
     @property
     def frame_rate(self):
@@ -624,7 +624,6 @@ class GromacsParser:
         # get it from edr file
         if self.energy_parser.keys():
             thermo_data = self.energy_parser
-            n_evaluations = self.energy_parser.length
         else:
             # try to get it from log file
             steps = self.log_parser.get('step', [])
@@ -640,75 +639,60 @@ class GromacsParser:
                 info = step.get('step_info', {})
                 thermo_data.setdefault('Time', [None] * n_frames)
                 thermo_data['Time'][n] = info.get('Time', None)
-            n_evaluations = n + 1
 
         if not thermo_data:
             # get it from edr file
             thermo_data = self.energy_parser
-            n_evaluations = self.energy_parser.length
 
         calculation_times_ps = thermo_data.get('Time')
         calculation_times_ps = calculation_times_ps.magnitude * ureg.convert(
             1.0, calculation_times_ps.units, ureg.picosecond)
 
-        flag_system_time_map = False if not self._system_time_map else True
-        for n in range(n_evaluations):
-            sec_scc = sec_run.m_create(Calculation)
+        time_map = {}
+        for i_calc, calculation_time in enumerate(calculation_times_ps):
             system_index = self._system_time_map.pop(
-                round(calculation_times_ps[n], 5), None) if calculation_times_ps[n] is not None else None
+                round(calculation_times_ps[i_calc], 5), None) if calculation_times_ps[i_calc] is not None else None
+            time_map[calculation_time] = {'system_index': system_index, 'calculation_index': i_calc}
+        for time, i_sys in self._system_time_map.items():
+            time_map[time] = {'system_index': i_sys, 'calculation_index': None}
+
+        for time in sorted(time_map):
+            sec_scc = sec_run.m_create(Calculation)
+            sec_scc.time = time  # TODO Physical times should not be stored for GeometryOpt
+            sec_scc.step = int((time / time_step).magnitude)
+            sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
+
+            system_index = time_map[time]['system_index']
             if system_index is not None:
                 sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(system_index)))
                 sec_scc.system_ref = sec_system[system_index]
-                sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
 
-            # TODO add other energy contributions, properties
-            energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']
+            calculation_index = time_map[time]['calculation_index']
+            if calculation_index is not None:
+                # TODO add other energy contributions, properties
+                energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']
 
-            sec_energy = sec_scc.m_create(Energy)
-            for key in thermo_data.keys():
-                val = thermo_data.get(key)[n]
-                if val is None:
-                    continue
+                sec_energy = sec_scc.m_create(Energy)
+                for key in thermo_data.keys():
+                    val = thermo_data.get(key)[calculation_index]
+                    if val is None:
+                        continue
 
-                if key == 'Total Energy':
-                    sec_energy.total = EnergyEntry(value=val)
-                elif key == 'Potential':
-                    sec_energy.potential = EnergyEntry(value=val)
-                elif key == 'Kinetic En.':
-                    sec_energy.kinetic = EnergyEntry(value=val)
-                elif key == 'Coulomb (SR)':
-                    sec_energy.coulomb = EnergyEntry(value=val)
-                elif key == 'Pressure':
-                    sec_scc.pressure = val
-                elif key == 'Temperature':
-                    sec_scc.temperature = val
-                elif key == 'Time':
-                    sec_scc.time = val  # TODO Physical times should not be stored for GeometryOpt
-                    sec_scc.step = int((val / time_step).magnitude)
-                if key in energy_keys:
-                    sec_energy.contributions.append(
-                        EnergyEntry(kind=self._metainfo_mapping[key], value=val))
-
-        if not flag_system_time_map:
-            if n_evaluations == len(sec_system):
-                for i_calc, calc in enumerate(sec_run.calculation):
-                    calc.system_ref = sec_system[i_calc]
-                self.logger.warning('Time and step information not available, but system and calculation are the same length.'
-                                    'Assuming correspondence and creating references between these two lists.')
-                return
-
-        for time, n in self._system_time_map.items():
-            sec_scc = sec_run.m_create(Calculation)
-            sec_scc.time = time
-            sec_scc.step = int((time / time_step).magnitude)
-
-        times = [calc.time for calc in sec_run.calculation]
-        if None not in times:
-            calculations_sorted = [[calc.time.magnitude, calc] for calc in sec_run.calculation]
-            calculations_sorted = sorted(calculations_sorted, key=lambda x: x[0], reverse=False)
-            sec_run.calculation = [calc[1] for calc in calculations_sorted]
-        else:
-            self.logger.warning('Time and step information not available in section calculation, entries may be out of order.')
+                    if key == 'Total Energy':
+                        sec_energy.total = EnergyEntry(value=val)
+                    elif key == 'Potential':
+                        sec_energy.potential = EnergyEntry(value=val)
+                    elif key == 'Kinetic En.':
+                        sec_energy.kinetic = EnergyEntry(value=val)
+                    elif key == 'Coulomb (SR)':
+                        sec_energy.coulomb = EnergyEntry(value=val)
+                    elif key == 'Pressure':
+                        sec_scc.pressure = val
+                    elif key == 'Temperature':
+                        sec_scc.temperature = val
+                    if key in energy_keys:
+                        sec_energy.contributions.append(
+                            EnergyEntry(kind=self._metainfo_mapping[key], value=val))
 
     def parse_system(self):
         sec_run = self.archive.run[-1]

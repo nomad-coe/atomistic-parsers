@@ -70,9 +70,9 @@ def test_md_verbose(parser):
     assert section_md.integration_parameters.barostat_parameters.compressibility.units == '1 / pascal'
 
     sec_sccs = sec_run.calculation
-    assert len(sec_sccs) == 7
-    assert sec_sccs[2].energy.total.value.magnitude == approx(-3.2711290665182795e-17)
-    assert sec_sccs[5].pressure.magnitude == approx(-63926916.5)
+    assert len(sec_sccs) == 5
+    assert sec_sccs[0].energy.total.value.magnitude == approx(-3.2711290665182795e-17)
+    assert sec_sccs[3].pressure.magnitude == approx(-63926916.5)
     assert sec_sccs[-2].energy.contributions[1].value.magnitude == approx(-4.15778738e-17)
     assert sec_sccs[0].forces.total.value[5][2].magnitude == approx(-7.932968909721231e-10)
 
@@ -102,7 +102,7 @@ def test_md_edr(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
 
-    assert len(archive.run[0].calculation) == 7
+    assert len(archive.run[0].calculation) == 5
 
 
 def test_md_atomsgroup(parser):

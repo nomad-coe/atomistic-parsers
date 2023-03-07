@@ -476,6 +476,9 @@ class TrajParser(TextParser):
         ]
 
     def get_atoms(self, n_frame):
+        frames = self.get('frame', [])
+        if n_frame >= len(frames):
+            return
         frame = self.get('frame')[n_frame]
         labels = [label.title() for label in frame.get('labels', [])]
         # TODO verify if trajectory positions are always printed out in angstroms
@@ -510,6 +513,9 @@ class XTBParser:
         else:
             self.coord_parser.mainfile = os.path.join(self.maindir, source)
             atoms = self.coord_parser.get_atoms()
+
+        if atoms is None:
+            return
 
         sec_system = self.archive.run[0].m_create(System)
         sec_atoms = sec_system.m_create(Atoms)

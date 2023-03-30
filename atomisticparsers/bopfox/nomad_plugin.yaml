@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: http://bopfox.de/
+code_name: BOPfox
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: BOPfox
+  codeLabelStyle: 'Capitals: B,O,P'
+  codeName: bopfox
+  codeUrl: http://bopfox.de/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/bopfox/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/bopfox
+parser_class_name: atomisticparsers.bopfox.parser.BOPfoxParser
+python_package: atomisticparsers.bopfox

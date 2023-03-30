@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: http://www.dftbplus.org/
+code_name: DFTB+
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: DFTB+
+  codeLabelStyle: all in capitals; use + instead of word
+  codeName: dftbplus
+  codeUrl: http://www.dftbplus.org/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/dftbplus/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/dftbplus
+parser_class_name: atomisticparsers.dftbplus.parser.DFTBPlusParser
+python_package: atomisticparsers.dftbplus

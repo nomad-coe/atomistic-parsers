@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: http://www.gromacs.org/
+code_name: GROMACS
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: GROMACS
+  codeLabelStyle: All in capitals
+  codeName: gromacs
+  codeUrl: http://www.gromacs.org/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/gromacs/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/gromacs
+parser_class_name: atomisticparsers.gromacs.parser.GromacsParser
+python_package: atomisticparsers.gromacs

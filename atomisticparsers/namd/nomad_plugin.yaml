@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: http://www.ks.uiuc.edu/Research/namd/
+code_name: NAMD
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: NAMD
+  codeLabelStyle: All in capitals
+  codeName: namd
+  codeUrl: http://www.ks.uiuc.edu/Research/namd/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/namd/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/namd
+parser_class_name: atomisticparsers.namd.parser.NAMDParser
+python_package: atomisticparsers.namd

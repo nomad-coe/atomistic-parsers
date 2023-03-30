@@ -1,0 +1,20 @@
+code_category: Atomistic code
+code_homepage: http://ambermd.org/
+code_name: Amber
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: Amber
+  codeLabelStyle: only first character in capitals
+  codeName: amber
+  codeUrl: http://ambermd.org/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/amber/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: 'The Amber parser supports the SANDER and PMEMD Molecular Dynamics
+    codes.
+
+    '
+  status: production
+  tableOfFiles: ''
+name: parsers/amber
+parser_class_name: atomisticparsers.amber.parser.AmberParser
+python_package: atomisticparsers.amber

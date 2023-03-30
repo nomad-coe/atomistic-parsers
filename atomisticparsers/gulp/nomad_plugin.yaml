@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: http://gulp.curtin.edu.au/gulp/
+code_name: GULP
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: GULP
+  codeLabelStyle: All in capitals
+  codeName: gulp
+  codeUrl: http://gulp.curtin.edu.au/gulp/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/gulp/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/gulp
+parser_class_name: atomisticparsers.gulp.parser.GulpParser
+python_package: atomisticparsers.gulp

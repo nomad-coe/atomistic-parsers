@@ -85,39 +85,41 @@ class HoomdblueGsdParser(FileParser):
         self._nomad_to_hoomdblue_map = {}
         self._nomad_to_hoomdblue_map['system'] = {}
         self._nomad_to_hoomdblue_map['system']['atoms'] = {
+            'lattice_vectors': 'configuration.box',
             'positions': 'particles.position',
             'x_hoomdblue_orientation': 'particles.orientation',
-            'x_hoomdblue_types': 'particles.types',
+            # 'x_hoomdblue_types': 'particles.types',
             'x_hoomdblue_typeid': 'particles.typeid',
-            'mass': 'particles.mass',
-            'charge': 'particles.charge',
-            'x_hoomdblue_diameter': 'particles.diameter',
-            'x_hoomdblue_body': 'particles.body',
-            'x_hoomdblue_moment_inertia': 'particles.moment_inertia',
+            # 'mass': 'particles.mass',
+            # 'charge': 'particles.charge',
+            # 'x_hoomdblue_diameter': 'particles.diameter',
+            # 'x_hoomdblue_body': 'particles.body',
+            # 'x_hoomdblue_moment_inertia': 'particles.moment_inertia',
             'velocities': 'particles.velocity',
             'x_hoomdblue_angmom': 'particles.angmom',
             'x_hoomdblue_image': 'particles.image',
-            'x_hoomdblue_type_shapes': 'particles.type_shapes'
+            # 'x_hoomdblue_type_shapes': 'particles.type_shapes'
         }
 
-
+        self._nomad_to_hoomdblue_map['calculation'] = {
+            'step': 'configuration.step',
+        }
 
         self._nomad_to_hoomdblue_map['method'] = {}
         self._nomad_to_hoomdblue_map['method']['atom_parameters'] = {
             'x_hoomdblue_types': 'particles.types',
-            'x_hoomdblue_typeid': 'particles.typeid',
+            # 'x_hoomdblue_typeid': 'particles.typeid',
             'mass': 'particles.mass',
             'charge': 'particles.charge',
             'x_hoomdblue_diameter': 'particles.diameter',
             'x_hoomdblue_body': 'particles.body',
             'x_hoomdblue_moment_inertia': 'particles.moment_inertia',
-            'velocities': 'particles.velocity',
-            'x_hoomdblue_angmom': 'particles.angmom',
-            'x_hoomdblue_image': 'particles.image',
+            # 'velocities': 'particles.velocity',
+            # 'x_hoomdblue_angmom': 'particles.angmom',
+            # 'x_hoomdblue_image': 'particles.image',
             'x_hoomdblue_type_shapes': 'particles.type_shapes'
         }
         self._hoomdblue_interaction_keys = ['bonds', 'angles', 'dihedrals', 'impropers', 'constraints', 'pairs']
-
 
     def _attr_getter(self, source, path, default):
         '''
@@ -710,8 +712,17 @@ class HoomdblueParser:
                 self._frame_rate = 1 if cum_atoms <= self._cum_max_atoms else cum_atoms // self._cum_max_atoms
         return self._frame_rate
 
-    def parse_thermodynamic_data(self, frame):
+    def parse_calculation(self, frame):
         sec_run = self.archive.run[-1]
+        sec_scc = sec_run.m_create(Calculation)
+
+        calculation_map = self.gsd_parser._nomad_to_hoomdblue_map['calculation']
+        for nomad_attr, hoomdblue_sec in calculation_map.items():
+            hoomdblue_attr = self.gsd_parser._attr_getter(frame, hoomdblue_sec, None)
+            if hoomdblue_attr:
+                setattr(sec_scc, nomad_attr, hoomdblue_attr)
+
+
 
         # forces = self.traj_parser.get('forces')
         n_frames = self.traj_parser.get('n_frames')
@@ -804,62 +815,11 @@ class HoomdblueParser:
         sec_system = sec_run.m_create(System)
         sec_atoms = sec_system.m_create(Atoms)
 
-        self._hoomdblue_schema = {}
-        self._hoomdblue_schema['system'] = {}
-        self._hoomdblue_schema['system']['configuration'] = ['step', 'dimensions', 'box']
-        self._hoomdblue_schema['system']['particles'] = {
-            'N': 'n_atoms', 'position': 'positions', 'orientation': 'x_hoomdblue_orientation',
-            'types': 'x_hoomdblue_types', 'typeid': 'x_hoomdblue_typeid', 'mass': 'mass',
-            'charge': 'charge', 'diameter': 'x_hoomdblue_diameter', 'body': 'x_hoomdblue_body',
-            'moment_inertia': 'x_hoomdblue_moment_inertia', 'velocity': 'velocities',
-            'angmom': 'x_hoomdblue_angmom', 'image': 'x_hoomdblue_image',
-            'type_shapes': 'x_hoomdblue_type_shapes'
-        }
-
-
-        self._nomad_to_hoomdblue_map['system']['atoms'] = {
-         'n_atoms': 'particles.N',
-         'species': 'particles.',
-         'labels':,
-         'positions':,
-         'velocities':,
-         'lattice_vectors':,
-         'periodic':,
-
-            'N': 'n_atoms',
-            'position': 'positions',
-            'orientation': 'x_hoomdblue_orientation',
-            'types': 'x_hoomdblue_types',
-            'typeid': 'x_hoomdblue_typeid',
-            'mass': 'mass',
-            'charge': 'charge',
-            'diameter': 'x_hoomdblue_diameter',
-            'body': 'x_hoomdblue_body',
-            'moment_inertia':
-            'x_hoomdblue_moment_inertia',
-            'velocity': 'velocities',
-            'angmom':
-            'x_hoomdblue_angmom',
-            'image': 'x_hoomdblue_image',
-            'type_shapes': 'x_hoomdblue_type_shapes'
-
-
-
-
-        }
-
-            ['step', 'dimensions', 'box']
-        self._hoomdblue_schema['system']['particles'] = {
-            'N': 'n_atoms', 'position': 'positions', 'orientation': 'x_hoomdblue_orientation',
-            'types': 'x_hoomdblue_types', 'typeid': 'x_hoomdblue_typeid', 'mass': 'mass',
-            'charge': 'charge', 'diameter': 'x_hoomdblue_diameter', 'body': 'x_hoomdblue_body',
-            'moment_inertia': 'x_hoomdblue_moment_inertia', 'velocity': 'velocities',
-            'angmom': 'x_hoomdblue_angmom', 'image': 'x_hoomdblue_image',
-            'type_shapes': 'x_hoomdblue_type_shapes'
-        }
-
-        for key in self._hoomdblue_schema['system']['atoms']:
-            sec_atoms.get('key')
+        atom_attributes_map = self.gsd_parser._nomad_to_hoomdblue_map['system']['atoms']
+        for nomad_attr, hoomdblue_sec in atom_attributes_map.items():
+            hoomdblue_attr = self.gsd_parser._attr_getter(frame, hoomdblue_sec, None)
+            if hoomdblue_attr:
+                setattr(sec_atoms, nomad_attr, hoomdblue_attr)
 
 
 
@@ -978,13 +938,12 @@ class HoomdblueParser:
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
 
-        # hoomdblue_to_nomad_map = self.gsd_parser._hoomdblue_to_nomad_map
-
         particles = getattr(frame, 'particles', None)
         n_atoms = getattr(particles, 'N', 0)
         if n_atoms == 0:
             step = self.gsd_parser._attr_getter(frame, 'configuration.step', None)
-            self.logger.error('Error parsing gsd method: There seems to be no atoms in frame' + str(step))
+            self.logger.warning(rf'Error parsing gsd method: There seems to be no atoms in frame {step}')
+            return
 
         atom_parameters_map = self.gsd_parser._nomad_to_hoomdblue_map['method']['atom_parameters']
         for n in range(n_atoms):
@@ -1021,27 +980,6 @@ class HoomdblueParser:
                 sec_inter_group.name = np.array(inter_types)[inter]
                 sec_inter_group.atom_indices = inter_atom_indices[inter_group]
                 sec_inter_group.atom_labels = atom_labels[sec_inter_group.atom_indices]
-
-
-        # input_parameters = self.log_parser.get('input_parameters', {})
-        # sec_force_calculations = sec_force_field.m_create(ForceCalculations)
-        # sec_neighbor_searching = sec_force_calculations.m_create(NeighborSearching)
-
-        # nstlist = input_parameters.get('nstlist', None)
-        # sec_neighbor_searching.neighbor_update_frequency = int(nstlist) if nstlist else None
-        # rlist = input_parameters.get('rlist', None)
-        # sec_neighbor_searching.neighbor_update_cutoff = float(rlist) * ureg.nanometer if rlist else None
-        # rvdw = input_parameters.get('rvdw', None)
-        # sec_force_calculations.vdw_cutoff = float(rvdw) * ureg.nanometer if rvdw else None
-        # coulombtype = input_parameters.get('coulombtype', 'no').lower()
-        # coulombtype_map = {'cut-off': 'cutoff', 'ewald': 'ewald', 'pme': 'particle_mesh_ewald',
-        #                    'p3m-ad': 'particle_particle_particle_mesh', 'reaction-field': 'reaction_field',
-        #                    'shift': 'cutoff', 'switch': 'cutoff', 'user': 'cutoff'}
-        # value = coulombtype_map.get(coulombtype, [val for key, val in coulombtype_map.items() if key in coulombtype])
-        # value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
-        # sec_force_calculations.coulomb_type = value
-        # rcoulomb = input_parameters.get('rcoulomb', None)
-        # sec_force_calculations.coulomb_cutoff = float(rcoulomb) if rcoulomb else None
 
     def parse_workflow(self, frame):
 
@@ -1326,10 +1264,11 @@ class HoomdblueParser:
 
             self.parse_method(frame)
 
-            self.parse_system(frame)
+            if (i_frame % self.frame_rate) == 0:
+                self.parse_system(frame)
 
-            self.parse_thermodynamic_data(frame)
+            self.parse_calculation(frame)
 
-            self.parse_input(frame)
+            # self.parse_input(frame)
 
-            self.parse_workflow(frame)
+            # self.parse_workflow(frame)

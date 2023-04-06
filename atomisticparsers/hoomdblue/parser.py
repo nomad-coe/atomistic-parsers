@@ -114,13 +114,21 @@ class HoomdblueParser:
         self.gsd_parser = HoomdblueGsdParser()
         self._frame_rate = None
         # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 1000000
+        self._cum_max_atoms = 2500000
 
     @property
     def frame_rate(self):
         if self._frame_rate is None:
-            n_atoms = self.traj_parser.get('n_atoms', 0)
-            n_frames = self.traj_parser.get('n_frames', 0)
+            if self.gsd_parser:
+                n_frames = 0
+                n_atoms = 0
+                for frame in enumerate(self.gsd_parser.filegsd):
+                    print(frame)
+                    particles = getattr(frame, 'particles', None)
+                    n_atoms = getattr(particles, 'N', 0)
+                    print(n_atoms)
+                    n_atoms += self.gsd_parser._attr_getter(frame, 'particles.N', 0)
+                    n_frames += 1
             if n_atoms == 0 or n_frames == 0:
                 self._frame_rate = 1
             else:
@@ -156,8 +164,8 @@ class HoomdblueParser:
             if hoomdblue_attr:
                 setattr(sec_atoms, nomad_attr, hoomdblue_attr)
 
-        particle_types = particles.get('types')
-        particles_typeid = particles.get('typeid')
+        particle_types = getattr(particles, 'types', None)
+        particles_typeid = getattr(particles, 'typeid', None)
         bond_list = self.gsd_parser._attr_getter(frame, 'bonds.group', None)
         if bond_list:
             molecules = get_molecules_from_bond_list(n_atoms, bond_list, particle_types, particles_typeid)
@@ -216,17 +224,18 @@ class HoomdblueParser:
             self.logger.warning(rf'Error parsing gsd method: There seems to be no atoms in frame {step}')
             return
 
-        particle_types = particles.get('types')
-        particles_typeid = particles.get('typeid')
+        particle_types = getattr(particles, 'types', None)
+        particles_typeid = getattr(particles, 'typeid', None)
         if particle_types:
-            particle_labels = [particle_types[particles_typeid[i_atom]] for i_atom in range(n_atoms)] if particles_typeid else None
+            particle_labels = [particle_types[particles_typeid[i_atom]] for i_atom in range(n_atoms)] if particles_typeid.any() else None
 
         atom_parameters_map = self.gsd_parser._nomad_to_hoomdblue_map['method']['atom_parameters']
         for n in range(n_atoms):
             sec_atom = sec_method.m_create(AtomParameters)
             for nomad_attr, hoomdblue_sec in atom_parameters_map.items():
-                hoomdblue_attr = self.gsd_parser._attr_getter(frame, hoomdblue_sec, [None] * (n + 1))[n]
-                if hoomdblue_attr:
+                hoomdblue_attr = self.gsd_parser._attr_getter(frame, hoomdblue_sec, [None] * (n + 1))
+                hoomdblue_attr = hoomdblue_attr[n] if len(hoomdblue_attr) > n else None
+                if hoomdblue_attr is not None:
                     setattr(sec_atom, nomad_attr, hoomdblue_attr)
             sec_atom.label = particle_labels[n]
 
@@ -271,6 +280,10 @@ class HoomdblueParser:
         )
         self.archive.workflow2 = workflow
 
+    def init_parser(self):
+
+        self.gsd_parser.mainfile = self.filepath
+
     def parse(self, filepath, archive, logger):
 
         self.filepath = os.path.abspath(filepath)
@@ -280,12 +293,14 @@ class HoomdblueParser:
         self._hoomdblue_files = os.listdir(self._maindir)
         self._basename = os.path.basename(filepath).rsplit('.', 1)[0]
 
+        self.init_parser()
+
         if self.gsd_parser is None:
             return
 
         __ = self.archive.m_create(Run)
 
-        for i_frame, frame in enumerate(self.gsd_parser):
+        for i_frame, frame in enumerate(self.gsd_parser.filegsd):
 
             self.parse_method(frame)
 
@@ -293,6 +308,5 @@ class HoomdblueParser:
                 self.parse_system(frame)
 
             self.parse_calculation(frame)
-
 
         self.parse_workflow()

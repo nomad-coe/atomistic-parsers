@@ -123,17 +123,15 @@ class HoomdblueParser:
                 n_frames = 0
                 n_atoms = 0
                 for frame in enumerate(self.gsd_parser.filegsd):
-                    print(frame)
                     particles = getattr(frame, 'particles', None)
                     n_atoms = getattr(particles, 'N', 0)
-                    print(n_atoms)
-                    n_atoms += self.gsd_parser._attr_getter(frame, 'particles.N', 0)
+                    n_atoms += n_atoms
                     n_frames += 1
-            if n_atoms == 0 or n_frames == 0:
-                self._frame_rate = 1
-            else:
-                cum_atoms = n_atoms * n_frames
-                self._frame_rate = 1 if cum_atoms <= self._cum_max_atoms else cum_atoms // self._cum_max_atoms
+                if n_atoms == 0 or n_frames == 0:
+                    self._frame_rate = 1
+                else:
+                    cum_atoms = n_atoms * n_frames
+                    self._frame_rate = 1 if cum_atoms <= self._cum_max_atoms else cum_atoms // self._cum_max_atoms
         return self._frame_rate
 
     def parse_calculation(self, frame):
@@ -144,6 +142,8 @@ class HoomdblueParser:
         for nomad_attr, hoomdblue_sec in calculation_map.items():
             hoomdblue_attr = self.gsd_parser._attr_getter(frame, hoomdblue_sec, None)
             if hoomdblue_attr:
+                if nomad_attr == 'step':
+                    hoomdblue_attr = int(hoomdblue_attr)
                 setattr(sec_scc, nomad_attr, hoomdblue_attr)
 
     def parse_system(self, frame):
@@ -161,13 +161,13 @@ class HoomdblueParser:
         atom_attributes_map = self.gsd_parser._nomad_to_hoomdblue_map['system']['atoms']
         for nomad_attr, hoomdblue_sec in atom_attributes_map.items():
             hoomdblue_attr = self.gsd_parser._attr_getter(frame, hoomdblue_sec, None)
-            if hoomdblue_attr:
+            if hoomdblue_attr is not None:
                 setattr(sec_atoms, nomad_attr, hoomdblue_attr)
 
         particle_types = getattr(particles, 'types', None)
         particles_typeid = getattr(particles, 'typeid', None)
         bond_list = self.gsd_parser._attr_getter(frame, 'bonds.group', None)
-        if bond_list:
+        if bond_list is not None:
             molecules = get_molecules_from_bond_list(n_atoms, bond_list, particle_types, particles_typeid)
 
             # create groups of molecules
@@ -178,7 +178,7 @@ class HoomdblueParser:
             mol_groups[0]['formula'] = get_composition(molecules[0]['names'])
             for mol in molecules[1:]:
                 flag_mol_group_exists = False
-                for i_mol_group in len(mol_groups):
+                for i_mol_group in range(len(mol_groups)):
                     if is_same_molecule(mol, mol_groups[i_mol_group]['molecules'][0]):
                         mol_groups[i_mol_group]['molecules'].append(mol)
                         flag_mol_group_exists = True
@@ -251,7 +251,7 @@ class HoomdblueParser:
             sec_interaction.type = interaction_key
             sec_interaction.n_inter = getattr(hoomdblue_sec, 'N', None)
             sec_interaction.n_atoms = getattr(hoomdblue_sec, 'M', None)
-            inter_types = getattr(hoomdblue_sec, 'types', None)
+            inter_type_names = getattr(hoomdblue_sec, 'types', None)
             inter_atom_indices = getattr(hoomdblue_sec, 'group', None)
             typeid = getattr(hoomdblue_sec, 'typeid', [])
             inter_types = np.unique(typeid)
@@ -260,10 +260,10 @@ class HoomdblueParser:
                 n_inter = len(inter_group)
                 if n_inter < 1:
                     continue
-                sec_inter_group = sec_interaction[-1].m_create(Interaction)
+                sec_inter_group = sec_interaction.m_create(Interaction)
                 sec_inter_group.n_inter = n_inter
                 sec_inter_group.n_atoms = sec_interaction.n_atoms
-                sec_inter_group.name = np.array(inter_types)[inter]
+                sec_inter_group.name = inter_type_names[inter]
                 sec_inter_group.atom_indices = inter_atom_indices[inter_group]
                 sec_inter_group.atom_labels = atom_labels[sec_inter_group.atom_indices]
 

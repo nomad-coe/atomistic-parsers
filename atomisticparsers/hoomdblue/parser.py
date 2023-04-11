@@ -33,7 +33,7 @@ except Exception:
 
 # from nomad.units import ureg
 from nomad.parsing.file_parser import FileParser
-from nomad.datamodel.metainfo.simulation.run import Run  #, Program, TimeRun
+from nomad.datamodel.metainfo.simulation.run import Run, Program  #, TimeRun
 from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, Interaction, AtomParameters
 )
@@ -298,7 +298,8 @@ class HoomdblueParser:
         if self.gsd_parser is None:
             return
 
-        __ = self.archive.m_create(Run)
+        sec_run = self.archive.m_create(Run)
+        sec_run.program = Program(name='HOOMDBLUE', version='unknown')
 
         for i_frame, frame in enumerate(self.gsd_parser.filegsd):
 

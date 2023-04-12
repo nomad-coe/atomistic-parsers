@@ -33,9 +33,8 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry
 )
-from nomad.datamodel.metainfo.workflow import IntegrationParameters, Workflow, MolecularDynamics
 from nomad.datamodel.metainfo.simulation.workflow import (
-    MolecularDynamics as MolecularDynamics2, MolecularDynamicsMethod
+    MolecularDynamics, MolecularDynamicsMethod
 )
 
 
@@ -561,15 +560,8 @@ class DLPolyParser:
                         total=ForcesEntry(value=np.transpose(array[2]) * ureg.amu * ureg.angstrom / ureg.ps ** 2))
             # TODO add rdf output
 
-        sec_workflow = archive.m_create(Workflow)
-        sec_workflow.type == 'molecular_dynamics'
-        sec_md = sec_workflow.m_create(MolecularDynamics)
         ensemble_type = control_parameters.get('Ensemble')
-        sec_md.thermodynamic_ensemble = ensemble_type.split()[0] if ensemble_type is not None else None
-        sec_integration_parameters = sec_md.m_create(IntegrationParameters)
-        sec_integration_parameters.integration_timestep = control_parameters.get('fixed simulation timestep', 0) * ureg.ps
-
-        workflow = MolecularDynamics2(method=MolecularDynamicsMethod())
+        workflow = MolecularDynamics(method=MolecularDynamicsMethod())
         workflow.method.thermodynamic_ensemble = ensemble_type.split()[0] if ensemble_type is not None else None
         workflow.method.integration_timestep = control_parameters.get('fixed simulation timestep', 0) * ureg.ps
-        archive.workflow2 = workflow
+        archive.workflow = workflow

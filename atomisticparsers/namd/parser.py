@@ -36,8 +36,7 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry
 )
-from nomad.datamodel.metainfo.workflow import Workflow
-from nomad.datamodel.metainfo.simulation import workflow as workflow2
+from nomad.datamodel.metainfo.simulation.workflow import MolecularDynamics
 from atomisticparsers.utils import MDAnalysisParser
 
 
@@ -259,6 +258,4 @@ class NAMDParser:
         sec_run.calculation[0].system_ref = initial_system
 
         # workflow
-        sec_workflow = self.archive.m_create(Workflow)
-        sec_workflow.type = 'molecular_dynamics'
-        self.archive.workflow2 = workflow2.MolecularDynamics()
+        self.archive.workflow = MolecularDynamics()

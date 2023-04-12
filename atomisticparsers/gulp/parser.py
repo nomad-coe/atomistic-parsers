@@ -35,8 +35,9 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry
 )
-from nomad.datamodel.metainfo.workflow import Workflow, Elastic, MolecularDynamics, IntegrationParameters
-from nomad.datamodel.metainfo.simulation import workflow as workflow2
+from nomad.datamodel.metainfo.simulation.workflow import (
+    Elastic, ElasticMethod, ElasticResults, MolecularDynamics, MolecularDynamicsMethod
+)
 from atomisticparsers.gulp.metainfo.gulp import x_gulp_bulk_optimisation, x_gulp_bulk_optimisation_cycle
 
 
@@ -717,35 +718,24 @@ class GulpParser:
                         setattr(sec_opt, key, val)
 
             if source.elastic_constants is not None:
-                sec_workflow = self.archive.m_create(Workflow)
-                sec_elastic = sec_workflow.m_create(Elastic)
-                workflow = workflow2.Elastic(
-                    method=workflow2.ElasticMethod(), results=workflow2.ElasticResults())
-                sec_workflow.type = 'elastic'
-                sec_elastic.energy_stress_calculator = 'gulp'
+                workflow = Elastic(
+                    method=ElasticMethod(), results=ElasticResults())
                 workflow.method.energy_stress_calculator = 'gulp'
-                sec_elastic.elastic_constants_matrix_second_order = source.elastic_constants
                 workflow.results.elastic_constants_matrix_second_order = source.elastic_constants
-                sec_elastic.compliance_matrix_second_order = source.elastic_compliance
                 workflow.results.compliance_matrix_second_order = source.elastic_compliance
                 mechanical_properties = source.get('mechanical_properties', {})
-                parse_mechanical_property('bulk_modulus', mechanical_properties, sec_elastic)
-                parse_mechanical_property('shear_modulus', mechanical_properties, sec_elastic)
-                parse_mechanical_property('x_gulp_velocity_s_wave', mechanical_properties, sec_elastic)
-                parse_mechanical_property('x_gulp_velocity_p_wave', mechanical_properties, sec_elastic)
-                parse_mechanical_property('x_gulp_youngs_modulus', mechanical_properties, sec_elastic)
                 parse_mechanical_property('bulk_modulus', mechanical_properties, workflow.results)
                 parse_mechanical_property('shear_modulus', mechanical_properties, workflow.results)
                 parse_mechanical_property('x_gulp_velocity_s_wave', mechanical_properties, workflow.results)
                 parse_mechanical_property('x_gulp_velocity_p_wave', mechanical_properties, workflow.results)
                 parse_mechanical_property('x_gulp_youngs_modulus', mechanical_properties, workflow.results)
-                sec_elastic.x_gulp_compressibility = mechanical_properties.get('compressibility')
+                workflow.results.x_gulp_compressibility = mechanical_properties.get('compressibility')
                 poissons = mechanical_properties.get('poissons_ratio', np.zeros((3, 3)))
                 # insert zeros for diagonal elements
                 for n in range(3):
                     poissons[n] = np.insert(poissons[n], n, 0.)
-                sec_elastic.x_gulp_poissons_ratio = poissons
-                self.archive.workflow2 = workflow
+                workflow.results.x_gulp_poissons_ratio = poissons
+                self.archive.workflow = workflow
 
             # md properties
             if source.energy_total is not None:
@@ -785,20 +775,14 @@ class GulpParser:
                 sec_calc.system_ref = sec_system
 
         for output in self.mainfile_parser.get('molecular_dynamics', []):
-            sec_workflow = self.archive.m_create(Workflow)
-            sec_workflow.type = 'molecular_dynamics'
-            sec_md = sec_workflow.m_create(MolecularDynamics)
-            workflow = workflow2.MolecularDynamics(method=workflow2.MolecularDynamics())
-            sec_md.thermodynamic_ensemble = output.get('ensemble_type', '').upper()
+            workflow = MolecularDynamics(method=MolecularDynamicsMethod())
             workflow.method.thermodynamic_ensemble = output.get('ensemble_type', '').upper()
-            sec_integration_parameters = sec_md.m_create(IntegrationParameters)
-            sec_integration_parameters.integration_timestep = output.timestep
             workflow.method.integration_timestep = output.timestep
             for key, val in output.items():
                 if key.startswith('x_gulp_'):
-                    setattr(sec_md, key, val)
+                    setattr(workflow, key, val)
             # parse md steps
             for step in output.get('step', []):
                 parse_calculation(step)
                 # TODO where are the trajectory data saved
-            self.archive.workflow2 = workflow
+            self.archive.workflow = workflow

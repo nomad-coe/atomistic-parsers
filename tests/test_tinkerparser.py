@@ -59,19 +59,18 @@ def test_minimize_dynamic(parser):
     assert sec_run[1].calculation[5].step == 3000
 
     sec_workflow = archive.workflow
-    assert len(sec_workflow) == 2
-    assert sec_workflow[0].type == 'geometry_optimization'
-    assert sec_workflow[0].geometry_optimization.method == 'Limited Memory BFGS Quasi-Newton'
-    assert sec_workflow[0].geometry_optimization.x_tinker_convergence_tolerance_rms_gradient == 1.0
-    assert sec_workflow[0].geometry_optimization.x_tinker_final_rms_gradient.magnitude == 0.9715
+    # assert sec_workflow[0].type == 'geometry_optimization'
+    # assert sec_workflow[0].geometry_optimization.method == 'Limited Memory BFGS Quasi-Newton'
+    # assert sec_workflow[0].geometry_optimization.x_tinker_convergence_tolerance_rms_gradient == 1.0
+    # assert sec_workflow[0].geometry_optimization.x_tinker_final_rms_gradient.magnitude == 0.9715
 
-    assert sec_workflow[1].type == 'molecular_dynamics'
-    assert sec_workflow[1].molecular_dynamics.thermodynamic_ensemble is None
-    assert sec_workflow[1].molecular_dynamics.integration_parameters.integration_timestep.magnitude == approx(2e-15)
-    assert sec_workflow[1].molecular_dynamics.x_tinker_number_of_steps_requested == 3000
-    assert sec_workflow[1].molecular_dynamics.x_tinker_barostat_tau == approx(1.0e+20)
-    assert sec_workflow[1].molecular_dynamics.x_tinker_thermostat_target_temperature.magnitude == approx(150.87)
-    assert sec_workflow[1].molecular_dynamics.x_tinker_barostat_target_pressure.magnitude == approx(4964925.0)
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
+    assert sec_workflow.method.thermodynamic_ensemble is None
+    assert sec_workflow.method.integration_timestep.magnitude == approx(2e-15)
+    assert sec_workflow.x_tinker_number_of_steps_requested == 3000
+    assert sec_workflow.x_tinker_barostat_tau == approx(1.0e+20)
+    assert sec_workflow.x_tinker_thermostat_target_temperature.magnitude == approx(150.87)
+    assert sec_workflow.x_tinker_barostat_target_pressure.magnitude == approx(4964925.0)
 
 
 def test_vibrate(parser):

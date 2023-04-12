@@ -94,13 +94,13 @@ def test_opt(parser):
     assert len(sec_calc[2].scf_iteration) == 5
     assert sec_calc[3].scf_iteration[1].energy.total.value.magnitude == approx(-2.53150129e-17)
 
-    sec_workflow = archive.workflow[0]
-    assert sec_workflow.type == 'geometry_optimization'
-    assert sec_workflow.geometry_optimization.convergence_tolerance_energy_difference.magnitude == approx(2.17987236e-23)
-    assert sec_workflow.geometry_optimization.convergence_tolerance_force_maximum.magnitude == approx(8.2387235e-11)
-    assert sec_workflow.geometry_optimization.x_xtb_max_opt_cycles == 200
-    assert sec_workflow.geometry_optimization.x_xtb_rf_solver == 'davidson'
-    assert sec_workflow.geometry_optimization.x_xtb_hlow == approx(0.01)
+    sec_workflow = archive.workflow
+    assert sec_workflow.m_def.name == 'GeometryOptimization'
+    assert sec_workflow.method.convergence_tolerance_energy_difference.magnitude == approx(2.17987236e-23)
+    assert sec_workflow.method.convergence_tolerance_force_maximum.magnitude == approx(8.2387235e-11)
+    assert sec_workflow.x_xtb_max_opt_cycles == 200
+    assert sec_workflow.x_xtb_rf_solver == 'davidson'
+    assert sec_workflow.x_xtb_hlow == approx(0.01)
 
 
 def test_md(parser):

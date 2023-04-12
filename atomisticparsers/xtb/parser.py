@@ -31,7 +31,9 @@ from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, ScfIteration, Energy, EnergyEntry, BandEnergies, Multipoles, MultipolesEntry
 )
-from nomad.datamodel.metainfo.workflow import Workflow, GeometryOptimization, MolecularDynamics
+from nomad.datamodel.metainfo.simulation.workflow import (
+    SinglePoint, GeometryOptimization, GeometryOptimizationMethod, MolecularDynamics
+)
 from atomisticparsers.xtb.metainfo import m_env  # pylint: disable=unused-import
 
 
@@ -606,7 +608,7 @@ class XTBParser:
     def parse_gfn(self, section):
         self.parse_method(section)
         self.parse_single_point(self.out_parser.get(section), section)
-        self.archive.workflow[-1].type = 'single_point'
+        self.archive.workflow = SinglePoint()
 
     def parse_opt(self, section):
         module = self.out_parser.get(section)
@@ -623,18 +625,18 @@ class XTBParser:
         self.parse_single_point(module.get('final_single_point'), 'final_single_point')
 
         # workflow parameters
-        self.archive.workflow[-1].type = 'geometry_optimization'
-        sec_opt = self.archive.workflow[-1].m_create(GeometryOptimization)
+        workflow = GeometryOptimization(method=GeometryOptimizationMethod())
         for key, val in module.get('setup', {}).get('parameter', []):
             name = self._metainfo_map.get(key)
             if key == 'energy convergence':
-                sec_opt.convergence_tolerance_energy_difference = val * ureg.hartree
+                workflow.method.convergence_tolerance_energy_difference = val * ureg.hartree
             elif key == 'grad. convergence':
-                sec_opt.convergence_tolerance_force_maximum = val * ureg.hartree / ureg.bohr
+                workflow.method.convergence_tolerance_force_maximum = val * ureg.hartree / ureg.bohr
             elif key == 'maximium RF displ.':
-                sec_opt.convergence_tolerance_displacement_maximum = val * ureg.bohr
+                workflow.method.convergence_tolerance_displacement_maximum = val * ureg.bohr
             elif name is not None:
-                setattr(sec_opt, f'x_xtb_{name}', val)
+                setattr(workflow, f'x_xtb_{name}', val)
+        self.archive.workflow = workflow
 
     def parse_md(self, section):
         module = self.out_parser.get(section)
@@ -659,11 +661,10 @@ class XTBParser:
             sec_calc.system_ref = sec_system
 
         # workflow parameters
-        self.archive.workflow[-1].type = 'molecular_dynamics'
-        sec_md = self.archive.workflow[-1].m_create(MolecularDynamics)
+        workflow = MolecularDynamics()
         for key, val in module.items():
             if key.startswith('x_xtb_'):
-                setattr(sec_md, key, val)
+                setattr(workflow, key, val)
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)
@@ -687,7 +688,6 @@ class XTBParser:
                 sec_run.time_run.date_end = datetime.strptime(
                     self.out_parser.date_end, '%Y/%m/%d %H:%M:%S.%f').timestamp()
 
-        self.archive.m_create(Workflow)
         # modules
         self.parse_gfn('gfnff')
         self.parse_gfn('gfn1')

@@ -42,32 +42,29 @@ def test_md_verbose(parser):
     assert sec_control.x_gromacs_inout_control_coulombtype == 'PME'
     assert np.shape(sec_control.x_gromacs_inout_control_deform) == (3, 3)
 
-    sec_workflow = archive.workflow[0]
-    section_md = sec_workflow.molecular_dynamics
-    assert sec_workflow.type == 'molecular_dynamics'
-    assert section_md.thermodynamic_ensemble == 'NPT'
-    assert section_md.finished_normally is None
-    assert section_md.with_trajectory is None
-    assert section_md.with_thermodynamics is None
-    assert section_md.integration_parameters.integrator_type == 'leap_frog'
-    assert section_md.integration_parameters.integration_timestep.magnitude == 5e-16
-    assert section_md.integration_parameters.integration_timestep.units == 'second'
-    assert section_md.integration_parameters.n_steps == 20
-    assert section_md.integration_parameters.coordinate_save_frequency == 20
-    assert section_md.integration_parameters.thermodynamics_save_frequency == 5
-    assert section_md.integration_parameters.thermostat_parameters.thermostat_type == 'berendsen'
-    assert section_md.integration_parameters.thermostat_parameters.reference_temperature.magnitude == 298.0
-    assert section_md.integration_parameters.thermostat_parameters.reference_temperature.units == 'kelvin'
-    assert section_md.integration_parameters.thermostat_parameters.coupling_constant.magnitude == 5e-13
-    assert section_md.integration_parameters.thermostat_parameters.coupling_constant.units == 'second'
-    assert section_md.integration_parameters.barostat_parameters.barostat_type == 'berendsen'
-    assert section_md.integration_parameters.barostat_parameters.coupling_type == 'isotropic'
-    assert np.all(section_md.integration_parameters.barostat_parameters.reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
-    assert section_md.integration_parameters.barostat_parameters.reference_pressure.units == 'pascal'
-    assert np.all(section_md.integration_parameters.barostat_parameters.coupling_constant.magnitude == [[1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12]])
-    assert section_md.integration_parameters.barostat_parameters.coupling_constant.units == 'second'
-    assert np.all(section_md.integration_parameters.barostat_parameters.compressibility.magnitude == [[4.6e-10, 0.0e+00, 0.0e+00], [0.0e+00, 4.6e-10, 0.0e+00], [0.0e+00, 0.0e+00, 4.6e-10]])
-    assert section_md.integration_parameters.barostat_parameters.compressibility.units == '1 / pascal'
+    sec_workflow = archive.workflow
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
+    sec_method = sec_workflow.method
+    assert sec_method.thermodynamic_ensemble == 'NPT'
+    assert sec_method.integrator_type == 'leap_frog'
+    assert sec_method.integration_timestep.magnitude == 5e-16
+    assert sec_method.integration_timestep.units == 'second'
+    assert sec_method.n_steps == 20
+    assert sec_method.coordinate_save_frequency == 20
+    assert sec_method.thermodynamics_save_frequency == 5
+    assert sec_method.thermostat_parameters.thermostat_type == 'berendsen'
+    assert sec_method.thermostat_parameters.reference_temperature.magnitude == 298.0
+    assert sec_method.thermostat_parameters.reference_temperature.units == 'kelvin'
+    assert sec_method.thermostat_parameters.coupling_constant.magnitude == 5e-13
+    assert sec_method.thermostat_parameters.coupling_constant.units == 'second'
+    assert sec_method.barostat_parameters.barostat_type == 'berendsen'
+    assert sec_method.barostat_parameters.coupling_type == 'isotropic'
+    assert np.all(sec_method.barostat_parameters.reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
+    assert sec_method.barostat_parameters.reference_pressure.units == 'pascal'
+    assert np.all(sec_method.barostat_parameters.coupling_constant.magnitude == [[1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12], [1.e-12, 1.e-12, 1.e-12]])
+    assert sec_method.barostat_parameters.coupling_constant.units == 'second'
+    assert np.all(sec_method.barostat_parameters.compressibility.magnitude == [[4.6e-10, 0.0e+00, 0.0e+00], [0.0e+00, 4.6e-10, 0.0e+00], [0.0e+00, 0.0e+00, 4.6e-10]])
+    assert sec_method.barostat_parameters.compressibility.units == '1 / pascal'
 
     sec_sccs = sec_run.calculation
     assert len(sec_sccs) == 5
@@ -152,8 +149,8 @@ def test_rdf(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
 
-    sec_workflow = archive.workflow[0]
-    section_md = sec_workflow.molecular_dynamics.results
+    sec_workflow = archive.workflow
+    section_md = sec_workflow.results
 
     assert section_md.radial_distribution_functions[0].type == 'molecular'
     assert section_md.radial_distribution_functions[0].n_smooth == 2
@@ -180,8 +177,8 @@ def test_msd(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/cgwater/mdrun.log', archive, None)
 
-    sec_workflow = archive.workflow[0]
-    section_md = sec_workflow.molecular_dynamics.results
+    sec_workflow = archive.workflow
+    section_md = sec_workflow.results
 
     assert section_md.mean_squared_displacements[0].type == 'molecular'
     assert section_md.mean_squared_displacements[0].direction == 'xyz'
@@ -201,19 +198,18 @@ def test_geometry_optimization(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/polymer_melt/step4.0_minimization.log', archive, None)
 
-    sec_workflow = archive.workflow[0]
-    section_go = sec_workflow.geometry_optimization
+    sec_workflow = archive.workflow
 
-    assert section_go.type == 'atomic'
-    assert section_go.method == 'steepest_descent'
-    assert section_go.convergence_tolerance_force_maximum.magnitude == approx(6.02214076e+38)
-    assert section_go.convergence_tolerance_force_maximum.units == 'newton'
-    assert section_go.final_force_maximum.magnitude == approx(1.303670442204273e+38)
-    assert section_go.final_force_maximum.units == 'newton'
-    assert section_go.optimization_steps_maximum == 5000
-    assert section_go.optimization_steps == 12
-    assert len(section_go.energies) == 11
-    assert section_go.energies[2].magnitude == approx(8.244726173423345e-17)
-    assert section_go.energies[2].units == 'joule'
-    assert len(section_go.steps) == 11
-    assert section_go.steps[4] == 5000
+    assert sec_workflow.method.type == 'atomic'
+    assert sec_workflow.method.method == 'steepest_descent'
+    assert sec_workflow.method.convergence_tolerance_force_maximum.magnitude == approx(6.02214076e+38)
+    assert sec_workflow.method.convergence_tolerance_force_maximum.units == 'newton'
+    assert sec_workflow.results.final_force_maximum.magnitude == approx(1.303670442204273e+38)
+    assert sec_workflow.results.final_force_maximum.units == 'newton'
+    assert sec_workflow.results.optimization_steps == 12
+    assert sec_workflow.method.optimization_steps_maximum == 5000
+    assert len(sec_workflow.results.energies) == 11
+    assert sec_workflow.results.energies[2].magnitude == approx(8.244726173423345e-17)
+    assert sec_workflow.results.energies[2].units == 'joule'
+    assert len(sec_workflow.results.steps) == 11
+    assert sec_workflow.results.steps[4] == 5000

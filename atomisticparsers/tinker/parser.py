@@ -34,10 +34,9 @@ from nomad.datamodel.metainfo.simulation.method import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, VibrationalFrequencies
 )
-from nomad.datamodel.metainfo.workflow import (
-    Workflow, GeometryOptimization, MolecularDynamics, IntegrationParameters
+from nomad.datamodel.metainfo.simulation.workflow import (
+    GeometryOptimization, GeometryOptimizationMethod, MolecularDynamics, MolecularDynamicsMethod
 )
-from nomad.datamodel.metainfo.simulation import workflow as workflow2
 from atomisticparsers.utils import MDAnalysisParser
 from .metainfo.tinker import x_tinker_section_control_parameters
 
@@ -316,6 +315,11 @@ class TinkerParser:
 
         # TODO add interaction parameters
 
+    def resolve_workflow_type(self, run):
+        for program in run.keys():
+            if program in self._run_types and run.get(program) is not None:
+                return self._run_types[program]
+
     def parse_workflow(self, program, run):
         def resolve_ensemble_type():
             parameters = self.archive.run[-1].x_tinker_control_parameters
@@ -338,42 +342,36 @@ class TinkerParser:
 
         # TODO handle multiple workflow sections
         workflow = None
-        workflow_type = self.archive.workflow[-1].type
-        self.archive.workflow[-1].calculations_ref = []
         parameters = list(program.get('parameters', []))
         # so we cover the case when optional parameters are missing
         parameters.extend([None] * 6)
+        workflow_type = self.resolve_workflow_type(run)
         if workflow_type == 'molecular_dynamics':
-            sec_md = self.archive.workflow[-1].m_create(MolecularDynamics)
-            workflow = workflow2.MolecularDynamics(method=workflow2.MolecularDynamicsMethod())
-            sec_integration_parameters = sec_md.m_create(IntegrationParameters)
+            workflow = MolecularDynamics(method=MolecularDynamicsMethod())
             control_parameters = self.archive.run[-1].x_tinker_control_parameters
             # TODO verify this! I am sure it is wrong but tinker documentation does not specify clearly
             ensemble_types = ['NVE', 'NVT', 'NPT', None, None]
-            sec_md.thermodynamic_ensemble = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
             workflow.method.thermodynamic_ensemble = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
-            sec_integration_parameters.integration_timestep = parameters[1] * ureg.fs if parameters[1] else parameters[1]
             workflow.method.integration_timestep = parameters[1] * ureg.fs if parameters[1] else parameters[1]
-            sec_md.x_tinker_barostat_tau = control_parameters.get('tau-pressure')
-            sec_md.x_tinker_barostat_type = control_parameters.get('barostat')
-            sec_md.x_tinker_integrator_type = control_parameters.get('integrator')
-            sec_md.x_tinker_number_of_steps_requested = parameters[0]
-            sec_md.x_tinker_integrator_dt = parameters[1] * ureg.ps if parameters[1] else parameters
-            sec_md.x_tinker_thermostat_target_temperature = parameters[4] * ureg.kelvin if parameters[4] else parameters[4]
-            sec_md.x_tinker_barostat_target_pressure = parameters[5] * ureg.atmosphere if parameters[5] else parameters[5]
-            sec_md.x_tinker_thermostat_tau = control_parameters.get('tau-temperature')
-            sec_md.x_tinker_thermostat_type = control_parameters.get('thermostat')
+            workflow.x_tinker_barostat_tau = control_parameters.get('tau-pressure')
+            workflow.x_tinker_barostat_type = control_parameters.get('barostat')
+            workflow.x_tinker_integrator_type = control_parameters.get('integrator')
+            workflow.x_tinker_number_of_steps_requested = parameters[0]
+            workflow.x_tinker_integrator_dt = parameters[1] * ureg.ps if parameters[1] else parameters
+            workflow.x_tinker_thermostat_target_temperature = parameters[4] * ureg.kelvin if parameters[4] else parameters[4]
+            workflow.x_tinker_barostat_target_pressure = parameters[5] * ureg.atmosphere if parameters[5] else parameters[5]
+            workflow.x_tinker_thermostat_tau = control_parameters.get('tau-temperature')
+            workflow.x_tinker_thermostat_type = control_parameters.get('thermostat')
 
         elif workflow_type == 'geometry_optimization':
-            sec_opt = self.archive.workflow[-1].m_create(GeometryOptimization)
-            workflow = workflow2.GeometryOptimization(method=workflow2.GeometryOptimizationMethod())
-            sec_opt.method = run.minimize.get('method')
+            workflow = GeometryOptimization(method=GeometryOptimizationMethod())
             workflow.method.method = run.minimize.get('method')
-            sec_opt.x_tinker_convergence_tolerance_rms_gradient = parameters[0]
+            workflow.x_tinker_convergence_tolerance_rms_gradient = parameters[0]
             for key, val in run.minimize.items():
-                setattr(sec_opt, key, val)
+                if key.startswith('x_tinker'):
+                    setattr(workflow, key, val)
 
-        self.archive.workflow2 = workflow
+        self.archive.workflow = workflow
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)
@@ -382,10 +380,7 @@ class TinkerParser:
         self.maindir = os.path.dirname(self.filepath)
         self.init_parser()
 
-        def resolve_workflow_type(run):
-            for program in run.keys():
-                if program in self._run_types and run.get(program) is not None:
-                    return self._run_types[program]
+        workflows = []
 
         def get_reference_filename(program):
             # resolves the filename as provided in the cli command for the program
@@ -394,7 +389,7 @@ class TinkerParser:
                 filename = self._files['xyz']['current']
             # succeding files start from the index of the file for geometry_opt and md
             filename = filename if '.xyz' in filename else f'{filename}.xyz'
-            if self.archive.workflow[-1].type in ['geometry_optimization', 'molecular_dynamics']:
+            if workflows[-1] in ['geometry_optimization', 'molecular_dynamics']:
                 files = self._files['xyz']['files']
                 try:
                     self._files['xyz']['current'] = files[files.index(filename) + 1]
@@ -409,16 +404,15 @@ class TinkerParser:
             sec_run = archive.m_create(Run)
             sec_run.program = Program(name='tinker', version=run.get('program_version'))
 
-            sec_workflow = self.archive.m_create(Workflow)
-            sec_workflow.type = resolve_workflow_type(run)
-
+            workflow_type = self.resolve_workflow_type(run)
+            workflows.append(workflow_type)
             # get parameters of the program from the cli command, the key file and the
             # initial structure file can also be specied as an argument so we need to
             # extract the information here
             # program can be executed for an arbitrary number of times so we need to
             # resolve the index of the appropriate command
-            n_workflow = len([workflow for workflow in self.archive.workflow if workflow.type == sec_workflow.type]) - 1
-            program = self.run_parser.get(sec_workflow.type, [])
+            n_workflow = len([workflow for workflow in workflows if workflow == workflow_type]) - 1
+            program = self.run_parser.get(workflow_type, [])
             program = program[n_workflow] if len(program) > n_workflow else dict()
             if run.vibrate is not None:
                 # reference structure

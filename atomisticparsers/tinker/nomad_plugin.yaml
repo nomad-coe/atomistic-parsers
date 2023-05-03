@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: https://dasher.wustl.edu/tinker/
+code_name: Tinker
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: Tinker
+  codeLabelStyle: 'Capitals: T'
+  codeName: tinker
+  codeUrl: https://dasher.wustl.edu/tinker/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/tinker/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/tinker
+parser_class_name: atomisticparsers.tinker.parser.TinkerParser
+python_package: atomisticparsers.tinker

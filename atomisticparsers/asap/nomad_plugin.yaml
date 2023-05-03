@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: https://wiki.fysik.dtu.dk/asap
+code_name: ASAP
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: ASAP
+  codeLabelStyle: all in capitals
+  codeName: asap
+  codeUrl: https://wiki.fysik.dtu.dk/asap
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/asap/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/asap
+parser_class_name: atomisticparsers.asap.parser.AsapParser
+python_package: atomisticparsers.asap

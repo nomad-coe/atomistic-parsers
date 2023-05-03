@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: http://www.gromos.net/
+code_name: GROMOS
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: GROMOS
+  codeLabelStyle: All in capitals
+  codeName: gromos
+  codeUrl: http://www.gromos.net/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/gromos/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/gromos
+parser_class_name: atomisticparsers.gromos.parser.GromosParser
+python_package: atomisticparsers.gromos

@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: http://libatoms.github.io/
+code_name: libAtoms
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: libAtoms
+  codeLabelStyle: 'Capitals: A'
+  codeName: lib-atoms
+  codeUrl: http://libatoms.github.io/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/lib-atoms/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/lib-atoms
+parser_class_name: atomisticparsers.libatoms.parser.LibAtomsParser
+python_package: atomisticparsers.libatoms

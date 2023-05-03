@@ -1,0 +1,17 @@
+code_category: Atomistic code
+code_homepage: https://lammps.sandia.gov/
+code_name: LAMMPS
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: LAMMPS
+  codeLabelStyle: All in capitals
+  codeName: lammps
+  codeUrl: https://lammps.sandia.gov/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/lammps/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/lammps
+parser_class_name: atomisticparsers.lammps.parser.LammpsParser
+python_package: atomisticparsers.lammps

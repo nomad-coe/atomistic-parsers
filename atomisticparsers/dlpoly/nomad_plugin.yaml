@@ -1,0 +1,18 @@
+code_category: Atomistic code
+code_homepage: https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx
+code_name: DL_POLY
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: DL_POLY
+  codeLabelStyle: all capitals and underscore, not dash (minus)
+  codeName: dl-poly
+  codeUrl: https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/dl-poly/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/dl-poly
+parser_class_name: atomisticparsers.dlpoly.parser.DLPolyParser
+python_package: atomisticparsers.dlpoly

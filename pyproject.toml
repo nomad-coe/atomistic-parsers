@@ -14,7 +14,7 @@ dependencies = [
     'lxml==4.7.1',
     'MDAnalysis',
     'panedr==0.2',
-    'scipy==1.7.1',
+    'scipy>=1.7.1',
 ]
 
 [project.urls]

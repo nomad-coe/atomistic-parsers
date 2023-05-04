@@ -735,7 +735,7 @@ class GulpParser:
                 for n in range(3):
                     poissons[n] = np.insert(poissons[n], n, 0.)
                 workflow.results.x_gulp_poissons_ratio = poissons
-                self.archive.workflow = workflow
+                self.archive.workflow2 = workflow
 
             # md properties
             if source.energy_total is not None:
@@ -785,4 +785,4 @@ class GulpParser:
             for step in output.get('step', []):
                 parse_calculation(step)
                 # TODO where are the trajectory data saved
-            self.archive.workflow = workflow
+            self.archive.workflow2 = workflow

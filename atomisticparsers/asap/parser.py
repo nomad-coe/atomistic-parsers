@@ -151,7 +151,7 @@ class AsapParser:
                 workflow.method.thermodynamic_ensemble = 'NVE'
             elif 'NPT' in md_type:
                 workflow.method.thermodynamic_ensemble = 'NPT'
-        self.archive.workflow = workflow
+        self.archive.workflow2 = workflow
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)

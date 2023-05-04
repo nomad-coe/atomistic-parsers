@@ -1011,7 +1011,7 @@ class LammpsParser:
                     sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
                         'error_diffusion_constant') is not None else []
 
-        self.archive.workflow = workflow
+        self.archive.workflow2 = workflow
 
     def parse_system(self):
         sec_run = self.archive.run[-1]

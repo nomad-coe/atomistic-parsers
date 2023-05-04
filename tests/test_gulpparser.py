@@ -94,7 +94,7 @@ def test_optimise_conp_property_old(parser):
     assert sec_opt.x_gulp_max_gradient_tolerance == approx(0.001)
     assert sec_opt.x_gulp_max_gradient_component == approx(0.01)
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
     assert sec_workflow.results.elastic_constants_matrix_second_order[1][3].magnitude == approx(-4.45913e+10)
     assert sec_workflow.results.compliance_matrix_second_order[4][5].magnitude == approx(-3.838e-12)
     assert sec_workflow.results.bulk_modulus_voigt.magnitude == approx(3.5517284e+11)
@@ -131,7 +131,7 @@ def test_single_md_conv_old(parser):
     assert sec_calc[2].x_gulp_temperature_averaged.magnitude == approx(389.215575)
     assert sec_calc[3].x_gulp_pressure_averaged.magnitude == approx(1.2832591e+10)
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
     assert sec_workflow.m_def.name == 'MolecularDynamics'
     assert sec_workflow.method.thermodynamic_ensemble == 'NVT'
     assert sec_workflow.method.integration_timestep.magnitude == approx(1e-15)

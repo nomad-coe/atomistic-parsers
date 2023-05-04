@@ -61,7 +61,7 @@ def test_molecular_dynamics(parser):
 
     sec_run = archive.run[0]
 
-    sec_workfow = archive.workflow
+    sec_workfow = archive.workflow2
 
     assert sec_workfow.m_def.name == 'MolecularDynamics'
     assert sec_workfow.method.thermodynamic_ensemble == 'NVT'

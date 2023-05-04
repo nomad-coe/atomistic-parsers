@@ -94,7 +94,7 @@ def test_opt(parser):
     assert len(sec_calc[2].scf_iteration) == 5
     assert sec_calc[3].scf_iteration[1].energy.total.value.magnitude == approx(-2.53150129e-17)
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
     assert sec_workflow.m_def.name == 'GeometryOptimization'
     assert sec_workflow.method.convergence_tolerance_energy_difference.magnitude == approx(2.17987236e-23)
     assert sec_workflow.method.convergence_tolerance_force_maximum.magnitude == approx(8.2387235e-11)

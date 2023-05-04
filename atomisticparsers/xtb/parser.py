@@ -608,7 +608,7 @@ class XTBParser:
     def parse_gfn(self, section):
         self.parse_method(section)
         self.parse_single_point(self.out_parser.get(section), section)
-        self.archive.workflow = SinglePoint()
+        self.archive.workflow2 = SinglePoint()
 
     def parse_opt(self, section):
         module = self.out_parser.get(section)
@@ -636,7 +636,7 @@ class XTBParser:
                 workflow.method.convergence_tolerance_displacement_maximum = val * ureg.bohr
             elif name is not None:
                 setattr(workflow, f'x_xtb_{name}', val)
-        self.archive.workflow = workflow
+        self.archive.workflow2 = workflow
 
     def parse_md(self, section):
         module = self.out_parser.get(section)

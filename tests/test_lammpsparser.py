@@ -39,7 +39,7 @@ def test_nvt(parser):
     sec_run = archive.run[0]
     assert sec_run.program.version == '14 May 2016'
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
     assert sec_workflow.m_def.name == 'MolecularDynamics'
     assert sec_workflow.method.thermodynamic_ensemble == 'NVT'
     assert sec_workflow.method.integrator_type == 'velocity_verlet'
@@ -180,7 +180,7 @@ def test_rdf(parser):
     archive = EntryArchive()
     parser.parse('tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt', archive, None)
 
-    section_md = archive.workflow.results
+    section_md = archive.workflow2.results
 
     assert section_md.radial_distribution_functions[0].type == 'molecular'
     assert section_md.radial_distribution_functions[0].n_smooth == 2
@@ -223,7 +223,7 @@ def test_msd(parser):
     archive = EntryArchive()
     parser.parse('tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt', archive, None)
 
-    section_md = archive.workflow.results
+    section_md = archive.workflow2.results
 
     assert section_md.mean_squared_displacements[0].type == 'molecular'
     assert section_md.mean_squared_displacements[0].direction == 'xyz'
@@ -255,7 +255,7 @@ def test_geometry_optimization(parser):
     archive = EntryArchive()
     parser.parse('tests/data/lammps/polymer_melt/Emin/log.step4.0_minimization', archive, None)
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
 
     assert sec_workflow.method.type == 'atomic'
     assert sec_workflow.method.method == 'polak_ribiere_conjugant_gradient'

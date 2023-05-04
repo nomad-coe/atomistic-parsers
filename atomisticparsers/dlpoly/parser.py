@@ -564,4 +564,4 @@ class DLPolyParser:
         workflow = MolecularDynamics(method=MolecularDynamicsMethod())
         workflow.method.thermodynamic_ensemble = ensemble_type.split()[0] if ensemble_type is not None else None
         workflow.method.integration_timestep = control_parameters.get('fixed simulation timestep', 0) * ureg.ps
-        archive.workflow = workflow
+        archive.workflow2 = workflow

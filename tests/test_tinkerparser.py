@@ -58,7 +58,7 @@ def test_minimize_dynamic(parser):
     assert sec_run[1].calculation[4].temperature.magnitude == approx(163.21)
     assert sec_run[1].calculation[5].step == 3000
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
     # assert sec_workflow[0].type == 'geometry_optimization'
     # assert sec_workflow[0].geometry_optimization.method == 'Limited Memory BFGS Quasi-Newton'
     # assert sec_workflow[0].geometry_optimization.x_tinker_convergence_tolerance_rms_gradient == 1.0

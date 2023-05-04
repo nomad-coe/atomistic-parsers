@@ -371,7 +371,7 @@ class TinkerParser:
                 if key.startswith('x_tinker'):
                     setattr(workflow, key, val)
 
-        self.archive.workflow = workflow
+        self.archive.workflow2 = workflow
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)

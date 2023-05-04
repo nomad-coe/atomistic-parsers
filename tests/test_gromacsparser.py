@@ -42,7 +42,7 @@ def test_md_verbose(parser):
     assert sec_control.x_gromacs_inout_control_coulombtype == 'PME'
     assert np.shape(sec_control.x_gromacs_inout_control_deform) == (3, 3)
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
     assert sec_workflow.m_def.name == 'MolecularDynamics'
     sec_method = sec_workflow.method
     assert sec_method.thermodynamic_ensemble == 'NPT'
@@ -149,7 +149,7 @@ def test_rdf(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
     section_md = sec_workflow.results
 
     assert section_md.radial_distribution_functions[0].type == 'molecular'
@@ -177,7 +177,7 @@ def test_msd(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/cgwater/mdrun.log', archive, None)
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
     section_md = sec_workflow.results
 
     assert section_md.mean_squared_displacements[0].type == 'molecular'
@@ -198,7 +198,7 @@ def test_geometry_optimization(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/polymer_melt/step4.0_minimization.log', archive, None)
 
-    sec_workflow = archive.workflow
+    sec_workflow = archive.workflow2
 
     assert sec_workflow.method.type == 'atomic'
     assert sec_workflow.method.method == 'steepest_descent'

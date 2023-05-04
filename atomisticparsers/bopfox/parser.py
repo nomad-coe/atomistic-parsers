@@ -589,4 +589,4 @@ class BOPfoxParser:
                 sec_calc.system_ref = sec_system
             workflow = MolecularDynamics()
 
-        archive.workflow = workflow
+        archive.workflow2 = workflow

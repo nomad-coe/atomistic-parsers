@@ -258,4 +258,4 @@ class NAMDParser:
         sec_run.calculation[0].system_ref = initial_system
 
         # workflow
-        self.archive.workflow = MolecularDynamics()
+        self.archive.workflow2 = MolecularDynamics()

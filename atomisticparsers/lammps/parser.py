@@ -780,7 +780,7 @@ class LammpsParser:
             workflow.results.steps = steps
             workflow.results.optimization_steps = len(energies) + 1
 
-        else:  # for now, only allow one workflow per runtime file
+        elif self.traj_parsers.eval('n_frames') is not None:  # for now, only allow one workflow per runtime file
             sec_workflow.type = 'molecular_dynamics'
             workflow = workflow2.MolecularDynamics(
                 method=workflow2.MolecularDynamicsMethod(), results=workflow2.MolecularDynamicsResults())
@@ -1025,7 +1025,7 @@ class LammpsParser:
             rdf_results = self.traj_parsers.eval('calc_molecular_rdf', n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
             if rdf_results is None:
                 rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
-            if rdf_results is not None:
+            if rdf_results is not None and self.traj_parsers.eval('n_frames') is not None:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
                 sec_rdfs.type = 'molecular'
                 sec_rdfs.n_smooth = rdf_results.get('n_smooth')
@@ -1049,7 +1049,7 @@ class LammpsParser:
             msd_results = msd_results() if msd_results is not None else None
             if msd_results is None:
                 msd_results = self._mdanalysistraj_parser.calc_molecular_mean_squared_displacements()
-            if msd_results is not None:
+            if msd_results is not None and self.traj_parsers.eval('n_frames') is not None:
                 sec_msds = sec_results.m_create(MeanSquaredDisplacement)
                 sec_msds.type = 'molecular'
                 sec_msds.direction = 'xyz'
@@ -1074,6 +1074,9 @@ class LammpsParser:
         sec_run = self.archive.run[-1]
 
         n_frames = self.traj_parsers.eval('n_frames')
+        if n_frames is None:
+            return
+
         units = self.log_parser.units
 
         def apply_unit(value, unit):
@@ -1205,6 +1208,9 @@ class LammpsParser:
         if self.traj_parsers[0].mainfile is None or self.data_parser.mainfile is None:
             return
 
+        if self.traj_parsers.eval('n_frames') is None:
+            return
+
         sec_method = sec_run.m_create(Method)
         sec_force_field = sec_method.m_create(ForceField)
         sec_model = sec_force_field.m_create(Model)
@@ -1230,11 +1236,12 @@ class LammpsParser:
 
         # parse method with MDAnalysis (should be a backup for the charges and masses...but the interactions are most easily read from the MDA universe right now)
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
-        atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
-        for n in range(n_atoms):
-            sec_atom = sec_method.m_create(AtomParameters)
-            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
-            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+        if n_atoms is not None:
+            atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
+            for n in range(n_atoms):
+                sec_atom = sec_method.m_create(AtomParameters)
+                sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
+                sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
 
         interactions = self._mdanalysistraj_parser.get_interactions()
         interactions = interactions if interactions is not None else []
@@ -1385,6 +1392,8 @@ class LammpsParser:
             parsers.append(traj_parser)
 
         self.traj_parsers = TrajParsers(parsers)
+        if self.traj_parsers[0] is None:
+            return
 
         # parse data from auxiliary log file
         if self.log_parser.get('log') is not None:
@@ -1397,10 +1406,10 @@ class LammpsParser:
 
         self.parse_system()
 
-        # parse thermodynamic data from log file
-        self.parse_thermodynamic_data()
-
         # include input controls from log file
         self.parse_input()
+
+        # parse thermodynamic data from log file
+        self.parse_thermodynamic_data()
 
         self.parse_workflow()

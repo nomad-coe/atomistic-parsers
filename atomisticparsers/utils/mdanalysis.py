@@ -97,6 +97,9 @@ class MDAnalysisParser(FileParser):
         if self._results is None:
             self._results: Dict[str, Any] = dict()
 
+        if not self.universe:
+            return
+
         atoms = list(self.universe.atoms)
 
         name_map = {'mass': 'masses'}
@@ -286,7 +289,6 @@ class MDAnalysisParser(FileParser):
             return self.universe.trajectory[frame_index]
         except Exception as e:
             self.logger.warning('Error accessing frame.', exc_info=e)
-            raise e
 
     def get_n_atoms(self, frame_index):
         '''

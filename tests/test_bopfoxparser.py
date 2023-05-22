@@ -19,7 +19,7 @@
 import pytest
 
 from nomad.datamodel import EntryArchive
-from atomisticparsers import BOPfoxParser
+from atomisticparsers.bopfox import BOPfoxParser
 
 
 def approx(value, abs=0, rel=1e-6):

@@ -46,12 +46,15 @@ class TrajParser(FileParser):
     @property
     def traj(self):
         if self._file_handler is None:
-            self._file_handler = Trajectory(self.mainfile, 'r')
-            # check if traj file is really asap
-            if 'calculator' in self._file_handler.backend.keys():
-                if self._file_handler.backend.calculator.name != 'emt':  # pylint: disable=E1101
-                    self.logger.error('Trajectory is not ASAP.')
-                    self._file_handler = None
+            try:
+                self._file_handler = Trajectory(self.mainfile, 'r')
+                # check if traj file is really asap
+                if 'calculator' in self._file_handler.backend.keys():
+                    if self._file_handler.backend.calculator.name != 'emt':  # pylint: disable=E1101
+                        self.logger.error('Trajectory is not ASAP.')
+                        self._file_handler = None
+            except Exception:
+                self.logger.error('Error reading trajectory file.')
         return self._file_handler
 
     def get_version(self):

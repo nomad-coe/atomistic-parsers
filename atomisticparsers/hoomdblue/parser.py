@@ -59,7 +59,7 @@ class HoomdblueGsdParser(FileParser):
         self._nomad_to_hoomdblue_map = {}
         self._nomad_to_hoomdblue_map['system'] = {}
         self._nomad_to_hoomdblue_map['system']['atoms'] = {
-            'lattice_vectors': 'configuration.box',
+            # 'lattice_vectors': 'configuration.box',
             'positions': 'particles.position',
             'x_hoomdblue_orientation': 'particles.orientation',
             # 'x_hoomdblue_typeid': 'particles.typeid',
@@ -157,6 +157,15 @@ class HoomdblueParser:
 
         sec_system = sec_run.m_create(System)
         sec_atoms = sec_system.m_create(Atoms)
+
+        # get lattice vectors
+        hoomdblue_box = self.gsd_parser._attr_getter(frame, 'configuration.box', None)
+        if hoomdblue_box is not None:
+            lattice_vectors = [
+                [hoomdblue_box[0], hoomdblue_box[3] * hoomdblue_box[4] * hoomdblue_box[1], hoomdblue_box[3] * hoomdblue_box[5] * hoomdblue_box[2]],
+                [0, hoomdblue_box[1], hoomdblue_box[4] * hoomdblue_box[5] * hoomdblue_box[2]],
+                [0, 0, hoomdblue_box[2]]]
+            setattr(sec_atoms, 'lattice_vectors', lattice_vectors)
 
         atom_attributes_map = self.gsd_parser._nomad_to_hoomdblue_map['system']['atoms']
         for nomad_attr, hoomdblue_sec in atom_attributes_map.items():

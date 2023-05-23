@@ -30,7 +30,7 @@ tests = [
     'pytest-timeout==1.4.2',
     'pytest-cov==2.7.1',
     'astroid==2.11.7',
-    'typing-extensions==4.5.0'
+    'typing-extensions==4.4.0'
 ]
 
 [tool.setuptools.packages.find]

@@ -29,7 +29,7 @@ tests = [
     'pytest==3.10.0',
     'pytest-timeout==1.4.2',
     'pytest-cov==2.7.1',
-    'astroid==2.11.7'
+    'astroid==2.5.1'
 ]
 
 [tool.setuptools.packages.find]

@@ -23,7 +23,6 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, JSON
 )
 from nomad.datamodel.metainfo import simulation
-from nomad.datamodel.metainfo import workflow
 
 
 m_package = Package()
@@ -1007,7 +1006,7 @@ class System(simulation.system.System):
         ''')
 
 
-class MolecularDynamics(workflow.MolecularDynamics):
+class MolecularDynamics(simulation.workflow.MolecularDynamics):
 
     m_def = Section(validate=False, extends_base_section=True)
 

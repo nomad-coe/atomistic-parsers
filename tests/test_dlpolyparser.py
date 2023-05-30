@@ -73,8 +73,8 @@ def test_0(parser):
     # extended metainfo does not seem to convert
     assert sec_calc[1].x_dl_poly_volume.magnitude == approx(9.6388e+05)
 
-    assert archive.workflow[0].molecular_dynamics.thermodynamic_ensemble == 'NVT'
-    assert archive.workflow[0].molecular_dynamics.integration_parameters.integration_timestep.magnitude == approx(1e-15)
+    assert archive.workflow2.method.thermodynamic_ensemble == 'NVT'
+    assert archive.workflow2.method.integration_timestep.magnitude == approx(1e-15)
 
 
 def test_1(parser):

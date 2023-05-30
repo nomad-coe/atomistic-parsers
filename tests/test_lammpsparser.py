@@ -39,24 +39,20 @@ def test_nvt(parser):
     sec_run = archive.run[0]
     assert sec_run.program.version == '14 May 2016'
 
-    sec_workflow = archive.workflow[0]
-    section_md = sec_workflow.molecular_dynamics
-    assert sec_workflow.type == 'molecular_dynamics'
-    assert section_md.thermodynamic_ensemble == 'NVT'
-    assert section_md.finished_normally is False
-    assert section_md.with_trajectory is True
-    assert section_md.with_thermodynamics is True
-    assert section_md.integration_parameters.integrator_type == 'velocity_verlet'
-    assert section_md.integration_parameters.integration_timestep.magnitude == 2.5e-16
-    assert section_md.integration_parameters.integration_timestep.units == 'second'
-    assert section_md.integration_parameters.n_steps == 80000
-    assert section_md.integration_parameters.coordinate_save_frequency == 400
-    assert section_md.integration_parameters.thermodynamics_save_frequency == 400
-    assert section_md.integration_parameters.thermostat_parameters.thermostat_type == 'nose_hoover'
-    assert section_md.integration_parameters.thermostat_parameters.reference_temperature.magnitude == 300.0
-    assert section_md.integration_parameters.thermostat_parameters.reference_temperature.units == 'kelvin'
-    assert section_md.integration_parameters.thermostat_parameters.coupling_constant.magnitude == 2.5e-14
-    assert section_md.integration_parameters.thermostat_parameters.coupling_constant.units == 'second'
+    sec_workflow = archive.workflow2
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
+    assert sec_workflow.method.thermodynamic_ensemble == 'NVT'
+    assert sec_workflow.method.integrator_type == 'velocity_verlet'
+    assert sec_workflow.method.integration_timestep.magnitude == 2.5e-16
+    assert sec_workflow.method.integration_timestep.units == 'second'
+    assert sec_workflow.method.n_steps == 80000
+    assert sec_workflow.method.coordinate_save_frequency == 400
+    assert sec_workflow.method.thermodynamics_save_frequency == 400
+    assert sec_workflow.method.thermostat_parameters.thermostat_type == 'nose_hoover'
+    assert sec_workflow.method.thermostat_parameters.reference_temperature.magnitude == 300.0
+    assert sec_workflow.method.thermostat_parameters.reference_temperature.units == 'kelvin'
+    assert sec_workflow.method.thermostat_parameters.coupling_constant.magnitude == 2.5e-14
+    assert sec_workflow.method.thermostat_parameters.coupling_constant.units == 'second'
 
     sec_method = sec_run.method[0]
     assert len(sec_method.force_field.model[0].contributions) == 3744
@@ -184,8 +180,7 @@ def test_rdf(parser):
     archive = EntryArchive()
     parser.parse('tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt', archive, None)
 
-    sec_workflow = archive.workflow[0]
-    section_md = sec_workflow.molecular_dynamics.results
+    section_md = archive.workflow2.results
 
     assert section_md.radial_distribution_functions[0].type == 'molecular'
     assert section_md.radial_distribution_functions[0].n_smooth == 2
@@ -228,8 +223,7 @@ def test_msd(parser):
     archive = EntryArchive()
     parser.parse('tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt', archive, None)
 
-    sec_workflow = archive.workflow[0]
-    section_md = sec_workflow.molecular_dynamics.results
+    section_md = archive.workflow2.results
 
     assert section_md.mean_squared_displacements[0].type == 'molecular'
     assert section_md.mean_squared_displacements[0].direction == 'xyz'
@@ -261,27 +255,26 @@ def test_geometry_optimization(parser):
     archive = EntryArchive()
     parser.parse('tests/data/lammps/polymer_melt/Emin/log.step4.0_minimization', archive, None)
 
-    sec_workflow = archive.workflow[0]
-    section_go = sec_workflow.geometry_optimization
+    sec_workflow = archive.workflow2
 
-    assert section_go.type == 'atomic'
-    assert section_go.method == 'polak_ribiere_conjugant_gradient'
+    assert sec_workflow.method.type == 'atomic'
+    assert sec_workflow.method.method == 'polak_ribiere_conjugant_gradient'
 
-    assert section_go.convergence_tolerance_energy_difference.magnitude == approx(0.0)
-    assert section_go.convergence_tolerance_energy_difference.units == 'joule'
-    assert section_go.final_energy_difference.magnitude == approx(0.0)
-    assert section_go.final_energy_difference.units == 'joule'
+    assert sec_workflow.method.convergence_tolerance_energy_difference.magnitude == approx(0.0)
+    assert sec_workflow.method.convergence_tolerance_energy_difference.units == 'joule'
+    assert sec_workflow.results.final_energy_difference.magnitude == approx(0.0)
+    assert sec_workflow.results.final_energy_difference.units == 'joule'
 
-    assert section_go.convergence_tolerance_force_maximum.magnitude == approx(100)
-    assert section_go.convergence_tolerance_force_maximum.units == 'newton'
+    assert sec_workflow.method.convergence_tolerance_force_maximum.magnitude == approx(100)
+    assert sec_workflow.method.convergence_tolerance_force_maximum.units == 'newton'
 
-    assert section_go.final_force_maximum.magnitude == approx(5091750000.0)
-    assert section_go.final_force_maximum.units == 'newton'
+    assert sec_workflow.results.final_force_maximum.magnitude == approx(5091750000.0)
+    assert sec_workflow.results.final_force_maximum.units == 'newton'
 
-    assert section_go.optimization_steps_maximum == 10000
-    assert section_go.optimization_steps == 160
-    assert len(section_go.energies) == 159
-    assert section_go.energies[14].magnitude == approx(6.931486093999211e-17)
-    assert section_go.energies[14].units == 'joule'
-    assert len(section_go.steps) == 159
-    assert section_go.steps[22] == 1100
+    assert sec_workflow.method.optimization_steps_maximum == 10000
+    assert sec_workflow.results.optimization_steps == 160
+    assert len(sec_workflow.results.energies) == 159
+    assert sec_workflow.results.energies[14].magnitude == approx(6.931486093999211e-17)
+    assert sec_workflow.results.energies[14].units == 'joule'
+    assert len(sec_workflow.results.steps) == 159
+    assert sec_workflow.results.steps[22] == 1100

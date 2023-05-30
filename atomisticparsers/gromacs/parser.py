@@ -43,13 +43,13 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry,
     # RadiusOfGyration, RadiusOfGyrationValues
 )
-from nomad.datamodel.metainfo.workflow import (
-    BarostatParameters, GeometryOptimization, ThermostatParameters, IntegrationParameters,
-    DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
+from nomad.datamodel.metainfo.simulation.workflow import (
+    GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults,
+    BarostatParameters, ThermostatParameters, DiffusionConstantValues,
+    MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
     RadialDistributionFunction, RadialDistributionFunctionValues,
-    Workflow, MolecularDynamics
+    MolecularDynamics, MolecularDynamicsMethod
 )
-from nomad.datamodel.metainfo.simulation import workflow as workflow2
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser
 
@@ -867,33 +867,26 @@ class GromacsParser:
 
         sec_run = self.archive.run[-1]
         sec_calc = sec_run.get('calculation')
-        sec_workflow = self.archive.m_create(Workflow)
         input_parameters = self.log_parser.get('input_parameters', {})
 
         workflow = None
         integrator = input_parameters.get('integrator', 'md').lower()
         if integrator in ['l-bfgs', 'cg', 'steep']:
-            sec_workflow.type = 'geometry_optimization'
-            sec_go = sec_workflow.m_create(GeometryOptimization)
-            workflow = workflow2.GeometryOptimization(
-                method=workflow2.GeometryOptimizationMethod(), results=workflow2.GeometryOptimizationResults())
-            sec_go.type = 'atomic'
+            workflow = GeometryOptimization(
+                method=GeometryOptimizationMethod(), results=GeometryOptimizationResults())
             workflow.method.type = 'atomic'
             integrator_map = {'steep': 'steepest_descent', 'cg': 'conjugant_gradient',
                               'l-bfgs': 'low_memory_broyden_fletcher_goldfarb_shanno'}
             value = integrator_map.get(integrator, [val for key, val in integrator_map.items() if key in integrator])
             value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
-            sec_go.method = value
             workflow.method.method = value
             nsteps = input_parameters.get('nsteps', None)
-            sec_go.optimization_steps_maximum = int(nsteps) if nsteps else None
             workflow.method.optimization_steps_maximum = int(nsteps) if nsteps else None
             nstenergy = input_parameters.get('nstenergy', None)
-            sec_go.save_frequency = int(nstenergy) if nstenergy else None
+            workflow.method.save_frequency = int(nstenergy) if nstenergy else None
 
             force_maximum = input_parameters.get('emtol', None)
             force_conversion = ureg.convert(1.0, ureg.kilojoule * ureg.avogadro_number / ureg.nanometer, ureg.newton)
-            sec_go.convergence_tolerance_force_maximum = float(force_maximum) * force_conversion if force_maximum else None
             workflow.method.convergence_tolerance_force_maximum = float(force_maximum) * force_conversion if force_maximum else None
 
             energies = []
@@ -905,52 +898,39 @@ class GromacsParser:
                     energies.append(energy.value.magnitude)
                     step = calc.get('step')
                     steps.append(step)
-            sec_go.energies = energies
-            sec_go.steps = steps
-            sec_go.optimization_steps = len(energies) + 1
+            workflow.results.energies = energies
+            workflow.results.steps = steps
+            workflow.results.optimization_steps = len(energies) + 1
 
             final_force_maximum = self.log_parser.get('maximum_force')
             final_force_maximum = float(re.split('=|\n', final_force_maximum)[1]) if final_force_maximum else None
-            sec_go.final_force_maximum = float(final_force_maximum) * force_conversion if final_force_maximum else None
             workflow.results.final_force_maximum = float(final_force_maximum) * force_conversion if final_force_maximum else None
         else:
-            sec_workflow.type = 'molecular_dynamics'
-            sec_md = sec_workflow.m_create(MolecularDynamics)
-            workflow = workflow2.MolecularDynamics(
-                method=workflow2.MolecularDynamicsMethod(
-                    thermostat_parameters=workflow2.ThermostatParameters(),
-                    barostat_parameters=workflow2.BarostatParameters()
-                ), results=workflow2.MolecularDynamicsResults()
+            workflow = MolecularDynamics(
+                method=MolecularDynamicsMethod(
+                    thermostat_parameters=ThermostatParameters(),
+                    barostat_parameters=BarostatParameters()
+                ), results=MolecularDynamicsResults()
             )
 
-            sec_integration_parameters = sec_md.m_create(IntegrationParameters)
             nsteps = input_parameters.get('nsteps', None)
-            sec_integration_parameters.n_steps = int(nsteps) if nsteps else None
             workflow.method.n_steps = int(nsteps) if nsteps else None
             nstxout = input_parameters.get('nstxout', None)
-            sec_integration_parameters.coordinate_save_frequency = int(nstxout) if nstxout else None
             workflow.method.coordinate_save_frequency = int(nstxout) if nstxout else None
             nstvout = input_parameters.get('nstvout', None)
-            sec_integration_parameters.velocity_save_frequency = int(nstvout) if nstvout else None
             workflow.method.velocity_save_frequency = int(nstvout) if nstvout else None
             nstfout = input_parameters.get('nstfout', None)
-            sec_integration_parameters.force_save_frequency = int(nstfout) if nstfout else None
             workflow.method.force_save_frequency = int(nstfout) if nstfout else None
             nstenergy = input_parameters.get('nstenergy', None)
-            sec_integration_parameters.thermodynamics_save_frequency = int(nstenergy) if nstenergy else None
             workflow.method.thermodynamics_save_frequency = int(nstenergy) if nstenergy else None
 
             integrator_map = {'md': 'leap_frog', 'md-vv': 'velocity_verlet', 'sd': 'langevin_goga',
                               'bd': 'brownian'}
             value = integrator_map.get(integrator, [val for key, val in integrator_map.items() if key in integrator])
             value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
-            sec_integration_parameters.integrator_type = value
             workflow.method.integrator_type = value
             timestep = input_parameters.get('dt', None)
-            sec_integration_parameters.integration_timestep = float(timestep) * ureg.picosecond if timestep else None
             workflow.method.integration_timestep = float(timestep) * ureg.picosecond if timestep else None
-            sec_thermostat_parameters = sec_integration_parameters.m_create(ThermostatParameters)
-            sec_barostat_parameters = sec_integration_parameters.m_create(BarostatParameters)
 
             flag_thermostat = False
             thermostat = input_parameters.get('tcoupl', 'no').lower()
@@ -958,24 +938,20 @@ class GromacsParser:
                               'nose-hoover': 'nose_hoover', 'andersen': 'andersen'}
             value = thermostat_map.get(thermostat, [val for key, val in thermostat_map.items() if key in thermostat])
             value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
-            sec_thermostat_parameters.thermostat_type = value
             workflow.method.thermostat_parameters.thermostat_type = value
             if 'sd' in integrator:
-                sec_thermostat_parameters.thermostat_type = 'langevin_goga'
                 workflow.method.thermostat_parameters.thermostat_type = 'langevin_goga'
-            if sec_thermostat_parameters.thermostat_type:
+            if workflow.method.thermostat_parameters.thermostat_type:
                 flag_thermostat = True
                 reference_temperature = input_parameters.get('ref-t', None)
                 if isinstance(reference_temperature, str):
                     reference_temperature = float(reference_temperature.split()[0])
                 reference_temperature *= ureg.kelvin if reference_temperature else None
-                sec_thermostat_parameters.reference_temperature = reference_temperature
                 workflow.method.thermostat_parameters.reference_temperature = reference_temperature
                 coupling_constant = input_parameters.get('tau-t', None)
                 if isinstance(coupling_constant, str):
                     coupling_constant = float(coupling_constant.split()[0])
                 coupling_constant *= ureg.picosecond if coupling_constant else None
-                sec_thermostat_parameters.coupling_constant = coupling_constant
                 workflow.method.thermostat_parameters.coupling_constant = coupling_constant
 
             flag_barostat = False
@@ -984,39 +960,30 @@ class GromacsParser:
                             'mttk': 'martyna_tuckerman_tobias_klein', 'c-rescale': 'stochastic_cell_rescaling'}
             value = barostat_map.get(barostat, [val for key, val in barostat_map.items() if key in barostat])
             value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
-            sec_barostat_parameters.barostat_type = value
             workflow.method.barostat_parameters.barostat_type = value
-            if sec_barostat_parameters.barostat_type:
+            if workflow.method.barostat_parameters.barostat_type:
                 flag_barostat = True
                 couplingtype = input_parameters.get('pcoupltype', None).lower()
                 couplingtype_map = {'isotropic': 'isotropic', 'semiisotropic': 'semi_isotropic',
                                     'anisotropic': 'anisotropic'}
                 value = couplingtype_map.get(couplingtype, [val for key, val in couplingtype_map.items() if key in couplingtype])
-                sec_barostat_parameters.coupling_type = value[0] if isinstance(value, list) else value
                 workflow.method.barostat_parameters.coupling_type = value[0] if isinstance(value, list) else value
                 taup = input_parameters.get('tau-p', None)
-                sec_barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond if taup else None
                 workflow.method.barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond if taup else None
                 refp = input_parameters.get('ref-p', None)
-                sec_barostat_parameters.reference_pressure = refp * ureg.bar if refp is not None else None
                 workflow.method.barostat_parameters.reference_pressure = refp * ureg.bar if refp is not None else None
                 compressibility = input_parameters.get('compressibility', None)
-                sec_barostat_parameters.compressibility = compressibility * (1. / ureg.bar) if compressibility is not None else None
                 workflow.method.barostat_parameters.compressibility = compressibility * (1. / ureg.bar) if compressibility is not None else None
 
             if flag_thermostat:
-                sec_md.thermodynamic_ensemble = 'NPT' if flag_barostat else 'NVT'
                 workflow.method.thermodynamic_ensemble = 'NPT' if flag_barostat else 'NVT'
             elif flag_barostat:
-                sec_md.thermodynamic_ensemble = 'NPH'
                 workflow.method.thermodynamic_ensemble = 'NPH'
             else:
-                sec_md.thermodynamic_ensemble = 'NVE'
                 workflow.method.thermodynamic_ensemble = 'NVE'
 
             # calculate molecular radial distribution functions
-            sec_molecular_dynamics = self.archive.workflow[-1].molecular_dynamics
-            sec_results = sec_molecular_dynamics.m_create(MolecularDynamicsResults)
+            sec_results = workflow.results
             n_traj_split = 10  # number of intervals to split trajectory into for averaging
             interval_indices = []  # 2D array specifying the groups of the n_traj_split intervals to be averaged
             # first 20% of trajectory

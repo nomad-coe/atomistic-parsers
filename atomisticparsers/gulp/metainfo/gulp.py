@@ -24,7 +24,6 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference
 )
 from nomad.datamodel.metainfo import simulation
-from nomad.datamodel.metainfo import workflow
 
 
 m_package = Package()
@@ -828,7 +827,7 @@ class Calculation(simulation.calculation.Calculation):
     x_gulp_bulk_optimisation = SubSection(sub_section=x_gulp_bulk_optimisation.m_def)
 
 
-class Elastic(workflow.Elastic):
+class ElasticResults(simulation.workflow.ElasticResults):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -910,7 +909,7 @@ class Elastic(workflow.Elastic):
         ''')
 
 
-class MolecularDynamics(workflow.MolecularDynamics):
+class MolecularDynamics(simulation.workflow.MolecularDynamics):
 
     m_def = Section(validate=False, extends_base_section=True)
 

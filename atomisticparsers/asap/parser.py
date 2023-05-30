@@ -31,11 +31,9 @@ from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, Constraint)
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry)
-from nomad.datamodel.metainfo.workflow import (
-    Workflow, GeometryOptimization, MolecularDynamics)
 from nomad.datamodel.metainfo.simulation.workflow import (
-    GeometryOptimization as GeometryOptimization2, GeometryOptimizationMethod,
-    MolecularDynamics as MolecularDynamics2, MolecularDynamicsMethod
+    GeometryOptimization, GeometryOptimizationMethod,
+    MolecularDynamics, MolecularDynamicsMethod
 )
 
 
@@ -133,36 +131,25 @@ class AsapParser:
         if not description:
             return
 
-        sec_workflow = self.archive.m_create(Workflow)
-
         workflow = None
         calc_type = description.get('type')
         if calc_type == 'optimization':
-            sec_workflow.type = 'geometry_optimization'
-            sec_geometry_opt = sec_workflow.m_create(GeometryOptimization)
-            sec_geometry_opt.method = description.get('optimizer', '').lower()
-            sec_geometry_opt.x_asap_maxstep = description.get('maxstep', 0)
-            workflow = GeometryOptimization2(method=GeometryOptimizationMethod())
+            workflow = GeometryOptimization(method=GeometryOptimizationMethod())
+            workflow.x_asap_maxstep = description.get('maxstep', 0)
             workflow.method.method = description.get('optimizer', '').lower()
         elif calc_type == 'molecular-dynamics':
-            sec_workflow.type = 'molecular_dynamics'
-            sec_md = sec_workflow.m_create(MolecularDynamics)
-            sec_md.x_asap_timestep = description.get('timestep', 0)
-            sec_md.x_asap_temperature = description.get('temperature', 0)
-            workflow = MolecularDynamics2(method=MolecularDynamicsMethod())
+            workflow = MolecularDynamics(method=MolecularDynamicsMethod())
+            workflow.x_asap_timestep = description.get('timestep', 0)
+            workflow.x_asap_temperature = description.get('temperature', 0)
             md_type = description.get('md-type', '')
             if 'Langevin' in md_type:
-                sec_md.ensemble_type = 'NVT'
-                sec_md.x_asap_langevin_friction = description.get('friction', 0)
+                workflow.x_asap_langevin_friction = description.get('friction', 0)
                 workflow.method.thermodynamic_ensemble = 'NVT'
             elif 'NVT' in md_type:
-                sec_md.ensemble_type = 'NVT'
                 workflow.method.thermodynamic_ensemble = 'NVT'
             elif 'Verlet' in md_type:
-                sec_md.ensemble_type = 'NVE'
                 workflow.method.thermodynamic_ensemble = 'NVE'
             elif 'NPT' in md_type:
-                sec_md.ensemble_type = 'NPT'
                 workflow.method.thermodynamic_ensemble = 'NPT'
         self.archive.workflow2 = workflow
 

@@ -61,10 +61,10 @@ def test_molecular_dynamics(parser):
 
     sec_run = archive.run[0]
 
-    sec_workfow = archive.workflow[0]
+    sec_workfow = archive.workflow2
 
-    assert sec_workfow.type == 'molecular_dynamics'
-    assert sec_workfow.molecular_dynamics.ensemble_type == 'NVT'
-    assert sec_workfow.molecular_dynamics.x_asap_timestep == approx(0.4911347394232032)
+    assert sec_workfow.m_def.name == 'MolecularDynamics'
+    assert sec_workfow.method.thermodynamic_ensemble == 'NVT'
+    assert sec_workfow.x_asap_timestep == approx(0.4911347394232032)
 
     assert sec_run.system[8].atoms.velocities[11][2].magnitude == approx(-1291.224)

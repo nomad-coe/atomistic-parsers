@@ -94,18 +94,17 @@ def test_optimise_conp_property_old(parser):
     assert sec_opt.x_gulp_max_gradient_tolerance == approx(0.001)
     assert sec_opt.x_gulp_max_gradient_component == approx(0.01)
 
-    sec_workflow = archive.workflow
-    assert len(sec_workflow) == 1
-    assert sec_workflow[0].elastic.elastic_constants_matrix_second_order[1][3].magnitude == approx(-4.45913e+10)
-    assert sec_workflow[0].elastic.compliance_matrix_second_order[4][5].magnitude == approx(-3.838e-12)
-    assert sec_workflow[0].elastic.bulk_modulus_voigt.magnitude == approx(3.5517284e+11)
-    assert sec_workflow[0].elastic.bulk_modulus_reuss.magnitude == approx(3.5201356e+11)
-    assert sec_workflow[0].elastic.shear_modulus_hill.magnitude == approx(1.264132e+11)
-    assert sec_workflow[0].elastic.x_gulp_velocity_s_wave_reuss.magnitude == approx(5337.12)
-    assert sec_workflow[0].elastic.x_gulp_velocity_p_wave_hill.magnitude == approx(11600.06)
-    assert sec_workflow[0].elastic.x_gulp_compressibility.magnitude == approx(2.8408e-12)
-    assert sec_workflow[0].elastic.x_gulp_youngs_modulus_y.magnitude == approx(3.7496954e+11)
-    assert sec_workflow[0].elastic.x_gulp_poissons_ratio[0][2] == approx(0.19595)
+    sec_workflow = archive.workflow2
+    assert sec_workflow.results.elastic_constants_matrix_second_order[1][3].magnitude == approx(-4.45913e+10)
+    assert sec_workflow.results.compliance_matrix_second_order[4][5].magnitude == approx(-3.838e-12)
+    assert sec_workflow.results.bulk_modulus_voigt.magnitude == approx(3.5517284e+11)
+    assert sec_workflow.results.bulk_modulus_reuss.magnitude == approx(3.5201356e+11)
+    assert sec_workflow.results.shear_modulus_hill.magnitude == approx(1.264132e+11)
+    assert sec_workflow.results.x_gulp_velocity_s_wave_reuss.magnitude == approx(5337.12)
+    assert sec_workflow.results.x_gulp_velocity_p_wave_hill.magnitude == approx(11600.06)
+    assert sec_workflow.results.x_gulp_compressibility.magnitude == approx(2.8408e-12)
+    assert sec_workflow.results.x_gulp_youngs_modulus_y.magnitude == approx(3.7496954e+11)
+    assert sec_workflow.results.x_gulp_poissons_ratio[0][2] == approx(0.19595)
 
 
 def test_single_md_conv_old(parser):
@@ -132,14 +131,14 @@ def test_single_md_conv_old(parser):
     assert sec_calc[2].x_gulp_temperature_averaged.magnitude == approx(389.215575)
     assert sec_calc[3].x_gulp_pressure_averaged.magnitude == approx(1.2832591e+10)
 
-    sec_workflow = archive.workflow
-    assert sec_workflow[0].type == 'molecular_dynamics'
-    assert sec_workflow[0].molecular_dynamics.thermodynamic_ensemble == 'NVT'
-    assert sec_workflow[0].molecular_dynamics.integration_parameters.integration_timestep.magnitude == approx(1e-15)
-    assert sec_workflow[0].molecular_dynamics.x_gulp_production_time.magnitude == approx(5e-13)
-    assert sec_workflow[0].molecular_dynamics.x_gulp_td_field_start_time.magnitude == approx(0.)
-    assert sec_workflow[0].molecular_dynamics.x_gulp_n_degrees_of_freedom == approx(189)
-    assert sec_workflow[0].molecular_dynamics.x_gulp_friction_temperature_bath == approx(0.1)
+    sec_workflow = archive.workflow2
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
+    assert sec_workflow.method.thermodynamic_ensemble == 'NVT'
+    assert sec_workflow.method.integration_timestep.magnitude == approx(1e-15)
+    assert sec_workflow.x_gulp_production_time.magnitude == approx(5e-13)
+    assert sec_workflow.x_gulp_td_field_start_time.magnitude == approx(0.)
+    assert sec_workflow.x_gulp_n_degrees_of_freedom == approx(189)
+    assert sec_workflow.x_gulp_friction_temperature_bath == approx(0.1)
 
 
 def test_opti_mole_defe(parser):

@@ -22,7 +22,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference
 )
-from nomad.datamodel.metainfo import workflow
+from nomad.datamodel.metainfo.simulation import workflow
 
 
 m_package = Package()

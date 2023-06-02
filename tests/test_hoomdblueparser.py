@@ -62,7 +62,7 @@ def test_md_basics(parser):
     assert sec_atoms.positions[2024][2].magnitude == approx(-3.4790456295013428)
     assert np.shape(sec_atoms.velocities) == (68481, 3)
     assert sec_atoms.velocities[4532][0].magnitude == approx(-0.05720171704888344)
-    assert sec_atoms.lattice_vectors[2].magnitude == approx(13.735918998718262)
+    assert sec_atoms.lattice_vectors[2][2].magnitude == approx(13.735918998718262)
     sec_atomsgroup = sec_system.atoms_group
     assert len(sec_atomsgroup) == 17
     sec_molgroup = sec_atomsgroup[5]

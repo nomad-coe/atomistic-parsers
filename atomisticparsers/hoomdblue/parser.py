@@ -158,6 +158,12 @@ class HoomdblueParser:
         sec_system = sec_run.m_create(System)
         sec_atoms = sec_system.m_create(Atoms)
 
+        # set all species to unidentified, note that this is different from Gromacs or Lammps which currently use the given particle names for labels
+        # TODO: detect somehow if we have an atomic system
+        setattr(sec_atoms, 'species', [1 for __ in range(n_atoms)])
+        setattr(sec_atoms, 'labels', ['X' for __ in range(n_atoms)])
+
+
         # get lattice vectors
         hoomdblue_box = self.gsd_parser._attr_getter(frame, 'configuration.box', None)
         if hoomdblue_box is not None:

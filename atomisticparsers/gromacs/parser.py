@@ -658,7 +658,7 @@ class GromacsParser:
 
         for time in sorted(time_map):
             sec_scc = sec_run.m_create(Calculation)
-            sec_scc.time = time  # TODO Physical times should not be stored for GeometryOpt
+            sec_scc.time = time * ureg.picosecond  # TODO Physical times should not be stored for GeometryOpt
             sec_scc.step = int((time / time_step).magnitude)
             sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
 

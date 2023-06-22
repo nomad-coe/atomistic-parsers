@@ -69,6 +69,7 @@ def test_optimise_conp_property_old(parser):
     assert sec_system[0].atoms.positions[1][1].magnitude == approx(-1.11691024e-11)
     assert sec_system[1].atoms.lattice_vectors[1][0].magnitude == approx(-2.410026e-10)
     assert sec_system[1].atoms.positions[0][2].magnitude == approx(7.59013967e-10)
+    assert sec_system[1].atoms.periodic == [True, True, True]
 
     sec_calc = sec_run.calculation
     assert len(sec_calc) == 2
@@ -117,6 +118,7 @@ def test_single_md_conv_old(parser):
     assert len(sec_system[0].atoms.positions) == 64
     assert sec_system[0].atoms.lattice_vectors[1][1].magnitude == approx(8.423972e-10)
     assert sec_system[0].atoms.positions[46][0].magnitude == approx(6.317979e-10)
+    assert sec_system[0].atoms.periodic == [True, True, True]
 
     sec_calc = archive.run[0].calculation
     assert len(sec_calc) == 5

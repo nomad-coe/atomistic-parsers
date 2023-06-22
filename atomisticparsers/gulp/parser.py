@@ -666,8 +666,8 @@ class GulpParser:
             if unit.lower().startswith('frac') and lattice_vectors is not None:
                 positions = np.dot(positions, lattice_vectors)
             # get periodicity
-            periodic = [False] * 3
-            periodic[1: input_config.get('x_gulp_pbc', 3)]
+            periodic = np.array([False] * 3)
+            periodic[0:input_config.get('x_gulp_pbc', 3)] = True
             # build the basis atoms
             atoms = ase_Atoms(symbols=labels, cell=lattice_vectors, positions=positions)
             # build the full crystal

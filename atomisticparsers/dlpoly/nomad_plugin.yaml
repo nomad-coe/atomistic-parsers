@@ -16,3 +16,4 @@ metadata:
 name: parsers/dl-poly
 parser_class_name: atomisticparsers.dlpoly.parser.DLPolyParser
 python_package: atomisticparsers.dlpoly
+plugin_source_code_url: https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/dlpoly

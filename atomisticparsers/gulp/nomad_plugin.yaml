@@ -16,3 +16,4 @@ metadata:
 name: parsers/gulp
 parser_class_name: atomisticparsers.gulp.parser.GulpParser
 python_package: atomisticparsers.gulp
+plugin_source_code_url: https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/gulp

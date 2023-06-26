@@ -16,3 +16,4 @@ metadata:
 name: parsers/namd
 parser_class_name: atomisticparsers.namd.parser.NAMDParser
 python_package: atomisticparsers.namd
+plugin_source_code_url: https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/namd

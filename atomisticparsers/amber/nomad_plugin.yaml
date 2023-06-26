@@ -10,11 +10,10 @@ metadata:
   parserDirName: dependencies/parsers/atomistic/atomisticparsers/amber/
   parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
   parserSpecific: 'The Amber parser supports the SANDER and PMEMD Molecular Dynamics
-    codes.
-
-    '
+    codes.'
   status: production
   tableOfFiles: ''
 name: parsers/amber
 parser_class_name: atomisticparsers.amber.parser.AmberParser
 python_package: atomisticparsers.amber
+plugin_source_code_url: https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/amber

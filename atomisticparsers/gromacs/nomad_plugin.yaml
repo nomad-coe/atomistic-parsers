@@ -16,3 +16,4 @@ metadata:
 name: parsers/gromacs
 parser_class_name: atomisticparsers.gromacs.parser.GromacsParser
 python_package: atomisticparsers.gromacs
+plugin_source_code_url: https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/gromacs

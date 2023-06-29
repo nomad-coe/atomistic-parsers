@@ -16,3 +16,4 @@ metadata:
 name: parsers/asap
 parser_class_name: atomisticparsers.asap.parser.AsapParser
 python_package: atomisticparsers.asap
+plugin_source_code_url: https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/asap

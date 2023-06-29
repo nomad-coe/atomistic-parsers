@@ -16,3 +16,4 @@ metadata:
 name: parsers/dftbplus
 parser_class_name: atomisticparsers.dftbplus.parser.DFTBPlusParser
 python_package: atomisticparsers.dftbplus
+plugin_source_code_url: https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/dftplus

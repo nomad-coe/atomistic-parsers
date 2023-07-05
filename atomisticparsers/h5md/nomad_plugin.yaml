@@ -14,5 +14,5 @@ metadata:
   status: production
   tableOfFiles: ''
 name: parsers/h5md
-parser_class_name: atomisticparsers.h5md.parser.H5mdParser
+parser_class_name: atomisticparsers.h5md.parser.H5MDParser
 python_package: atomisticparsers.h5md

@@ -586,6 +586,7 @@ class XTBParser(MDParser):
         sec_method = self.archive.run[-1].m_create(Method)
         parameters = {p[0]: p[1] for p in self.out_parser.get(section, {}).get('setup', {}).get('parameter', [])}
         sec_tb = sec_method.m_create(TB)
+        sec_tb.name = 'xTB'
         sec_tb.x_xtb_setup = parameters
         sec_xtb = sec_tb.m_create(xTB)
         sec_xtb.name = section

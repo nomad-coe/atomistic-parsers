@@ -354,6 +354,7 @@ class DFTBPlusParser:
 
         sec_method = sec_run.m_create(Method)
         sec_tb = sec_method.m_create(TB)
+        sec_tb.name = 'DFTB'
         sec_tb.x_dftbp_input_parameters = input_parameters
         sec_tb.x_dftbp_sk_files = self.out_parser.sk_files
 

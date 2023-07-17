@@ -172,6 +172,17 @@ class Model(simulation.method.Model):
         ''')
 
 
+class xTB(simulation.method.xTB):
+
+    m_def = Section(validate=False, extends_base_section=True)
+
+    x_bopfox_parameters = Quantity(
+        type=JSON,
+        shape=[],
+        description='''
+        ''')
+
+
 class AtomParameters(simulation.method.AtomParameters):
 
     m_def = Section(validate=False, extends_base_section=True)

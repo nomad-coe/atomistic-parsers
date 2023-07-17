@@ -41,6 +41,7 @@ def test_static(parser):
     assert sec_run[0].x_dftbp_parser_version == '8'
 
     sec_method = archive.run[0].method
+    assert sec_method[0].tb.name == 'DFTB'
     assert sec_method[0].tb.x_dftbp_input_parameters['Hamiltonian']['Mixer']['InverseJacobiWeight'] == 0.01
     assert sec_method[0].tb.x_dftbp_input_parameters['Analysis']['ElectronDynamics']['Perturbation']['SpinType'] == 'Singlet'
 

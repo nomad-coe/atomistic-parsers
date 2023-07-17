@@ -43,6 +43,7 @@ def test_scf(parser):
     assert sec_run.time_run.date_end > 0
 
     sec_method = sec_run.method
+    assert sec_method[0].tb.name == 'xTB'
     assert sec_method[0].tb.x_xtb_setup['# basis functions'] == 6
     assert sec_method[0].tb.x_xtb_setup['Broyden damping'] == approx(0.4)
 

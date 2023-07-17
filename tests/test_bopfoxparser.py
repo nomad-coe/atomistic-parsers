@@ -41,7 +41,7 @@ def test_energy(parser):
     sec_method = sec_run.method[0]
     assert sec_method.x_bopfox_simulation_parameters['bopkernel'] == 'jackson'
     assert sec_method.x_bopfox_simulation_parameters['scftol'] == approx(0.001)
-    sec_model = sec_method.tb.model[0]
+    sec_model = sec_method.tb.xtb
     assert sec_model.name == 'test'
     assert sec_model.hamiltonian[0].name == 'ddsigma'
     assert (sec_model.hamiltonian[1].atom_labels == ['W', 'W']).all()

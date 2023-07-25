@@ -314,6 +314,17 @@ class MainfileParser(TextParser):
                         rf'((?:[A-Z]\w* +\w+ +\d+.+\s+)+)',
                         str_operation=to_species, convert=False
                     ),
+                    Quantity(
+                        'pgfnff',
+                        r'(pGFNFF forcefield to be used[\s\S]+pGFNFF.+)',
+                        sub_parser=TextParser(quantities=[
+                            Quantity(
+                                'key_parameter',
+                                rf'pGFNFF (.+? += +{re_f})',
+                                repeats=True, str_operation=lambda x: [v.strip() for v in x.split('=')]
+                            )
+                        ])
+                    ),
                     # old format
                     Quantity(
                         'pair_potential',
@@ -639,6 +650,13 @@ class GulpParser:
                         parameters={key: float(val) if isinstance(
                             val, np.float64) else val for key, val in interaction.get('key_parameter', [])}
                     ))
+
+        if (pgfnff := input_info.get('pgfnff')) is not None:
+            sec_model = force_field.m_create(Model)
+            sec_model.name = 'pGFNFF'
+            sec_model.contributions.append(Interaction(
+                parameters={key: float(val) for key, val in pgfnff.get('key_parameter', [])}
+            ))
         # atom parameters
         for n in range(len(input_info.get('species', {}).get('label', []))):
             sec_atom_parameter = sec_method.m_create(AtomParameters)

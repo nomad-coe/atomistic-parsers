@@ -724,6 +724,24 @@ class GromacsParser(MDParser):
         if not sec_run.system:
             return
 
+        # add the bond list to system 0
+        sec_atoms = sec_run.system[0].atoms
+        sec_method = sec_run.get('method')[0] if sec_run.get('method') is not None else None
+        sec_force_field = sec_method.force_field if sec_method is not None else None
+        sec_model = sec_force_field.get('model')[0] if sec_force_field is not None else None
+        contributions = sec_model.get('contributions') if sec_model is not None else []
+        contributions = contributions if contributions is not None else []
+        bond_list = []
+        for contribution in contributions:
+            if contribution.type == 'bond':
+                atom_indices = contribution.atom_indices
+                if contribution.n_inter:  # all bonds have been grouped into one contribution
+                    bond_list = [tuple(indices) for indices in atom_indices]
+                else:
+                    bond_list.append(tuple(contribution.atom_indices))
+        if bond_list != []:
+            setattr(sec_atoms, 'bond_list', bond_list)
+
         # parse atomsgroup (segments --> molecules --> residues)
         atoms_info = self.traj_parser._results['atoms_info']
         atoms_moltypes = np.array(atoms_info['moltypes'])

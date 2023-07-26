@@ -518,7 +518,11 @@ class H5MDParser(FileParser):
                     setattr(sec_atoms, key, system_info.get(key, [None] * (frame + 1))[frame])
 
             if frame == 0:  # TODO extend to time-dependent topologies
-                topology = self.hdf5_getter(self.filehdf5, 'connectivity.particles_group', None)
+                connectivity = self.hdf5_getter(self.filehdf5, 'connectivity', None)
+                bond_list = self.hdf5_getter(connectivity, 'bonds')
+                if bond_list is not None:
+                    setattr(sec_atoms, 'bond_list', bond_list)
+                topology = self.hdf5_getter(connectivity, 'particles_group', None)
                 if topology:
                     self.get_atomsgroup_fromh5md(sec_system, topology)
 

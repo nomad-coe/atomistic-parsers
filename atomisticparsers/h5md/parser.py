@@ -25,7 +25,7 @@ import h5py
 from nomad.parsing.file_parser import FileParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program  #, TimeRun
 from nomad.datamodel.metainfo.simulation.method import (
-    Method, ForceField, Model, Interaction, AtomParameters
+    Method, ForceField, Model, Interaction, AtomParameters, ForceCalculations, NeighborSearching
 )
 from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms, AtomsGroup
@@ -36,8 +36,15 @@ from nomad.datamodel.metainfo.simulation.calculation import (
 from nomad.datamodel.metainfo.workflow import (
     Workflow
 )
-from nomad.datamodel.metainfo.simulation import workflow as workflow2
-from nomad.datamodel.metainfo.simulation.workflow import MolecularDynamics
+# from nomad.datamodel.metainfo.simulation import workflow as workflow2
+# from nomad.datamodel.metainfo.simulation.workflow import MolecularDynamics
+from nomad.datamodel.metainfo.simulation.workflow import (
+    GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults,
+    BarostatParameters, ThermostatParameters, DiffusionConstantValues,
+    MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
+    RadialDistributionFunction, RadialDistributionFunctionValues,
+    MolecularDynamics, MolecularDynamicsMethod
+)
 # from nomad.atomutils import get_molecules_from_bond_list, is_same_molecule, get_composition
 from nomad.units import ureg
 
@@ -51,6 +58,7 @@ class H5MDParser(FileParser):
         self._atom_parameters = None
         self._system_info = None
         self._observable_info = None
+        self._parameter_info = None
         self._hdf5_particle_group_all = None
         self._hdf5_positions_all = None
         # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
@@ -60,9 +68,8 @@ class H5MDParser(FileParser):
             'positions': 'position',
             'velocities': 'velocity',
             'forces': 'force',
-            'species': 'species',
-            'labels': 'label',
-            'label': 'label',
+            'labels': 'species_label',
+            'label': 'force_field_label',
             'mass': 'mass',
             'charge': 'charge',
         }
@@ -110,11 +117,16 @@ class H5MDParser(FileParser):
 
         return quantity
 
-    def decode_hdf5_bytes(self, dataset):
+    def decode_hdf5_bytes(self, dataset, default):
         if dataset is None:
             return
         elif type(dataset).__name__ == 'ndarray':
+            if dataset.size == 0:
+                return default
             dataset = [val.decode("utf-8") for val in dataset] if type(dataset[0]) == bytes else dataset
+            dataset = [val.__bool__() for val in dataset] if type(dataset[0]).__name__ == 'bool_' else dataset
+        elif type(dataset).__name__ == 'bool_':
+            dataset = dataset.__bool__()
         else:
             dataset = dataset.decode("utf-8") if type(dataset) == bytes else dataset
         return dataset
@@ -132,7 +144,7 @@ class H5MDParser(FileParser):
                 return
         value = source.attrs.get(attribute)
         source = value[-1] if isinstance(value, list) else value
-        source = self.decode_hdf5_bytes(source) if source is not None else default
+        source = self.decode_hdf5_bytes(source, default) if source is not None else default
 
         return source
 
@@ -156,7 +168,7 @@ class H5MDParser(FileParser):
             source = source[()]
             source = self.apply_unit(source, unit, unit_factor)
 
-        return self.decode_hdf5_bytes(source)
+        return self.decode_hdf5_bytes(source, default)
 
     @property
     def n_frames(self):
@@ -171,7 +183,7 @@ class H5MDParser(FileParser):
         if self._n_atoms is None:
             if not self.filehdf5:
                 return
-            self._n_atoms = len(self.hdf5_positions_all[0]) if self.hdf5_positions_all is not None else None
+            self._n_atoms = [len(pos) for pos in self.hdf5_positions_all] if self.hdf5_positions_all is not None else None
         return self._n_atoms
 
     @property
@@ -190,15 +202,17 @@ class H5MDParser(FileParser):
             if not self.filehdf5:
                 return
             self._atom_parameters = {}
-            n_atoms = self.n_atoms
+            n_atoms = self.n_atoms[0]  # TODO Extend to non-static n_atoms
             if n_atoms is None:
                 return
             particles = self.hdf5_getter(self.filehdf5, 'particles.all')  # TODO Extend to arbitrary particle groups
 
             atom_parameter_keys = ['label', 'mass', 'charge']
             for key in atom_parameter_keys:
-                self._atom_parameters[key] = self.hdf5_getter(particles, self._nomad_to_particles_group_map[key])
-                if self._atom_parameters[key] is None:
+                value = self.hdf5_getter(particles, self._nomad_to_particles_group_map[key])
+                if value is not None:
+                    self._atom_parameters[key] = value
+                else:
                     continue
                 if type(self._atom_parameters[key]) == h5py.Group:
                     self.logger.warning('Time-dependent ' + key + ' currently not supported. Atom parameter values will not be stored.')
@@ -228,10 +242,12 @@ class H5MDParser(FileParser):
             self._system_info['system']['times'] = self.hdf5_getter(particles, 'position.time')
 
             # get the remaining system particle quantities
-            system_keys = {'species': 'system', 'labels': 'system', 'velocities': 'system', 'forces': 'calculation'}
+            system_keys = {'labels': 'system', 'velocities': 'system', 'forces': 'calculation'}
             for key, sec_key in system_keys.items():
-                self._system_info[sec_key][key] = self.hdf5_getter(particles, self._nomad_to_particles_group_map[key])
-                if self._system_info[sec_key][key] is None:
+                value = self.hdf5_getter(particles, self._nomad_to_particles_group_map[key])
+                if value is not None:
+                    self._system_info[sec_key][key] = value
+                else:
                     continue
 
                 if type(self._system_info[sec_key][key]) == h5py.Group:
@@ -253,13 +269,16 @@ class H5MDParser(FileParser):
 
             box_attributes = {'dimension': 'system', 'periodic': 'system'}
             for box_key, sec_key in box_attributes.items():
-                self._system_info[sec_key][box_key] = self.hdf5_attr_getter(particles, 'box', self._nomad_to_box_group_map[box_key])
-                self._system_info[sec_key][box_key] = [self._system_info[sec_key][box_key]] * n_frames
+                value = self.hdf5_attr_getter(particles, 'box', self._nomad_to_box_group_map[box_key])
+                if value is not None:
+                    self._system_info[sec_key][box_key] = [value] * n_frames
 
             box_keys = {'lattice_vectors': 'system'}
             for box_key, sec_key in box_keys.items():
-                self._system_info[sec_key][box_key] = self.hdf5_getter(particles, self._nomad_to_box_group_map[box_key])
-                if self._system_info[sec_key][box_key] is None:
+                value = self.hdf5_getter(box, self._nomad_to_box_group_map[box_key])
+                if value is not None:
+                    self._system_info[sec_key][box_key] = value
+                else:
                     continue
 
                 if type(self._system_info[sec_key][box_key]) == h5py.Group:
@@ -312,7 +331,7 @@ class H5MDParser(FileParser):
 
     def get_atomsgroup_fromh5md(self, nomad_sec, h5md_sec_particlesgroup):
         for i_key, key in enumerate(h5md_sec_particlesgroup.keys()):
-            particles_group = dict(h5md_sec_particlesgroup[key])
+            particles_group = {group_key: self.hdf5_getter(h5md_sec_particlesgroup[key], group_key) for group_key in h5md_sec_particlesgroup[key].keys()}
             sec_atomsgroup = nomad_sec.m_create(AtomsGroup)
             sec_atomsgroup.type = particles_group.pop('type', None)
             sec_atomsgroup.index = i_key
@@ -324,15 +343,64 @@ class H5MDParser(FileParser):
             particles_subgroup = particles_group.pop('particles_group', None)
             # set the remaining attributes
             for particles_group_key in particles_group.keys():
-                setattr(sec_atomsgroup, 'x_h5md_' + particles_group_key, particles_group.pop(particles_group_key, None))
+                setattr(sec_atomsgroup, 'x_h5md_' + particles_group_key, self.hdf5_getter(particles_group, particles_group_key))
             # get the next atomsgroup
             if particles_subgroup:
                 self.get_atomsgroup_fromh5md(sec_atomsgroup, particles_subgroup)
 
+    def check_metainfo_for_key_and_Enum(self, metainfo_class, key):
+        if key in metainfo_class.__dict__.keys():
+            val = metainfo_class.__dict__.get(key)
+            if val.get('type') is not None:
+                if type(val.type).__name__ == 'MEnum':
+                    if key in val.type._list:
+                        return key
+                    else:
+                        return 'x_h5md_' + key
+                else:
+                    return key
+            else:
+                self.logger.warning(key + 'in ' + metainfo_class + ' is not a Quantity or does not have an associated type.')  # Not sure if this can ever happen
+                return key
+        else:
+            return 'x_h5md_' + key
+
+    @property
+    def parameter_info(self):
+        if self._parameter_info is None:
+            self._parameter_info = {
+                'force_calculations': {},
+                'workflow': {}
+            }
+
+            def get_parameters_recursive(parameter_group):
+                param_dict = {}
+                for key, val in parameter_group.items():
+                    if type(val) == h5py.Group:
+                        param_dict[key] = get_parameters_recursive(val)
+                    else:
+                        param_dict[key] = self.hdf5_getter(parameter_group, key)
+                        if type(param_dict[key]) == str:
+                            param_dict[key] = param_dict[key].lower()
+                        elif 'int' in type(param_dict[key]).__name__:
+                            param_dict[key] = param_dict[key].item()
+
+                return param_dict
+
+            parameter_group = self.hdf5_getter(self.filehdf5, 'parameters')
+            force_calculations_group = self.hdf5_getter(parameter_group, 'force_calculations')
+            if force_calculations_group is not None:
+                self._parameter_info['force_calculations'] = get_parameters_recursive(force_calculations_group)
+            workflow_group = self.hdf5_getter(parameter_group, 'workflow')
+            if workflow_group is not None:
+                self._parameter_info['workflow'] = get_parameters_recursive(workflow_group)
+
+        return self._parameter_info
+
     def parse_calculation(self):
         sec_run = self.archive.run[-1]
         sec_system = sec_run.system
-        calculation_info = self._observable_info.get('configurational')
+        calculation_info = self.observable_info.get('configurational')
         system_info = self._system_info.get('calculation')  # note: it is currently ensured in parse_system() that these have the same length as the system_map
         if not calculation_info:  # TODO should still create entries for system time link in this case
             return
@@ -355,12 +423,12 @@ class H5MDParser(FileParser):
         for key, observable in calculation_info.items():
             if system_map_key == 'time':
                 times = observable.get('time')
-                if times:
-                    times = np.around(times.magnitude * ureg.convert(1.0, times.units, ureg.picosecond), 5)
+                if times is not None:
+                    times = np.around(times.magnitude * ureg.convert(1.0, times.units, ureg.picosecond), 5)  # TODO What happens if no units are given?
                     for i_time, time in enumerate(times):
                         map_entry = system_map.get(time)
                         if map_entry:
-                            map_entry[observable] = i_time
+                            map_entry[key] = i_time
                         else:
                             system_map[time] = {key: i_time}
                 else:
@@ -372,7 +440,7 @@ class H5MDParser(FileParser):
                     for i_step, step in enumerate(steps):
                         map_entry = system_map.get(step)
                         if map_entry:
-                            map_entry[observable] = i_step
+                            map_entry[key] = i_step
                         else:
                             system_map[time] = {key: i_step}
             else:
@@ -390,7 +458,7 @@ class H5MDParser(FileParser):
                 if time_step:
                     sec_scc.time = sec_scc.step * time_step
 
-            system_index = system_map[frame]['system_index']
+            system_index = system_map[frame]['system']
             if system_index is not None:
                 for key, val in system_info.items():
                     if key == 'forces':
@@ -420,132 +488,10 @@ class H5MDParser(FileParser):
                         else:
                             setattr(sec_scc, 'x_h5md_' + key, val)
 
-    # def parse_calculation_OLD(self):
-    #     sec_run = self.archive.run[-1]
-    #     sec_system = sec_run.system
-    #     calculation_info = self._observable_info.get('configurational')
-    #     if not calculation_info:  # TODO should still create entries for system time link in this case
-    #         return
-
-    #     time_step = None  # TODO GET TIME STEP FROM PARAMS SECTION
-    #     calculation_times_ps = []
-    #     calculation_steps = []
-    #     for key, observable in calculation_info.items():
-    #         times = observable.get('time')
-    #         if times is not None:
-    #             calculation_times_ps.append(times.magnitude * ureg.convert(1.0, times.units, ureg.picosecond))
-    #         steps = observable.get('step')
-    #         if steps is not None:
-    #             calculation_steps.append(steps)
-    #     calculation_times_ps = np.around(np.unique(np.concatenate(calculation_times_ps)), 5) if calculation_times_ps else None
-    #     calculation_steps = np.around(np.unique(np.concatenate(calculation_steps))).astype(int) if calculation_steps else None
-
-    #     system_map = {}
-    #     system_map_key = ''
-    #     if self._system_time_map and calculation_times_ps:
-    #         system_map_key = 'time'
-    #         for i_calc, calculation_time in enumerate(calculation_times_ps):
-    #             system_index = self._system_time_map.pop(
-    #                 calculation_times_ps[i_calc], None) if calculation_times_ps[i_calc] is not None else None
-    #             system_map[calculation_time] = {'system_index': system_index, 'calculation_index': i_calc}
-    #         for time, i_sys in self._system_time_map.items():
-    #             system_map[time] = {'system_index': i_sys, 'calculation_index': None}
-    #     elif self._system_step_map and calculation_steps:
-    #         system_map_key = 'step'
-    #         for i_calc, calculation_step in enumerate(calculation_steps):
-    #             system_index = self._system_step_map.pop(
-    #                 calculation_steps[i_calc], None) if calculation_steps[i_calc] is not None else None
-    #             system_map[calculation_step] = {'system_index': system_index, 'calculation_index': i_calc}
-    #         for step, i_sys in self._system_step_map.items():
-    #             system_map[step] = {'system_index': i_sys, 'calculation_index': None}
-    #     else:
-    #         self.logger.warning('No step or time available for system data. Cannot make calculation to system references.')
-    #         if calculation_times_ps:
-    #             system_map_key = 'time'
-    #             for i_calc, calculation_time in enumerate(calculation_times_ps):
-    #                 system_map[calculation_time] = {'system_index': None, 'calculation_index': i_calc}
-    #         elif calculation_steps:
-    #             system_map_key = 'step'
-    #             for i_calc, calculation_step in enumerate(calculation_steps):
-    #                 system_map[calculation_step] = {'system_index': None, 'calculation_index': i_calc}
-    #         else:
-    #             self.logger.warning('No step or time available for system or calculation data!')
-    #             return
-
-    #     # Add the observables to the system_map
-    #     observables = self._observable_info.get('configurational')
-    #     for observable in observables.keys():
-    #         if system_map_key == 'time':
-    #             times = observable.get('time')
-    #             if times:
-    #                 for i_time, time in enumerate(times):
-    #                     time_ps = round(time.magnitude * ureg.convert(1.0, time.units, ureg.picosecond), 5)
-    #                     map_entry = system_map.get(time_ps)
-    #                     if map_entry:
-    #                         map_entry[observable] = i_time
-    #                     else:
-    #                         system_map[time_ps] = {'system_index': None, 'calculation_index': None, ''}
-    #             else:
-    #                 self.logger.warning('No time information available for ' + observable + '. Cannot store values.')
-    #         elif system_map_key == 'step':
-    #             steps = observable.get('step')
-    #             if steps:
-    #                 steps =
-    #         else:
-    #             self.logger.error('system_map_key not assigned correctly.')
-
-    #     for frame in sorted(system_map):
-    #         sec_scc = sec_run.m_create(Calculation)
-    #         sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
-    #         if system_map_key == 'time':
-    #             sec_scc.time = frame
-    #             if calculation_steps:
-    #                 sec_scc.step = calculation_steps[system_map[frame]['calculation_index']]
-    #             elif time_step:
-    #                 sec_scc.step = int((frame / time_step).magnitude)
-    #         elif system_map_key == 'step':
-    #             sec_scc.step = frame
-    #             if calculation_times_ps:
-    #                 sec_scc.time = calculation_times_ps[system_map[frame]['calculation_index']]
-    #             elif time_step:
-    #                 sec_scc.time = sec_scc.step * time_step
-
-    #         system_index = system_map[frame]['system_index']
-    #         if system_index is not None:
-    #             sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(system_index)))
-    #             sec_scc.system_ref = sec_system[system_index]
-
-    #         calculation_index = time_map[time]['calculation_index']
-    #         if calculation_index is not None:
-    #             # TODO add other energy contributions, properties
-    #             energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']
-
-    #             sec_energy = sec_scc.m_create(Energy)
-    #             for key in thermo_data.keys():
-    #                 val = thermo_data.get(key)[calculation_index]
-    #                 if val is None:
-    #                     continue
-
-    #                 if key == 'Total Energy':
-    #                     sec_energy.total = EnergyEntry(value=val)
-    #                 elif key == 'Potential':
-    #                     sec_energy.potential = EnergyEntry(value=val)
-    #                 elif key == 'Kinetic En.':
-    #                     sec_energy.kinetic = EnergyEntry(value=val)
-    #                 elif key == 'Coulomb (SR)':
-    #                     sec_energy.coulomb = EnergyEntry(value=val)
-    #                 elif key == 'Pressure':
-    #                     sec_scc.pressure = val
-    #                 elif key == 'Temperature':
-    #                     sec_scc.temperature = val
-    #                 if key in energy_keys:
-    #                     sec_energy.contributions.append(
-    #                         EnergyEntry(kind=self._metainfo_mapping[key], value=val))
-
     def parse_system(self):
         sec_run = self.archive.run[-1]
 
-        system_info = self._system_info.get('system')
+        system_info = self.system_info.get('system')
         if not system_info:
             self.logger.error('No particle information found in H5MD file.')
 
@@ -572,7 +518,7 @@ class H5MDParser(FileParser):
                     setattr(sec_atoms, key, system_info.get(key, [None] * (frame + 1))[frame])
 
             if frame == 0:  # TODO extend to time-dependent topologies
-                topology = self.hdf5_getter(self.filehdf5, 'connectivity.topology', None)
+                topology = self.hdf5_getter(self.filehdf5, 'connectivity.particles_group', None)
                 if topology:
                     self.get_atomsgroup_fromh5md(sec_system, topology)
 
@@ -583,7 +529,7 @@ class H5MDParser(FileParser):
         sec_model = sec_force_field.m_create(Model)
 
         # get the atom parameters
-        n_atoms = self.n_atoms
+        n_atoms = self.n_atoms[0]  # TODO Extend to non-static n_atoms
         for n in range(n_atoms):
             sec_atom = sec_method.m_create(AtomParameters)
             for key in self.atom_parameters.keys():
@@ -594,8 +540,7 @@ class H5MDParser(FileParser):
         if not connectivity:
             return
 
-        atom_labels = self.system_info.get('system').get('labels')
-        atom_labels = atom_labels[0] if atom_labels is not None else None
+        atom_labels = self.atom_parameters.get('label')
         interaction_keys = ['bonds', 'angles', 'dihedrals', 'impropers']
         for interaction_key in interaction_keys:
             interaction_list = self.hdf5_getter(connectivity, interaction_key)
@@ -611,17 +556,55 @@ class H5MDParser(FileParser):
             sec_interaction.atom_indices = interaction_list
             sec_interaction.atom_labels = np.array(atom_labels)[interaction_list] if atom_labels is not None else None
 
+        # Get the force calculation parameters
+        force_calculation_parameters = self.parameter_info.get('force_calculations')
+        if force_calculation_parameters is None:
+            return
+
+        sec_force_calculations = sec_force_field.m_create(ForceCalculations)
+        sec_neighbor_searching = sec_force_calculations.m_create(NeighborSearching)
+
+        for key, val in force_calculation_parameters.items():
+            if type(val) is not dict:
+                key = self.check_metainfo_for_key_and_Enum(ForceCalculations, key)
+                setattr(sec_force_calculations, key, val)
+            else:
+                if key == 'neighbor_searching':
+                    for neigh_key, neigh_val in val.items():
+                        neigh_key = self.check_metainfo_for_key_and_Enum(NeighborSearching, neigh_key)
+                        setattr(sec_neighbor_searching, neigh_key, neigh_val)
+                else:
+                    self.logger.warning(key + 'is not a valid force calculations section. Corresponding parameters will not be stored.')
+
     def parse_workflow(self):
 
-        sec_workflow = self.archive.m_create(Workflow)
-        sec_workflow.type = 'molecular_dynamics'
-        __ = sec_workflow.m_create(MolecularDynamics)
-        workflow = workflow2.MolecularDynamics(
-            method=workflow2.MolecularDynamicsMethod(
-                thermostat_parameters=workflow2.ThermostatParameters(),
-                barostat_parameters=workflow2.BarostatParameters()
-            ), results=workflow2.MolecularDynamicsResults()
+        workflow_parameters = self.parameter_info.get('workflow').get('molecular_dynamics')
+        if workflow_parameters is None:
+            return
+
+        workflow = MolecularDynamics(
+            method=MolecularDynamicsMethod(
+                thermostat_parameters=ThermostatParameters(),
+                barostat_parameters=BarostatParameters()
+            ), results=MolecularDynamicsResults()
         )
+
+        for key, val in workflow_parameters.items():
+            if type(val) is not dict:
+                key = self.check_metainfo_for_key_and_Enum(MolecularDynamicsMethod, key)
+                setattr(workflow.method, key, val)
+            else:
+                if key == 'thermostat_parameters':
+                    for thermo_key, thermo_val in val.items():
+                        thermo_key = self.check_metainfo_for_key_and_Enum(ThermostatParameters, thermo_key)
+                        setattr(workflow.method.thermostat_parameters, thermo_key, thermo_val)
+                elif key == 'barostat_parameters':
+                    for baro_key, baro_val in val.items():
+                        baro_key = self.check_metainfo_for_key_and_Enum(BarostatParameters, baro_key)
+                        setattr(workflow.method.barostat_parameters, baro_key, baro_val)
+                else:
+                    self.logger.warning(key + 'is not a valid molecular dynamics workflow section. Corresponding parameters will not be stored.')
+
         self.archive.workflow2 = workflow
 
     def init_parser(self):
@@ -652,8 +635,8 @@ class H5MDParser(FileParser):
 
         self.parse_method()
 
-        # self.parse_system()
+        self.parse_system()
 
-        # self.parse_calculation()
+        self.parse_calculation()
 
-        # self.parse_workflow()
+        self.parse_workflow()

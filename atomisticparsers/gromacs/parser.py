@@ -851,7 +851,54 @@ class GromacsParser(MDParser):
             self.logger.error('Error parsing interactions.')
 
         interactions = self.traj_parser.get_interactions()
+<<<<<<< HEAD
         self.parse_interactions(interactions, sec_model)
+=======
+        interaction_key_list = Interaction.__dict__.keys()
+        interaction_dict = {}
+        interaction_keys_remove = ['__module__', '__doc__', 'm_def']
+        interaction_key_list = [key for key in interaction_key_list if key not in interaction_keys_remove]
+        for interaction_key in interaction_key_list:
+            interaction_dict[interaction_key] = np.array([interaction.get(interaction_key) for interaction in interactions], dtype=object)
+        interaction_dict = {key: val for key, val in interaction_dict.items()}
+        interaction_types = np.unique(interaction_dict['type']) if interaction_dict.get('type') is not None else []
+        for interaction_type in interaction_types:
+            sec_interaction = sec_model.m_create(Interaction)
+            interaction_indices = np.where(interaction_dict['type'] == interaction_type)[0]
+            sec_interaction.type = interaction_type
+            sec_interaction.n_inter = len(interaction_indices)
+            sec_interaction.n_atoms
+            n_atoms = interaction_dict.get('n_atoms')[interaction_indices][0]  # assuming the number of atoms per interaction type is fixed!
+            for key, val in interaction_dict.items():
+                if key == 'type':
+                    continue
+                interaction_vals = val[interaction_indices]
+                if type(interaction_vals[0]).__name__ == 'ndarray':
+                    interaction_vals = np.array([vals.tolist() for vals in interaction_vals], dtype=object)
+                if interaction_vals.all() is None:
+                    continue
+                if key == 'parameters':
+                    interaction_vals = interaction_vals.tolist()
+                elif key == 'n_atoms':
+                    interaction_vals = interaction_vals[0]
+                try:
+                    setattr(sec_interaction, key, interaction_vals)
+                except Exception:
+                    self.logger.warning(
+                        'Some issue trying to store ' + key + 'in Interactions section.'
+                        ' Possibly a data type problem. Ignoring these values.')
+
+            if not sec_interaction.get('n_atoms'):
+                sec_interaction.n_atoms = len(sec_interaction.get('atom_indices')[0]) if sec_interaction.get('atom_indices') is not None else None
+
+        # OLD VERSION WITHOUT GROUPINGS
+        # for interaction in interactions:
+        #     sec_interaction = sec_model.m_create(Interaction)
+        #     for key, val in interaction.items():
+        #         print(key)
+        #         print(val)
+        #         setattr(sec_interaction, key, val)
+>>>>>>> 0d6bf49 (adjusted gromacs tests for interaction groupings)
 
         input_parameters = self.log_parser.get('input_parameters', {})
         sec_force_calculations = sec_force_field.m_create(ForceCalculations)

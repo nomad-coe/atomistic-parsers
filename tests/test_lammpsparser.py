@@ -57,7 +57,11 @@ def test_nvt(parser):
     sec_method = sec_run.method[0]
     assert len(sec_method.force_field.model[0].contributions) == 3
     assert sec_method.force_field.model[0].contributions[1].type == 'bond'
+<<<<<<< HEAD
     assert sec_method.force_field.model[0].contributions[1].n_interactions == 666
+=======
+    assert sec_method.force_field.model[0].contributions[1].n_inter == 666
+>>>>>>> aaf4eaa (reorganized interactions in lammps parse_method into groups, created bond list in system 0 atoms section, and moved the bond list creation to atomutils)
     assert sec_method.force_field.model[0].contributions[1].n_atoms == 2
     assert sec_method.force_field.model[0].contributions[1].atom_indices[100][1] == 103
     assert sec_method.force_field.model[0].contributions[1].parameters[200] == approx(1.1147454117684314)

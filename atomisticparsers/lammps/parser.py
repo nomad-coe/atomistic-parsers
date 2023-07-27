@@ -38,7 +38,6 @@ from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_secti
 from atomisticparsers.utils import MDAnalysisParser, MDParser
 from nomad.atomutils import get_bond_list_from_model_contributions
 
-
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
 re_n = r'[\n\r]'
 
@@ -974,10 +973,12 @@ class LammpsParser(MDParser):
                 }
             })
 
-        if not sec_run.system:
-            return
+        # add the bond list to system 0
+        sec_atoms = sec_run.system[0].atoms
+        bond_list = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
+        if bond_list != []:
+            setattr(sec_atoms, 'bond_list', bond_list)
 
-        sec_system = sec_run.system[-1]
         # parse atomsgroup (moltypes --> molecules --> residues)
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         if atoms_info is None:

@@ -42,8 +42,13 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.workflow import (
     GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
 )
+<<<<<<< HEAD
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser, MDParser
+=======
+from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files, CalcEntry
+from atomisticparsers.utils import MDAnalysisParser
+>>>>>>> aaf4eaa (reorganized interactions in lammps parse_method into groups, created bond list in system 0 atoms section, and moved the bond list creation to atomutils)
 from nomad.atomutils import get_bond_list_from_model_contributions
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
@@ -726,19 +731,7 @@ class GromacsParser(MDParser):
 
         # add the bond list to system 0
         sec_atoms = sec_run.system[0].atoms
-        sec_method = sec_run.get('method')[0] if sec_run.get('method') is not None else None
-        sec_force_field = sec_method.force_field if sec_method is not None else None
-        sec_model = sec_force_field.get('model')[0] if sec_force_field is not None else None
-        contributions = sec_model.get('contributions') if sec_model is not None else []
-        contributions = contributions if contributions is not None else []
-        bond_list = []
-        for contribution in contributions:
-            if contribution.type == 'bond':
-                atom_indices = contribution.atom_indices
-                if contribution.n_inter:  # all bonds have been grouped into one contribution
-                    bond_list = [tuple(indices) for indices in atom_indices]
-                else:
-                    bond_list.append(tuple(contribution.atom_indices))
+        bond_list = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
         if bond_list != []:
             setattr(sec_atoms, 'bond_list', bond_list)
 
@@ -852,8 +845,14 @@ class GromacsParser(MDParser):
 
         interactions = self.traj_parser.get_interactions()
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.parse_interactions(interactions, sec_model)
 =======
+=======
+        #  TODO The section below is duplicated in the lammps and gromacs parsers. We should really move them
+        #       to the MDAnalysis parser, but you must be careful because there are other contributions to interactions
+        #       from other (sub)parsers
+>>>>>>> aaf4eaa (reorganized interactions in lammps parse_method into groups, created bond list in system 0 atoms section, and moved the bond list creation to atomutils)
         interaction_key_list = Interaction.__dict__.keys()
         interaction_dict = {}
         interaction_keys_remove = ['__module__', '__doc__', 'm_def']

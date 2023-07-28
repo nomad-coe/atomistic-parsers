@@ -84,7 +84,7 @@ class GromacsLogParser(TextParser):
             return parameters
 
         def str_to_energies(val_in):
-            energy_keys_re = re.compile(r'(.+?)(?:  |\Z| P)')
+            energy_keys_re = re.compile(r'(.+?)(?:  |\Z| (?=P))')
             keys = []
             values = []
             energies = dict()
@@ -95,6 +95,7 @@ class GromacsLogParser(TextParser):
                     keys = ['P%s' % k if k.startswith('res') else k for k in keys if k]
                 else:
                     values = val.split()
+                    print(keys)
                     for n, key in enumerate(keys):
 
                         if key == 'Temperature':
@@ -1087,49 +1088,50 @@ class GromacsParser:
         sec_run = self.archive.m_create(Run)
 
         header = self.log_parser.get('header', {})
-        sec_run.program = Program(
-            name='GROMACS', version=str(header.get('version', 'unknown')).lstrip('VERSION '))
+        print(header)
+        # sec_run.program = Program(
+        #     name='GROMACS', version=str(header.get('version', 'unknown')).lstrip('VERSION '))
 
-        sec_time_run = sec_run.m_create(TimeRun)
-        for key in ['start', 'end']:
-            time = self.log_parser.get('time_%s' % key)
-            if time is None:
-                continue
-            setattr(sec_time_run, 'date_%s' % key, datetime.datetime.strptime(
-                time, '%a %b %d %H:%M:%S %Y').timestamp())
+        # sec_time_run = sec_run.m_create(TimeRun)
+        # for key in ['start', 'end']:
+        #     time = self.log_parser.get('time_%s' % key)
+        #     if time is None:
+        #         continue
+        #     setattr(sec_time_run, 'date_%s' % key, datetime.datetime.strptime(
+        #         time, '%a %b %d %H:%M:%S %Y').timestamp())
 
-        host_info = self.log_parser.get('host_info')
-        if host_info is not None:
-            sec_run.x_gromacs_program_execution_host = host_info[0]
-            sec_run.x_gromacs_parallel_task_nr = host_info[1]
-            sec_run.x_gromacs_number_of_tasks = host_info[2]
+        # host_info = self.log_parser.get('host_info')
+        # if host_info is not None:
+        #     sec_run.x_gromacs_program_execution_host = host_info[0]
+        #     sec_run.x_gromacs_parallel_task_nr = host_info[1]
+        #     sec_run.x_gromacs_number_of_tasks = host_info[2]
 
-        topology_file = self.get_gromacs_file('tpr')
-        # I have no idea if output trajectory file can be specified in input
-        trr_file = self.get_gromacs_file('trr')
-        trr_file_nopath = trr_file.rsplit('.', 1)[0]
-        trr_file_nopath = trr_file_nopath.rsplit('/')[-1]
-        if not trr_file_nopath.startswith(self._basename):
-            xtc_file = self.get_gromacs_file('xtc')
-            xtc_file_nopath = xtc_file.rsplit('.', 1)[0]
-            xtc_file_nopath = xtc_file_nopath.rsplit('/')[-1]
-            trajectory_file = xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
-        else:
-            trajectory_file = trr_file
+        # topology_file = self.get_gromacs_file('tpr')
+        # # I have no idea if output trajectory file can be specified in input
+        # trr_file = self.get_gromacs_file('trr')
+        # trr_file_nopath = trr_file.rsplit('.', 1)[0]
+        # trr_file_nopath = trr_file_nopath.rsplit('/')[-1]
+        # if not trr_file_nopath.startswith(self._basename):
+        #     xtc_file = self.get_gromacs_file('xtc')
+        #     xtc_file_nopath = xtc_file.rsplit('.', 1)[0]
+        #     xtc_file_nopath = xtc_file_nopath.rsplit('/')[-1]
+        #     trajectory_file = xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
+        # else:
+        #     trajectory_file = trr_file
 
-        self.traj_parser.mainfile = topology_file
-        self.traj_parser.auxilliary_files = [trajectory_file]
+        # self.traj_parser.mainfile = topology_file
+        # self.traj_parser.auxilliary_files = [trajectory_file]
 
-        self.parse_method()
+        # self.parse_method()
 
-        self.parse_system()
+        # self.parse_system()
 
         # TODO read also from ene
-        edr_file = self.get_gromacs_file('edr')
-        self.energy_parser.mainfile = edr_file
+        # edr_file = self.get_gromacs_file('edr')
+        # self.energy_parser.mainfile = edr_file
 
-        self.parse_thermodynamic_data()
+        # self.parse_thermodynamic_data()
 
-        self.parse_input()
+        # self.parse_input()
 
-        self.parse_workflow()
+        # self.parse_workflow()

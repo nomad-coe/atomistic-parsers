@@ -348,12 +348,12 @@ class H5MDParser(FileParser):
             if particles_subgroup:
                 self.get_atomsgroup_fromh5md(sec_atomsgroup, particles_subgroup)
 
-    def check_metainfo_for_key_and_Enum(self, metainfo_class, key):
+    def check_metainfo_for_key_and_Enum(self, metainfo_class, key, val):
         if key in metainfo_class.__dict__.keys():
-            val = metainfo_class.__dict__.get(key)
-            if val.get('type') is not None:
-                if type(val.type).__name__ == 'MEnum':
-                    if key in val.type._list:
+            quant = metainfo_class.__dict__.get(key)
+            if quant.get('type') is not None:
+                if type(quant.type).__name__ == 'MEnum':
+                    if val in quant.type._list:
                         return key
                     else:
                         return 'x_h5md_' + key
@@ -570,12 +570,12 @@ class H5MDParser(FileParser):
 
         for key, val in force_calculation_parameters.items():
             if type(val) is not dict:
-                key = self.check_metainfo_for_key_and_Enum(ForceCalculations, key)
+                key = self.check_metainfo_for_key_and_Enum(ForceCalculations, key, val)
                 setattr(sec_force_calculations, key, val)
             else:
                 if key == 'neighbor_searching':
                     for neigh_key, neigh_val in val.items():
-                        neigh_key = self.check_metainfo_for_key_and_Enum(NeighborSearching, neigh_key)
+                        neigh_key = self.check_metainfo_for_key_and_Enum(NeighborSearching, neigh_key, neigh_val)
                         setattr(sec_neighbor_searching, neigh_key, neigh_val)
                 else:
                     self.logger.warning(key + 'is not a valid force calculations section. Corresponding parameters will not be stored.')
@@ -595,16 +595,18 @@ class H5MDParser(FileParser):
 
         for key, val in workflow_parameters.items():
             if type(val) is not dict:
-                key = self.check_metainfo_for_key_and_Enum(MolecularDynamicsMethod, key)
+                if key == 'thermodynamic_ensemble':
+                    val = val.upper()
+                key = self.check_metainfo_for_key_and_Enum(MolecularDynamicsMethod, key, val)
                 setattr(workflow.method, key, val)
             else:
                 if key == 'thermostat_parameters':
                     for thermo_key, thermo_val in val.items():
-                        thermo_key = self.check_metainfo_for_key_and_Enum(ThermostatParameters, thermo_key)
+                        thermo_key = self.check_metainfo_for_key_and_Enum(ThermostatParameters, thermo_key, thermo_val)
                         setattr(workflow.method.thermostat_parameters, thermo_key, thermo_val)
                 elif key == 'barostat_parameters':
                     for baro_key, baro_val in val.items():
-                        baro_key = self.check_metainfo_for_key_and_Enum(BarostatParameters, baro_key)
+                        baro_key = self.check_metainfo_for_key_and_Enum(BarostatParameters, baro_key, baro_val)
                         setattr(workflow.method.barostat_parameters, baro_key, baro_val)
                 else:
                     self.logger.warning(key + 'is not a valid molecular dynamics workflow section. Corresponding parameters will not be stored.')

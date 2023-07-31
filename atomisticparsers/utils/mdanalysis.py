@@ -221,7 +221,12 @@ class MDAnalysisParser(FileParser):
 
         bead_groups = self.bead_groups
         atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
+        for key in bead_groups.keys():
+            print(key)
+            print(bead_groups[key]._nbeads)
         moltypes = np.unique(atoms_moltypes)
+        print(moltypes)
+
         if bead_groups is None:
             return {}
 
@@ -348,7 +353,6 @@ class MDAnalysisParser(FileParser):
 
     def get_interactions(self):
         interactions = self.get('interactions', None)
-
         if interactions is not None:
             return interactions
 

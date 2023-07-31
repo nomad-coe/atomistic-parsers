@@ -83,28 +83,46 @@ class GromacsLogParser(TextParser):
                     parameters[val_array.group(1)].append(value[0] if len(value) == 1 else value)
             return parameters
 
-        def str_to_energies(val_in):
-            energy_keys_re = re.compile(r'(.+?)(?:  |\Z| (?=P))')
-            keys = []
-            values = []
-            energies = dict()
-            for val in val_in.strip().split('\n'):
-                val = val.strip()
-                if val[0].isalpha():
-                    keys = [k.strip() for k in energy_keys_re.findall(val)]
-                    keys = ['P%s' % k if k.startswith('res') else k for k in keys if k]
-                else:
-                    values = val.split()
-                    print(keys)
-                    for n, key in enumerate(keys):
+        def str_to_energies(energies_block):
 
-                        if key == 'Temperature':
-                            energies[key] = float(values[n]) * ureg.kelvin
-                        elif key.startswith('Pres'):
-                            key = key.rstrip(' (bar)')
-                            energies[key] = float(values[n]) * ureg.bar
-                        else:
-                            energies[key] = float(values[n]) / MOL * ureg.kJ
+            max_char_name = 14
+            rows = energies_block.strip().split("\n")
+            names = [rows[i_row] for i_row in range(len(rows)) if i_row % 2 == 0]
+            values = [rows[i_row] for i_row in range(len(rows)) if i_row % 2 != 0]
+
+            names_re = r"(?<!\S)[A-Za-z0-9.()\/-]{1,}(?: [\S][A-Za-z0-9.()\/-]{1,})*(?!\S)"
+            values_re = r"[-+]?\d+\.\d+e[+-]?\d+"
+            names = [re.findall(names_re, name) for name in names]
+            names = [name for group in names for name in group]
+            names_split = []
+            for name in names:
+                if len(name) <= max_char_name:
+                    names_split.append(name.strip())
+                else:
+                    remainder_len = len(name) % max_char_name
+                    divisor = int(len(name) / max_char_name)
+                    names_split.append(name[:remainder_len - divisor].strip())
+                    for i in range(int(len(name) / max_char_name)):
+                        start = remainder_len - divisor + (i + 1) + i * max_char_name
+                        end = start + max_char_name
+                        names_split.append(name[start:end].strip())
+
+            values = [re.findall(values_re, val) for val in values]
+            values = [val for group in values for val in group]
+
+            if len(names_split) != len(values):
+                self.logger.error('Error matching energy values.')
+
+            energies = {}
+            for key, val in zip(names_split, values):
+                if key == 'Temperature':
+                    energies[key] = float(val) * ureg.kelvin
+                elif key.startswith('Pres'):
+                    key = key.rstrip(' (bar)')
+                    energies[key] = float(val) * ureg.bar
+                else:
+                    energies[key] = float(val) / MOL * ureg.kJ
+
             return energies
 
         def str_to_step_info(val_in):
@@ -116,11 +134,11 @@ class GromacsLogParser(TextParser):
         thermo_quantities = [
             Quantity(
                 'energies',
-                r'Energies \(kJ/mol\)\s*([\s\S]+?)\n\n',
+                r'Energies \(kJ/mol\)\s*([\s\S]+?)\nD.* step.* load imb.*|\n\n',
                 str_operation=str_to_energies, convert=False),
             Quantity(
                 'step_info',
-                r'(Step.+\n[\d\.\- ]+)',
+                r'[\r\n]\s*(Step.+\n[\d\.\- ]+)',
                 str_operation=str_to_step_info, convert=False)]
 
         self._quantities = [
@@ -132,9 +150,9 @@ class GromacsLogParser(TextParser):
             Quantity('execution_path', r'Executable:\s*(.+)'),
             Quantity('working_path', r'Data prefix:\s*(.+)'),
             # TODO cannot understand treatment of the command line in the old parser
-            # Quantity(
-            #     'header',
-            #     r'(?:GROMACS|Gromacs) (2019[\s\S]+?)\n\n', str_operation=str_to_header),
+            Quantity(
+                'header',
+                r'(?:GROMACS|Gromacs) (2019[\s\S]+?)\n\n', str_operation=str_to_header),
             Quantity(
                 'header',
                 r'(?:GROMACS|Gromacs) (version:[\s\S]+?)\n\n', str_operation=str_to_header),
@@ -996,6 +1014,7 @@ class GromacsParser:
             # last 40% of trajectory
             interval_indices.append(np.arange(n_traj_split)[len(interval_indices[0]) * 3:])
 
+            print('about to calc rdf')
             rdf_results = self.traj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
             if rdf_results is not None:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
@@ -1017,26 +1036,26 @@ class GromacsParser:
                     sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
                         'frame_end') is not None else []
 
-            # calculate the molecular mean squared displacements
-            msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
-            if msd_results is not None:
-                sec_msds = sec_results.m_create(MeanSquaredDisplacement)
-                sec_msds.type = 'molecular'
-                sec_msds.direction = 'xyz'
-                for i_type, moltype in enumerate(msd_results.get('types', [])):
-                    sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
-                    sec_msd_values.label = str(moltype)
-                    sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
-                    sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
-                        'times') is not None else []
-                    sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
-                        'value') is not None else []
-                    sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-                    sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
-                        'diffusion_constant') is not None else []
-                    sec_diffusion.error_type = 'Pearson correlation coefficient'
-                    sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
-                        'error_diffusion_constant') is not None else []
+            # # calculate the molecular mean squared displacements
+            # msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
+            # if msd_results is not None:
+            #     sec_msds = sec_results.m_create(MeanSquaredDisplacement)
+            #     sec_msds.type = 'molecular'
+            #     sec_msds.direction = 'xyz'
+            #     for i_type, moltype in enumerate(msd_results.get('types', [])):
+            #         sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
+            #         sec_msd_values.label = str(moltype)
+            #         sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
+            #         sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
+            #             'times') is not None else []
+            #         sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
+            #             'value') is not None else []
+            #         sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
+            #         sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
+            #             'diffusion_constant') is not None else []
+            #         sec_diffusion.error_type = 'Pearson correlation coefficient'
+            #         sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
+            #             'error_diffusion_constant') is not None else []
 
         self.archive.workflow2 = workflow
 
@@ -1088,50 +1107,56 @@ class GromacsParser:
         sec_run = self.archive.m_create(Run)
 
         header = self.log_parser.get('header', {})
-        print(header)
-        # sec_run.program = Program(
-        #     name='GROMACS', version=str(header.get('version', 'unknown')).lstrip('VERSION '))
 
-        # sec_time_run = sec_run.m_create(TimeRun)
-        # for key in ['start', 'end']:
-        #     time = self.log_parser.get('time_%s' % key)
-        #     if time is None:
-        #         continue
-        #     setattr(sec_time_run, 'date_%s' % key, datetime.datetime.strptime(
-        #         time, '%a %b %d %H:%M:%S %Y').timestamp())
+        sec_run.program = Program(
+            name='GROMACS', version=str(header.get('version', 'unknown')).lstrip('VERSION '))
 
-        # host_info = self.log_parser.get('host_info')
-        # if host_info is not None:
-        #     sec_run.x_gromacs_program_execution_host = host_info[0]
-        #     sec_run.x_gromacs_parallel_task_nr = host_info[1]
-        #     sec_run.x_gromacs_number_of_tasks = host_info[2]
+        sec_time_run = sec_run.m_create(TimeRun)
+        for key in ['start', 'end']:
+            time = self.log_parser.get('time_%s' % key)
+            if time is None:
+                continue
+            setattr(sec_time_run, 'date_%s' % key, datetime.datetime.strptime(
+                time, '%a %b %d %H:%M:%S %Y').timestamp())
 
-        # topology_file = self.get_gromacs_file('tpr')
-        # # I have no idea if output trajectory file can be specified in input
-        # trr_file = self.get_gromacs_file('trr')
-        # trr_file_nopath = trr_file.rsplit('.', 1)[0]
-        # trr_file_nopath = trr_file_nopath.rsplit('/')[-1]
-        # if not trr_file_nopath.startswith(self._basename):
-        #     xtc_file = self.get_gromacs_file('xtc')
-        #     xtc_file_nopath = xtc_file.rsplit('.', 1)[0]
-        #     xtc_file_nopath = xtc_file_nopath.rsplit('/')[-1]
-        #     trajectory_file = xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
-        # else:
-        #     trajectory_file = trr_file
+        host_info = self.log_parser.get('host_info')
+        if host_info is not None:
+            sec_run.x_gromacs_program_execution_host = host_info[0]
+            sec_run.x_gromacs_parallel_task_nr = host_info[1]
+            sec_run.x_gromacs_number_of_tasks = host_info[2]
 
-        # self.traj_parser.mainfile = topology_file
-        # self.traj_parser.auxilliary_files = [trajectory_file]
+        topology_file = self.get_gromacs_file('tpr')
+        # I have no idea if output trajectory file can be specified in input
+        trr_file = self.get_gromacs_file('trr')
+        trr_file_nopath = trr_file.rsplit('.', 1)[0]
+        trr_file_nopath = trr_file_nopath.rsplit('/')[-1]
+        xtc_file = self.get_gromacs_file('xtc')
+        xtc_file_nopath = xtc_file.rsplit('.', 1)[0]
+        xtc_file_nopath = xtc_file_nopath.rsplit('/')[-1]
+        if not trr_file_nopath.startswith(self._basename):
+            trajectory_file = xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
+        else:
+            trajectory_file = trr_file
 
-        # self.parse_method()
+        self.traj_parser.mainfile = topology_file
+        self.traj_parser.auxilliary_files = [trajectory_file]
+        # check to see if the trr file can be read properly (and has positions), otherwise try xtc file instead
+        positions = getattr(self.traj_parser, 'universe', None)
+        positions = getattr(positions, 'atoms', None) if positions else None
+        positions = getattr(positions, 'positions', None) if positions else None
+        if positions is None:
+            self.traj_parser.auxilliary_files = [xtc_file] if xtc_file else [trr_file]
 
-        # self.parse_system()
+        self.parse_method()
+
+        self.parse_system()
 
         # TODO read also from ene
-        # edr_file = self.get_gromacs_file('edr')
-        # self.energy_parser.mainfile = edr_file
+        edr_file = self.get_gromacs_file('edr')
+        self.energy_parser.mainfile = edr_file
 
-        # self.parse_thermodynamic_data()
+        self.parse_thermodynamic_data()
 
-        # self.parse_input()
+        self.parse_input()
 
-        # self.parse_workflow()
+        self.parse_workflow()

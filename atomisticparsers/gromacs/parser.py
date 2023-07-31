@@ -1014,7 +1014,6 @@ class GromacsParser:
             # last 40% of trajectory
             interval_indices.append(np.arange(n_traj_split)[len(interval_indices[0]) * 3:])
 
-            print('about to calc rdf')
             rdf_results = self.traj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
             if rdf_results is not None:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
@@ -1036,26 +1035,27 @@ class GromacsParser:
                     sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
                         'frame_end') is not None else []
 
-            # # calculate the molecular mean squared displacements
-            # msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
-            # if msd_results is not None:
-            #     sec_msds = sec_results.m_create(MeanSquaredDisplacement)
-            #     sec_msds.type = 'molecular'
-            #     sec_msds.direction = 'xyz'
-            #     for i_type, moltype in enumerate(msd_results.get('types', [])):
-            #         sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
-            #         sec_msd_values.label = str(moltype)
-            #         sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
-            #         sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
-            #             'times') is not None else []
-            #         sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
-            #             'value') is not None else []
-            #         sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-            #         sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
-            #             'diffusion_constant') is not None else []
-            #         sec_diffusion.error_type = 'Pearson correlation coefficient'
-            #         sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
-            #             'error_diffusion_constant') is not None else []
+            print('about to calc MSD')
+            # calculate the molecular mean squared displacements
+            msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
+            if msd_results is not None:
+                sec_msds = sec_results.m_create(MeanSquaredDisplacement)
+                sec_msds.type = 'molecular'
+                sec_msds.direction = 'xyz'
+                for i_type, moltype in enumerate(msd_results.get('types', [])):
+                    sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
+                    sec_msd_values.label = str(moltype)
+                    sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
+                    sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
+                        'times') is not None else []
+                    sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
+                        'value') is not None else []
+                    sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
+                    sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
+                        'diffusion_constant') is not None else []
+                    sec_diffusion.error_type = 'Pearson correlation coefficient'
+                    sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
+                        'error_diffusion_constant') is not None else []
 
         self.archive.workflow2 = workflow
 

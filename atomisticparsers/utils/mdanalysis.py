@@ -174,12 +174,14 @@ class MDAnalysisParser(FileParser):
                 ctr_fragtype += 1
         return atoms_fragtypes
 
-    def calc_molecular_rdf(self, n_traj_split=10, n_prune=1, interval_indices=None, n_bins=200, n_smooth=2):
+    def calc_molecular_rdf(self, n_traj_split=10, n_prune=1, interval_indices=None, n_bins=200, n_smooth=2, max_mols=5000):
         '''
         Calculates the radial distribution functions between for each unique pair of
         molecule types as a function of their center of mass distance.
 
         interval_indices: 2D array specifying the groups of the n_traj_split intervals to be averaged
+        max_mols: the maximum number of molecules per bead group for calculating the rdf, for efficiency purposes.
+        5k was set after > 50k was giving problems. Should do further testing to see where the appropriate limit should be set.
         '''
         def get_rdf_avg(rdf_results_tmp, rdf_results, interval_indices, n_frames_split):
             split_weights = n_frames_split[np.array(interval_indices)] / np.sum(n_frames_split[np.array(interval_indices)])
@@ -220,15 +222,14 @@ class MDAnalysisParser(FileParser):
                 interval_indices = [[i] for i in range(n_traj_split)]
 
         bead_groups = self.bead_groups
-        atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
-        for key in bead_groups.keys():
-            print(key)
-            print(bead_groups[key]._nbeads)
-        moltypes = np.unique(atoms_moltypes)
-        print(moltypes)
-
         if bead_groups is None:
             return {}
+        moltypes = [moltype for moltype in bead_groups.keys()]
+        del_list = []
+        for i_moltype, moltype in enumerate(moltypes):
+            if bead_groups[moltype]._nbeads > max_mols:
+                del_list.append(i_moltype)
+        moltypes = np.delete(moltypes, del_list)
 
         min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
         max_rdf_dist = min_box_dimension / 2
@@ -386,10 +387,13 @@ class MDAnalysisParser(FileParser):
         error = linear_model.rvalue
         return slope * 1 / (2 * dim), error
 
-    def calc_molecular_mean_squared_displacements(self):
+    def calc_molecular_mean_squared_displacements(self, max_mols=1000000):
         '''
         Calculates the mean squared displacement for the center of mass of each
         molecule type.
+
+        max_mols: the maximum number of molecules per bead group for calculating the msd, for efficiency purposes.
+        1M is arbitrary, 50k was tested and is very fast and does not seem to have any memory issues.
         '''
 
         def mean_squared_displacement(start: np.ndarray, current: np.ndarray):
@@ -401,19 +405,31 @@ class MDAnalysisParser(FileParser):
 
         if self.universe is None:
             return
-        if self.universe.trajectory[0].dimensions is None:
+        trajectory = self.universe.trajectory[0] if self.universe.trajectory else None
+        dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
+        if dimensions is None:
             return
 
-        atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
-        moltypes = np.unique(atoms_moltypes)
-        dt = self.universe.trajectory.dt
         n_frames = self.universe.trajectory.n_frames
-        times = np.arange(n_frames) * dt
-
         if n_frames < 50:
             return
 
+        dt = getattr(self.universe.trajectory, 'dt')
+        if dt is None:
+            return
+        times = np.arange(n_frames) * dt
+
         bead_groups = self.bead_groups
+        if bead_groups is None:
+            return {}
+
+        moltypes = [moltype for moltype in bead_groups.keys()]
+        del_list = []
+        for i_moltype, moltype in enumerate(moltypes):
+            if bead_groups[moltype]._nbeads > max_mols:
+                del_list.append(i_moltype)
+        moltypes = np.delete(moltypes, del_list)
+
         msd_results = {}
         msd_results['value'] = []
         msd_results['times'] = []

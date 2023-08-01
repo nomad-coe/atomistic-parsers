@@ -677,7 +677,7 @@ class GromacsParser:
 
         for time in sorted(time_map):
             sec_scc = sec_run.m_create(Calculation)
-            sec_scc.time = time  # TODO Physical times should not be stored for GeometryOpt
+            sec_scc.time = time * ureg.picosecond  # TODO Physical times should not be stored for GeometryOpt
             sec_scc.step = int((time / time_step).magnitude)
             sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
 
@@ -1035,7 +1035,6 @@ class GromacsParser:
                     sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
                         'frame_end') is not None else []
 
-            print('about to calc MSD')
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
             if msd_results is not None:

@@ -201,7 +201,9 @@ class MDAnalysisParser(FileParser):
 
         if self.universe is None:
             return
-        if self.universe.trajectory[0].dimensions is None:
+        trajectory = self.universe.trajectory[0] if self.universe.trajectory else None
+        dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
+        if dimensions is None:
             return
 
         n_frames = self.universe.trajectory.n_frames
@@ -222,8 +224,8 @@ class MDAnalysisParser(FileParser):
                 interval_indices = [[i] for i in range(n_traj_split)]
 
         bead_groups = self.bead_groups
-        if bead_groups is None:
-            return {}
+        if bead_groups is {}:
+            return bead_groups
         moltypes = [moltype for moltype in bead_groups.keys()]
         del_list = []
         for i_moltype, moltype in enumerate(moltypes):
@@ -420,8 +422,8 @@ class MDAnalysisParser(FileParser):
         times = np.arange(n_frames) * dt
 
         bead_groups = self.bead_groups
-        if bead_groups is None:
-            return {}
+        if bead_groups is {}:
+            return bead_groups
 
         moltypes = [moltype for moltype in bead_groups.keys()]
         del_list = []

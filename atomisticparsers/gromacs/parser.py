@@ -823,17 +823,32 @@ class GromacsParser:
             n_atoms = self.traj_parser.get('n_atoms', 0)
 
         atoms_info = self.traj_parser.get('atoms_info', {})
+        unique_parameters = {}
+        charges = atoms_info.get('charges', [None] * n_atoms)
+        masses = atoms_info.get('masses', [None] * n_atoms)
+        names = atoms_info.get('names', [None] * n_atoms)
+        atom_names = atoms_info.get('atom_names', [None] * n_atoms)
+        resids = atoms_info.get('resids', [None] * n_atoms)
+        resnames = atoms_info.get('resnames', [None] * n_atoms)
+        molnums = atoms_info.get('molnums', [None] * n_atoms)
+        moltypes = atoms_info.get('moltypes', [None] * n_atoms)
         for n in range(n_atoms):
-            sec_atom = sec_method.m_create(AtomParameters)
-            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
-            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
-            sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
-
+            # TODO include quantities that should be the same for a particular name
+            parameter_list = [charges[n], masses[n], atom_names[n], resids[n], resnames[n], molnums[n], moltypes[n]]
+            if names[n] in unique_parameters:
+                # make sure the parameters match
+                if parameter_list == unique_parameters[names[n]]:
+                    continue
+            else:
+                unique_parameters[names[n]] = parameter_list
+            sec_method.atom_parameters.append(AtomParameters(
+                charge=charges[n],
+                mass=masses[n],
+                label=names[n],
+                x_gromacs_atom_name=atom_names[n],
+                x_gromacs_atom_resid = resids[n], x_gromacs_atom_resname = resnames[n],
+                x_gromacs_atom_molnum = molnums[n], x_gromacs_atom_moltype = moltypes[n]
+            ))
         if n_atoms == 0:
             self.logger.error('Error parsing interactions.')
 

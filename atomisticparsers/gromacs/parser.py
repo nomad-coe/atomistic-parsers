@@ -22,9 +22,6 @@ import logging
 import re
 import datetime
 
-# for code assessment
-import time as timer
-
 import panedr
 try:
     import MDAnalysis
@@ -844,8 +841,6 @@ class GromacsParser:
             self.traj_parser.mainfile = gro_file
             n_atoms = self.traj_parser.get('n_atoms', 0)
 
-        start = timer.time()
-
         atoms_info = self.traj_parser.get('atoms_info', {})
         for n in range(n_atoms):
             sec_atom = sec_method.m_create(AtomParameters)
@@ -857,10 +852,6 @@ class GromacsParser:
             sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
             sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
             sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
-
-        end = timer.time()
-        time_in_min = (end-start) / 60.
-        print('done with atoms loop in parse_method: ' + str(time_in_min) + ' min')
 
         if n_atoms == 0:
             self.logger.error('Error parsing interactions.')
@@ -1010,8 +1001,6 @@ class GromacsParser:
             else:
                 workflow.method.thermodynamic_ensemble = 'NVE'
 
-            start = timer.time()
-
             # calculate molecular radial distribution functions
             sec_results = workflow.results
             n_traj_split = 10  # number of intervals to split trajectory into for averaging
@@ -1046,11 +1035,6 @@ class GromacsParser:
                     sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
                         'frame_end') is not None else []
 
-            end = timer.time()
-            time_in_min = (end-start) / 60.
-            print('done with calculating rdfs: ' + str(time_in_min) + ' min')
-            start = timer.time()
-
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
             if msd_results is not None:
@@ -1071,11 +1055,6 @@ class GromacsParser:
                     sec_diffusion.error_type = 'Pearson correlation coefficient'
                     sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
                         'error_diffusion_constant') is not None else []
-
-            end = timer.time()
-            time_in_min = (end-start) / 60.
-            print('done with calculating msds: ' + str(time_in_min) + ' min')
-            start = timer.time()
 
         self.archive.workflow2 = workflow
 
@@ -1115,9 +1094,6 @@ class GromacsParser:
         self.log_parser.quantities = parser.log_parser.quantities
 
     def parse(self, filepath, archive, logger):
-
-        import time as timer
-        start = timer.time()
 
         self.filepath = os.path.abspath(filepath)
         self.archive = archive
@@ -1171,24 +1147,9 @@ class GromacsParser:
         if positions is None:
             self.traj_parser.auxilliary_files = [xtc_file] if xtc_file else [trr_file]
 
-        end = timer.time()
-        time_in_min = (end-start) / 60.
-        print('done with initial parsing: ' + str(time_in_min) + ' min')
-        start = timer.time()
-
         self.parse_method()
 
-        end = timer.time()
-        time_in_min = (end-start) / 60.
-        print('done with method parsing: ' + str(time_in_min) + ' min')
-        start = timer.time()
-
         self.parse_system()
-
-        end = timer.time()
-        time_in_min = (end-start) / 60.
-        print('done with system parsing: ' + str(time_in_min) + ' min')
-        start = timer.time()
 
         # TODO read also from ene
         edr_file = self.get_gromacs_file('edr')
@@ -1196,21 +1157,7 @@ class GromacsParser:
 
         self.parse_thermodynamic_data()
 
-        end = timer.time()
-        time_in_min = (end-start) / 60.
-        print('done with calculation parsing: ' + str(time_in_min) + ' min')
-        start = timer.time()
-
         self.parse_input()
-
-        end = timer.time()
-        time_in_min = (end-start) / 60.
-        print('done with input parsing: ' + str(time_in_min) + ' min')
-        start = timer.time()
 
         self.parse_workflow()
 
-        end = timer.time()
-        time_in_min = (end-start) / 60.
-        print('done with workflow parsing: ' + str(time_in_min) + ' min')
-        start = timer.time()

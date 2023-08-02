@@ -389,7 +389,7 @@ class MDAnalysisParser(FileParser):
         error = linear_model.rvalue
         return slope * 1 / (2 * dim), error
 
-    def calc_molecular_mean_squared_displacements(self, max_mols=1000000):
+    def calc_molecular_mean_squared_displacements(self, max_mols=5000):
         '''
         Calculates the mean squared displacement for the center of mass of each
         molecule type.

@@ -231,6 +231,8 @@ class MDAnalysisParser(FileParser):
         for i_moltype, moltype in enumerate(moltypes):
             if bead_groups[moltype]._nbeads > max_mols:
                 del_list.append(i_moltype)
+                self.logger.warning('The number of molecules of type ' + moltype + ' exceeds the maximum of '
+                                    + str(max_mols) + ' for calculating the rdf. Skipping this molecule type.')
         moltypes = np.delete(moltypes, del_list)
 
         min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
@@ -414,6 +416,8 @@ class MDAnalysisParser(FileParser):
 
         n_frames = self.universe.trajectory.n_frames
         if n_frames < 50:
+            self.logger.warning('Less than 50 frames in trajectory, not calculating molecular'
+                        ' mean squared displacements.', UserWarning)
             return
 
         dt = getattr(self.universe.trajectory, 'dt')
@@ -429,7 +433,24 @@ class MDAnalysisParser(FileParser):
         del_list = []
         for i_moltype, moltype in enumerate(moltypes):
             if bead_groups[moltype]._nbeads > max_mols:
-                del_list.append(i_moltype)
+                try:
+                # select max_mols nr. of rnd molecules from this moltype
+                    moltype_indices = np.array([atom._ix for atom in bead_groups[moltype]._atoms])
+                    molnums = self.universe.atoms.molnums[moltype_indices]
+                    molnum_types = np.unique(molnums)
+                    molnum_types_rnd = np.sort(np.random.choice(molnum_types, size=max_mols))
+                    atom_indices_rnd = np.concatenate([np.where(molnums == molnum)[0] for molnum in molnum_types_rnd])
+                    selection = ' '.join([str(i) for i in atom_indices_rnd])
+                    selection = f'index {selection}'
+                    ags_moltype_rnd = self.universe.select_atoms(selection)
+                    bead_groups[moltype] = BeadGroup(ags_moltype_rnd, compound='fragments')
+                    self.logger.warning('The number of molecules of type ' + moltype + ' exceeds the maximum of '
+                                        + str(max_mols) + ' for calculating the msd.'
+                                        ' A random selection of the maximum number of molecules will be made from this group.')
+                except Exception:
+                    self.logger.warning('Tried to select random molecules for large group ' + moltype
+                                        + ' when calculating msd, but something went wrong. Skipping this molecule type.')
+                    del_list.append(i_moltype)
         moltypes = np.delete(moltypes, del_list)
 
         msd_results = {}

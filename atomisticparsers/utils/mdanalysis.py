@@ -417,7 +417,7 @@ class MDAnalysisParser(FileParser):
         n_frames = self.universe.trajectory.n_frames
         if n_frames < 50:
             self.logger.warning('Less than 50 frames in trajectory, not calculating molecular'
-                        ' mean squared displacements.', UserWarning)
+                                ' mean squared displacements.', UserWarning)
             return
 
         dt = getattr(self.universe.trajectory, 'dt')
@@ -434,12 +434,12 @@ class MDAnalysisParser(FileParser):
         for i_moltype, moltype in enumerate(moltypes):
             if bead_groups[moltype]._nbeads > max_mols:
                 try:
-                # select max_mols nr. of rnd molecules from this moltype
+                    # select max_mols nr. of rnd molecules from this moltype
                     moltype_indices = np.array([atom._ix for atom in bead_groups[moltype]._atoms])
                     molnums = self.universe.atoms.molnums[moltype_indices]
                     molnum_types = np.unique(molnums)
                     molnum_types_rnd = np.sort(np.random.choice(molnum_types, size=max_mols))
-                    atom_indices_rnd = np.concatenate([np.where(molnums == molnum)[0] for molnum in molnum_types_rnd])
+                    atom_indices_rnd = moltype_indices[np.concatenate([np.where(molnums == molnum)[0] for molnum in molnum_types_rnd])]
                     selection = ' '.join([str(i) for i in atom_indices_rnd])
                     selection = f'index {selection}'
                     ags_moltype_rnd = self.universe.select_atoms(selection)

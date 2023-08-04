@@ -416,12 +416,11 @@ class MDAnalysisParser(FileParser):
 
         n_frames = self.universe.trajectory.n_frames
         if n_frames < 50:
-            self.logger.warning('Less than 50 frames in trajectory, not calculating molecular'
-                                ' mean squared displacements.', UserWarning)
+            self.logger.warning('At least 50 frames required to calculate molecular'
+                                ' mean squared displacements, skipping.', UserWarning)
             return
 
-        dt = getattr(self.universe.trajectory, 'dt')
-        if dt is None:
+        if (dt := getattr(self.universe.trajectory, 'dt')) is None:
             return
         times = np.arange(n_frames) * dt
 
@@ -444,9 +443,8 @@ class MDAnalysisParser(FileParser):
                     selection = f'index {selection}'
                     ags_moltype_rnd = self.universe.select_atoms(selection)
                     bead_groups[moltype] = BeadGroup(ags_moltype_rnd, compound='fragments')
-                    self.logger.warning('The number of molecules of type ' + moltype + ' exceeds the maximum of '
-                                        + str(max_mols) + ' for calculating the msd.'
-                                        ' A random selection of the maximum number of molecules will be made from this group.')
+                    self.logger.warning('Maximum number of molecules for calculating the msd has been reached.'
+                                        ' Will make a random selection for calculation.')
                 except Exception:
                     self.logger.warning('Tried to select random molecules for large group ' + moltype
                                         + ' when calculating msd, but something went wrong. Skipping this molecule type.')

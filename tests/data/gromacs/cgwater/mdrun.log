@@ -2547,7 +2547,6 @@ Writing checkpoint, step 100000 at Mon Apr  4 10:52:48 2022
 	Statistics over 100001 steps using 1001 frames
 
    Energies (kJ/mol)
-        LJ (S   Energies (kJ/mol)
         LJ (SR)        LJ (LR)   Coulomb (SR)   Coulomb (LR)      Potential
    -1.00936e+03    0.00000e+00    0.00000e+00    0.00000e+00   -1.00936e+03
     Kinetic En.   Total Energy    Temperature Pressure (bar)

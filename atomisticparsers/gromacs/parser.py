@@ -53,6 +53,8 @@ from nomad.datamodel.metainfo.simulation.workflow import (
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser
 
+re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
+re_n = r'[\n\r]'
 
 MOL = 6.022140857e+23
 
@@ -63,6 +65,7 @@ class GromacsLogParser(TextParser):
 
     def init_quantities(self):
         def str_to_header(val_in):
+            print(val_in)
             val = [v.split(':', 1) for v in val_in.strip().split('\n')]
             return {v[0].strip(): v[1].strip() for v in val if len(v) == 2}
 
@@ -83,47 +86,90 @@ class GromacsLogParser(TextParser):
                     parameters[val_array.group(1)].append(value[0] if len(value) == 1 else value)
             return parameters
 
-        def str_to_energies(energies_block):
-
-            max_char_name = 14
-            rows = energies_block.strip().split("\n")
-            names = [rows[i_row] for i_row in range(len(rows)) if i_row % 2 == 0]
-            values = [rows[i_row] for i_row in range(len(rows)) if i_row % 2 != 0]
-
-            names_re = r"(?<!\S)[A-Za-z0-9.()\/-]{1,}(?: [\S][A-Za-z0-9.()\/-]{1,})*(?!\S)"
-            values_re = r"[-+]?\d+\.\d+e[+-]?\d+"
-            names = [re.findall(names_re, name) for name in names]
-            names = [name for group in names for name in group]
-            names_split = []
-            for name in names:
-                if len(name) <= max_char_name:
-                    names_split.append(name.strip())
-                else:
-                    remainder_len = len(name) % max_char_name
-                    divisor = int(len(name) / max_char_name)
-                    names_split.append(name[:remainder_len - divisor].strip())
-                    for i in range(int(len(name) / max_char_name)):
-                        start = remainder_len - divisor + (i + 1) + i * max_char_name
-                        end = start + max_char_name
-                        names_split.append(name[start:end].strip())
-
-            values = [re.findall(values_re, val) for val in values]
-            values = [val for group in values for val in group]
-
-            if len(names_split) != len(values):
-                self.logger.error('Error matching energy values.')
-
+        def str_to_energies(val_in):
+            # print('in str_to_energies')
+            # print(val_in)
+            # print(re.search(r'( +Total Energy)', val_in))
+            thermo_common = ['Total Energy', 'Potential', 'Kinetic En.', 'Temperature', 'Pressure (bar)', 'LJ (SR)', 'Coulomb (SR)', 'Bond', 'Proper Dih.']
+            for quant in thermo_common:
+                n_chars_val = re.search(rf'( +{quant})', val_in)
+                n_chars_val = len(n_chars_val.group(1)) if n_chars_val is not None else None
+                if n_chars_val is not None:
+                    break
+            # n_chars_val = len(re.search(r'( +Total Energy)', val_in).group(1))
+            if n_chars_val is None:
+                n_chars_val = 15
+            # print(n_chars_val)
             energies = {}
-            for key, val in zip(names_split, values):
-                if key == 'Temperature':
-                    energies[key] = float(val) * ureg.kelvin
-                elif key.startswith('Pres'):
-                    key = key.rstrip(' (bar)')
-                    energies[key] = float(val) * ureg.bar
-                else:
-                    energies[key] = float(val) / MOL * ureg.kJ
-
+            rows = [v for v in val_in.splitlines() if v]
+            # print(rows)
+            for n in range(0, len(rows), 2):
+                pointer = 0
+                while pointer < len(rows[n]):
+                    key = rows[n][pointer: pointer + n_chars_val].strip()
+                    # print(key)
+                    value = rows[n + 1][pointer: pointer + n_chars_val]
+                    # print(value)
+                    if key == 'Temperature':
+                        energies[key] = float(value) * ureg.kelvin
+                    elif key.startswith('Pres'):
+                        key = key.rstrip(' (bar)')
+                        energies[key] = float(value) * ureg.bar
+                    else:
+                        energies[key] = float(value) / MOL * ureg.kJ
+                    pointer += n_chars_val
+            # print(energies)
             return energies
+
+        # def str_to_energies(energies_block):
+
+        #     max_char_name = 14
+        #     rows = energies_block.strip().splitlines()
+        #     names = []
+        #     values = []
+        #     for i_row in range(len(rows)):
+        #         if i_row % 2 == 0:
+        #             names.append(rows[i_row])
+        #         else:
+        #             values.append(rows[i_row])
+        #     # names = [rows[i_row] for i_row in range(len(rows)) if i_row % 2 == 0]
+        #     # values = [rows[i_row] for i_row in range(len(rows)) if i_row % 2 != 0]
+
+        #     names_re = r"(?<!\S)[A-Za-z0-9.()\/-]{1,}(?: [\S][A-Za-z0-9.()\/-]{1,})*(?!\S)"
+        #     names = [re.findall(names_re, name) for name in names]
+        #     # print(names)
+        #     names = [name for group in names for name in group]
+        #     # print(names)
+        #     names_split = []
+        #     for name in names:
+        #         if len(name) <= max_char_name:
+        #             names_split.append(name.strip())
+        #         else:
+        #             remainder_len = len(name) % max_char_name
+        #             divisor = int(len(name) / max_char_name)
+        #             names_split.append(name[:remainder_len - divisor].strip())
+        #             for i in range(int(len(name) / max_char_name)):
+        #                 start = remainder_len - divisor + (i + 1) + i * max_char_name
+        #                 end = start + max_char_name
+        #                 names_split.append(name[start:end].strip())
+
+        #     values = [re.findall(re_float, val) for val in values]
+        #     values = [val for group in values for val in group]
+
+        #     if len(names_split) != len(values):
+        #         self.logger.error('Error matching energy values.')
+
+        #     energies = {}
+        #     for key, val in zip(names_split, values):
+        #         if key == 'Temperature':
+        #             energies[key] = float(val) * ureg.kelvin
+        #         elif key.startswith('Pres'):
+        #             key = key.rstrip(' (bar)')
+        #             energies[key] = float(val) * ureg.bar
+        #         else:
+        #             energies[key] = float(val) / MOL * ureg.kJ
+
+        #     return energies
 
         def str_to_step_info(val_in):
             val = val_in.strip().split('\n')
@@ -134,11 +180,11 @@ class GromacsLogParser(TextParser):
         thermo_quantities = [
             Quantity(
                 'energies',
-                r'Energies \(kJ/mol\)\s*([\s\S]+?)\nD.* step.* load imb.*|\n\n',
+                r'Energies \(kJ/mol\).*\n(\s*[\s\S]+?)(?:\n.*step.* load imb.*|\n\n)',
                 str_operation=str_to_energies, convert=False),
             Quantity(
                 'step_info',
-                r'[\r\n]\s*(Step.+\n[\d\.\- ]+)',
+                rf'{re_n}\s*(Step.+\n[\d\.\- ]+)',
                 str_operation=str_to_step_info, convert=False)]
 
         self._quantities = [
@@ -152,7 +198,7 @@ class GromacsLogParser(TextParser):
             # TODO cannot understand treatment of the command line in the old parser
             Quantity(
                 'header',
-                r'(?:GROMACS|Gromacs) (2019[\s\S]+?)\n\n', str_operation=str_to_header),
+                r'(?:GROMACS|Gromacs) (20[\s\S]+?)\n\n', str_operation=str_to_header),
             Quantity(
                 'header',
                 r'(?:GROMACS|Gromacs) (version:[\s\S]+?)\n\n', str_operation=str_to_header),
@@ -842,16 +888,16 @@ class GromacsParser:
             n_atoms = self.traj_parser.get('n_atoms', 0)
 
         atoms_info = self.traj_parser.get('atoms_info', {})
-        for n in range(n_atoms):
-            sec_atom = sec_method.m_create(AtomParameters)
-            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
-            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
-            sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
+        # for n in range(n_atoms):
+        #     sec_atom = sec_method.m_create(AtomParameters)
+        #     sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
+        #     sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+        #     sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
 
         if n_atoms == 0:
             self.logger.error('Error parsing interactions.')

@@ -71,10 +71,23 @@ def test_md_verbose(parser):
     assert sec_sccs[1].pressure_tensor[1][2].magnitude == approx(411.60986328125)
     assert sec_sccs[3].pressure.magnitude == approx(-63926916.50390625)
     assert sec_sccs[3].temperature.magnitude == approx(291.80401611328125)
+    assert sec_sccs[2].volume.magnitude == approx(1.505580043792725e-26)
+    assert sec_sccs[2].density.magnitude == approx(1007.9478759765625)
+    assert sec_sccs[2].enthalpy.magnitude == approx(-1.184108268425108e+31)
+    assert sec_sccs[2].virial_tensor[2][2].magnitude == approx(1136.77563477)
     assert len(sec_sccs[4].energy.contributions) == 12
     assert sec_sccs[-2].energy.contributions[1].kind == 'x_gromacs_G96Angle'
     assert sec_sccs[-2].energy.contributions[1].value.magnitude == approx(9.90594089232063e+27)
     assert sec_sccs[0].energy.total.value.magnitude == approx(-1.1863129365544755e+31)
+    assert sec_sccs[0].energy.electrostatic.value.magnitude == approx(-1.6677869795296e+31)
+    assert sec_sccs[0].energy.electrostatic.short_range.magnitude == approx(-1.5069901728906464e+31)
+    assert sec_sccs[0].energy.electrostatic.long_range.magnitude == approx(-1.6079680663895344e+30)
+    assert sec_sccs[-1].energy.van_der_waals.value.magnitude == approx(2.5995702480888255e+30)
+    assert sec_sccs[-1].energy.van_der_waals.short_range.magnitude == approx(2.675488981642447e+30)
+    assert sec_sccs[-1].energy.van_der_waals.long_range.magnitude == approx(-4.4191382265877185e+28)
+    assert sec_sccs[-1].energy.van_der_waals.correction.magnitude == approx(-3.172735128774431e+28)
+    assert sec_sccs[0].energy.pressure_volume_work.value.magnitude == approx(5.46058641332406e+26)
+
     assert sec_sccs[0].forces.total.value[5][2].magnitude == approx(-7.932968909721231e-10)
 
     sec_systems = sec_run.system

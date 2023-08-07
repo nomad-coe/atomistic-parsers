@@ -231,8 +231,7 @@ class MDAnalysisParser(FileParser):
         for i_moltype, moltype in enumerate(moltypes):
             if bead_groups[moltype]._nbeads > max_mols:
                 del_list.append(i_moltype)
-                self.logger.warning('The number of molecules of type ' + moltype + ' exceeds the maximum of '
-                                    + str(max_mols) + ' for calculating the rdf. Skipping this molecule type.')
+                self.logger.warning('The number of molecules of exceeds the maximum of for calculating the rdf. Skipping this molecule type.')
         moltypes = np.delete(moltypes, del_list)
 
         min_box_dimension = np.min(self.universe.trajectory[0].dimensions[:3])
@@ -446,8 +445,7 @@ class MDAnalysisParser(FileParser):
                     self.logger.warning('Maximum number of molecules for calculating the msd has been reached.'
                                         ' Will make a random selection for calculation.')
                 except Exception:
-                    self.logger.warning('Tried to select random molecules for large group ' + moltype
-                                        + ' when calculating msd, but something went wrong. Skipping this molecule type.')
+                    self.logger.warning('Tried to select random molecules for large group when calculating msd, but something went wrong. Skipping this molecule type.')
                     del_list.append(i_moltype)
         moltypes = np.delete(moltypes, del_list)
 

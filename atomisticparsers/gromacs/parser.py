@@ -65,7 +65,6 @@ class GromacsLogParser(TextParser):
 
     def init_quantities(self):
         def str_to_header(val_in):
-            print(val_in)
             val = [v.split(':', 1) for v in val_in.strip().split('\n')]
             return {v[0].strip(): v[1].strip() for v in val if len(v) == 2}
 
@@ -87,10 +86,8 @@ class GromacsLogParser(TextParser):
             return parameters
 
         def str_to_energies(val_in):
-            # print('in str_to_energies')
-            # print(val_in)
-            # print(re.search(r'( +Total Energy)', val_in))
-            thermo_common = ['Total Energy', 'Potential', 'Kinetic En.', 'Temperature', 'Pressure (bar)', 'LJ (SR)', 'Coulomb (SR)', 'Bond', 'Proper Dih.']
+            thermo_common = ['Total Energy', 'Potential', 'Kinetic En.', 'Temperature',
+                             'Pressure (bar)', 'LJ (SR)', 'Coulomb (SR)', 'Bond', 'Proper Dih.']
             for quant in thermo_common:
                 n_chars_val = re.search(rf'( +{quant})', val_in)
                 n_chars_val = len(n_chars_val.group(1)) if n_chars_val is not None else None
@@ -99,26 +96,22 @@ class GromacsLogParser(TextParser):
             # n_chars_val = len(re.search(r'( +Total Energy)', val_in).group(1))
             if n_chars_val is None:
                 n_chars_val = 15
-            # print(n_chars_val)
             energies = {}
             rows = [v for v in val_in.splitlines() if v]
-            # print(rows)
             for n in range(0, len(rows), 2):
                 pointer = 0
                 while pointer < len(rows[n]):
                     key = rows[n][pointer: pointer + n_chars_val].strip()
-                    # print(key)
                     value = rows[n + 1][pointer: pointer + n_chars_val]
-                    # print(value)
-                    if key == 'Temperature':
-                        energies[key] = float(value) * ureg.kelvin
-                    elif key.startswith('Pres'):
-                        key = key.rstrip(' (bar)')
-                        energies[key] = float(value) * ureg.bar
-                    else:
-                        energies[key] = float(value) / MOL * ureg.kJ
+                    energies[key] = float(value)
+                    # if key == 'Temperature':
+                    #     energies[key] = float(value) * ureg.kelvin
+                    # elif key.startswith('Pres'):
+                    #     key = key.rstrip(' (bar)')
+                    #     energies[key] = float(value) * ureg.bar
+                    # else:
+                    #     energies[key] = float(value) * ureg.kJ * MOL
                     pointer += n_chars_val
-            # print(energies)
             return energies
 
         # def str_to_energies(energies_block):
@@ -280,15 +273,15 @@ class GromacsLogParser(TextParser):
 class GromacsEDRParser(FileParser):
     def __init__(self):
         super().__init__(None)
-        self._energy_keys = [
-            'LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.', 'Total Energy',
-            'Vir-XX', 'Vir-XY', 'Vir-XZ', 'Vir-YX', 'Vir-YY', 'Vir-YZ', 'Vir-ZX', 'Vir-ZY',
-            'Vir-ZZ']
-        self._pressure_keys = [
-            'Pressure', 'Pres-XX', 'Pres-XY', 'Pres-XZ', 'Pres-YX', 'Pres-YY', 'Pres-YZ',
-            'Pres-ZX', 'Pres-ZY', 'Pres-ZZ']
-        self._temperature_keys = ['Temperature']
-        self._time_keys = ['Time']
+        # self._energy_keys = [
+        #     'LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.', 'Total Energy',
+        #     'Vir-XX', 'Vir-XY', 'Vir-XZ', 'Vir-YX', 'Vir-YY', 'Vir-YZ', 'Vir-ZX', 'Vir-ZY',
+        #     'Vir-ZZ']
+        # self._pressure_keys = [
+        #     'Pressure', 'Pres-XX', 'Pres-XY', 'Pres-XZ', 'Pres-YX', 'Pres-YY', 'Pres-YZ',
+        #     'Pres-ZX', 'Pres-ZY', 'Pres-ZZ']
+        # self._temperature_keys = ['Temperature']
+        # self._time_keys = ['Time']
 
     @property
     def fileedr(self):
@@ -310,14 +303,14 @@ class GromacsEDRParser(FileParser):
 
         if val is not None:
             val = np.asarray(val)
-        if key in self._energy_keys:
-            val = val / MOL * ureg.kJ
-        elif key in self._temperature_keys:
-            val = val * ureg.kelvin
-        elif key in self._pressure_keys:
-            val = val * ureg.bar
-        elif key in self._time_keys:
-            val = val * ureg.ps
+        # if key in self._energy_keys:
+        #     val = val / MOL * ureg.kJ
+        # elif key in self._temperature_keys:
+        #     val = val * ureg.kelvin
+        # elif key in self._pressure_keys:
+        #     val = val * ureg.bar
+        # elif key in self._time_keys:
+        #     val = val * ureg.ps
 
         self._results[key] = val
 
@@ -624,12 +617,28 @@ class GromacsParser:
         self.log_parser = GromacsLogParser()
         self.traj_parser = GromacsMDAnalysisParser()
         self.energy_parser = GromacsEDRParser()
-        self._metainfo_mapping = {
-            'LJ (SR)': 'Leonard-Jones', 'Coulomb (SR)': 'coulomb',
-            'Potential': 'potential', 'Kinetic En.': 'kinetic'}
         self._frame_rate = None
         # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
         self._cum_max_atoms = 2500000
+        self._gro_energy_units = ureg.kilojoule * MOL
+        self._thermo_maps = {}
+        self._thermo_maps['ignore_list'] = ['Time', 'Box-X', 'Box-Y', 'Box-Z']
+        self._thermo_maps['dir_to_ind_map'] = {
+            'XX': np.array([0, 0]), 'XY': np.array([0, 1]), 'XZ': np.array([0, 2]),
+            'YX': np.array([1, 0]), 'YY': np.array([1, 1]), 'YZ': np.array([1, 2]),
+            'ZX': np.array([2, 0]), 'ZY': np.array([2, 1]), 'ZZ': np.array([2, 2])}
+        self._thermo_maps['base_calc_map'] = {
+            'Temperature': {'nomad_key': 'temperature', 'gro_units': ureg.kelvin},
+            'Volume': {'nomad_key': 'volume', 'gro_units': ureg.nm**3},
+            'Density': {'nomad_key': 'density', 'gro_units': ureg.kilogram / ureg.m**3},
+            'Pressure (bar)': {'nomad_key': 'pressure', 'gro_units': ureg.bar},
+            'Pressure': {'nomad_key': 'pressure', 'gro_units': ureg.bar},
+            'Enthalpy': {'nomad_key': 'enthalpy', 'gro_units': self._gro_energy_units}}
+        self._thermo_maps['energy_map'] = {'Potential': 'potential', 'Kinetic En.': 'kinetic',
+                                           'Total Energy': 'total', 'pV': 'pressure_volume_work'}
+        self._thermo_maps['vdw_map'] = {'LJ (SR)': 'short_range', 'LJ (LR)': 'long_range', 'correction': 'Disper. corr.'}
+        self._thermo_maps['electrostatic_map'] = {'Coulomb (SR)': 'short_range', 'Coul. recip.': 'long_range'}
+        self._thermo_maps['energy_contains_list'] = ['bond', 'angle', 'dih.', 'coul-', 'coulomb-', 'lj-', 'en.']
 
     @property
     def frame_rate(self):
@@ -710,8 +719,9 @@ class GromacsParser:
             thermo_data = self.energy_parser
 
         calculation_times_ps = thermo_data.get('Time')
-        calculation_times_ps = calculation_times_ps.magnitude * ureg.convert(
-            1.0, calculation_times_ps.units, ureg.picosecond)
+        # calculation_times_ps = calculation_times_ps.magnitude * ureg.convert(
+        #     1.0, calculation_times_ps.units, ureg.picosecond)
+        thermo_maps = self._thermo_maps
 
         time_map = {}
         for i_calc, calculation_time in enumerate(calculation_times_ps):
@@ -734,30 +744,70 @@ class GromacsParser:
 
             calculation_index = time_map[time]['calculation_index']
             if calculation_index is not None:
-                # TODO add other energy contributions, properties
-                energy_keys = ['LJ (SR)', 'Coulomb (SR)', 'Potential', 'Kinetic En.']
+                thermo_keys = thermo_data.keys()
+                pressure_tensor = None
+                if any([key.startswith('Pres-') for key in thermo_keys]):
+                    pressure_tensor = np.empty(shape=(3, 3))
+                virial_tensor = None
+                if any([key.startswith('Vir-') for key in thermo_keys]):
+                    virial_tensor = np.empty(shape=(3, 3))
+
+                vdw_dict = {}
+                electrostatic_dict = {}
 
                 sec_energy = sec_scc.m_create(Energy)
-                for key in thermo_data.keys():
+                for key in thermo_keys:
+
+                    if key in thermo_maps['ignore_list']:
+                        continue
+
                     val = thermo_data.get(key)[calculation_index]
                     if val is None:
                         continue
 
-                    if key == 'Total Energy':
-                        sec_energy.total = EnergyEntry(value=val)
-                    elif key == 'Potential':
-                        sec_energy.potential = EnergyEntry(value=val)
-                    elif key == 'Kinetic En.':
-                        sec_energy.kinetic = EnergyEntry(value=val)
-                    elif key == 'Coulomb (SR)':
-                        sec_energy.coulomb = EnergyEntry(value=val)
-                    elif key == 'Pressure':
-                        sec_scc.pressure = val
-                    elif key == 'Temperature':
-                        sec_scc.temperature = val
-                    if key in energy_keys:
-                        sec_energy.contributions.append(
-                            EnergyEntry(kind=self._metainfo_mapping[key], value=val))
+                    # Attributes of BaseCalculation
+                    if key in thermo_maps['base_calc_map'].keys():
+                        setattr(sec_scc, thermo_maps['base_calc_map'][key]['nomad_key'], val * thermo_maps['base_calc_map'][key]['gro_units'])
+                    # accumulating tensor quantites
+                    elif key.startswith('Pres-'):
+                        dir = key.split('-')[1]
+                        print(dir)
+                        ind = thermo_maps['dir_to_ind_map'].get(dir)
+                        print(ind)
+                        print(val)
+                        if ind is not None:
+                            pressure_tensor[ind] = val * ureg.bar
+                    elif key.startswith('Vir-'):
+                        dir = key.split('-')[1]
+                        ind = thermo_maps['dir_to_ind_map'].get(dir)
+                        if ind is not None:
+                            virial_tensor[ind] = val * (ureg.bar * ureg.nm**3)
+                    # well-defined, single Energy quantities
+                    elif key in thermo_maps['energy_map'].keys():
+                        setattr(sec_energy, thermo_maps['energy_map'][key], EnergyEntry(value=val * self._gro_energy_units))
+                    # well-defined, piecewise energy quantities
+                    elif key in thermo_maps['vdw_map'].keys():
+                        vdw_dict[thermo_maps['vdw_map'][key]] = val * self._gro_energy_units
+                    elif key in thermo_maps['electrostatic_map'].keys():
+                        electrostatic_dict[thermo_maps['electrostatic_map'][key]] = val * self._gro_energy_units
+                    else:
+                        # try to identify other known energy keys to be stored as gromacs-specific
+                        if any([keyword in key.lower() for keyword in thermo_maps['energy_contains_list']]):
+                            sec_energy.contributions.append(
+                                EnergyEntry(kind='x_gromacs_' + key, value=val * self._gro_energy_units))
+                        else:  # store all other quantities as gromacs-specific under BaseCalculation
+                            setattr(sec_scc, 'x_gromacs_' + key, val)  # TODO Need to create metainfo for these or store using Chema's method
+
+                sec_scc.pressure_tensor = pressure_tensor if pressure_tensor is not None else None
+                sec_scc.virial_tensor = virial_tensor if virial_tensor is not None else None
+                if vdw_dict:
+                    total = sum(val for _, val in vdw_dict.items())
+                    sec_energy.van_der_waals = EnergyEntry(value=total, short_range=vdw_dict.get('short_range'),
+                                                           long_range=vdw_dict.get('long_range'), correction=vdw_dict.get('correction'))
+                if electrostatic_dict:
+                    total = sum(val for _, val in electrostatic_dict.items())
+                    sec_energy.electrostatic = EnergyEntry(value=total, short_range=electrostatic_dict.get('short_range'),
+                                                           long_range=electrostatic_dict.get('long_range'))
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
@@ -888,16 +938,16 @@ class GromacsParser:
             n_atoms = self.traj_parser.get('n_atoms', 0)
 
         atoms_info = self.traj_parser.get('atoms_info', {})
-        # for n in range(n_atoms):
-        #     sec_atom = sec_method.m_create(AtomParameters)
-        #     sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
-        #     sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
-        #     sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
-        #     sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
-        #     sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
-        #     sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
-        #     sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
-        #     sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
+        for n in range(n_atoms):
+            sec_atom = sec_method.m_create(AtomParameters)
+            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
+            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+            sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
 
         if n_atoms == 0:
             self.logger.error('Error parsing interactions.')
@@ -1206,4 +1256,3 @@ class GromacsParser:
         self.parse_input()
 
         self.parse_workflow()
-

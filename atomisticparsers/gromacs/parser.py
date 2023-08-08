@@ -709,10 +709,9 @@ class GromacsParser:
                     else:
                         # try to identify other known energy keys to be stored as gromacs-specific
                         if any([keyword in key.lower() for keyword in self._energy_keys_contain]):
-                            sec_energy.contributions.append(
-                                EnergyEntry(kind='x_gromacs_' + key, value=val * self._gro_energy_units))
+                            sec_energy.x_gromacs_energy_contributions.append(
+                                EnergyEntry(kind=key, value=val * self._gro_energy_units))
                         else:  # store all other quantities as gromacs-specific under BaseCalculation
-                            setattr(sec_scc, 'x_gromacs_' + key, val)  # TODO Need to create metainfo for these or store using Chema's method
                             sec_scc.x_gromacs_thermo_contributions.append(
                                 Entry(kind=key, value=val))
 
@@ -856,16 +855,16 @@ class GromacsParser:
             n_atoms = self.traj_parser.get('n_atoms', 0)
 
         atoms_info = self.traj_parser.get('atoms_info', {})
-        for n in range(n_atoms):
-            sec_atom = sec_method.m_create(AtomParameters)
-            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
-            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
-            sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
+        # for n in range(n_atoms):
+        #     sec_atom = sec_method.m_create(AtomParameters)
+        #     sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
+        #     sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+        #     sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
 
         if n_atoms == 0:
             self.logger.error('Error parsing interactions.')
@@ -1108,7 +1107,6 @@ class GromacsParser:
         self.log_parser.quantities = parser.log_parser.quantities
 
     def parse(self, filepath, archive, logger):
-
         self.filepath = os.path.abspath(filepath)
         self.archive = archive
         self.logger = logging.getLogger(__name__) if logger is None else logger

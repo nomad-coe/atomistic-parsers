@@ -430,31 +430,39 @@ class MDAnalysisParser(FileParser):
         moltypes = [moltype for moltype in bead_groups.keys()]
         del_list = []
         for i_moltype, moltype in enumerate(moltypes):
+            print('in moltype' + moltype)
             if bead_groups[moltype]._nbeads > max_mols:
-                try:
-                    # select max_mols nr. of rnd molecules from this moltype
-                    moltype_indices = np.array([atom._ix for atom in bead_groups[moltype]._atoms])
-                    molnums = self.universe.atoms.molnums[moltype_indices]
-                    molnum_types = np.unique(molnums)
-                    molnum_types_rnd = np.sort(np.random.choice(molnum_types, size=max_mols))
-                    atom_indices_rnd = moltype_indices[np.concatenate([np.where(molnums == molnum)[0] for molnum in molnum_types_rnd])]
-                    selection = ' '.join([str(i) for i in atom_indices_rnd])
-                    selection = f'index {selection}'
-                    ags_moltype_rnd = self.universe.select_atoms(selection)
-                    bead_groups[moltype] = BeadGroup(ags_moltype_rnd, compound='fragments')
-                    self.logger.warning('Maximum number of molecules for calculating the msd has been reached.'
-                                        ' Will make a random selection for calculation.')
-                except Exception:
-                    self.logger.warning('Tried to select random molecules for large group when calculating msd, but something went wrong. Skipping this molecule type.')
-                    del_list.append(i_moltype)
+                # try:
+                #     # select max_mols nr. of rnd molecules from this moltype
+                #     moltype_indices = np.array([atom._ix for atom in bead_groups[moltype]._atoms])
+                #     molnums = self.universe.atoms.molnums[moltype_indices]
+                #     print(molnums)
+                #     molnum_types = np.unique(molnums)
+                #     print(molnum_types)
+                #     molnum_types_rnd = np.sort(np.random.choice(molnum_types, size=max_mols))
+                #     print(molnum_types_rnd)
+                #     atom_indices_rnd = moltype_indices[np.concatenate([np.where(molnums == molnum)[0] for molnum in molnum_types_rnd])]
+                #     print(atom_indices_rnd)
+                #     selection = ' '.join([str(i) for i in atom_indices_rnd])
+                #     selection = f'index {selection}'
+                #     ags_moltype_rnd = self.universe.select_atoms(selection)
+                #     print(ags_moltype_rnd)
+                #     bead_groups[moltype] = BeadGroup(ags_moltype_rnd, compound='fragments')
+                #     print(bead_groups[moltype])
+                #     self.logger.warning('Maximum number of molecules for calculating the msd has been reached.'
+                #                         ' Will make a random selection for calculation.')
+                # except Exception:
+                #     self.logger.warning('Tried to select random molecules for large group when calculating msd, but something went wrong. Skipping this molecule type.')
+                del_list.append(i_moltype)
         moltypes = np.delete(moltypes, del_list)
+        print(moltypes)
 
         msd_results = {}
         msd_results['value'] = []
         msd_results['times'] = []
         msd_results['diffusion_constant'] = []
         msd_results['error_diffusion_constant'] = []
-        for moltype in moltypes:
+        for moltype in moltypes[:1]:
             positions = self.get_nojump_positions(bead_groups[moltype])
             results = shifted_correlation_average(mean_squared_displacement, times, positions)
             msd_results['value'].append(results[1])

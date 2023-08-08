@@ -2055,3 +2055,15 @@ class Calculation(simulation.calculation.Calculation):
         Contains other gromacs-specific thermodynamic and energy contributions that are not already defined.
         ''',
         repeats=True)
+
+
+class Energy(simulation.calculation.Energy):
+
+    m_def = Section(validate=False, extends_base_section=True,)
+
+    x_gromacs_energy_contributions = SubSection(
+        sub_section=simulation.calculation.EnergyEntry.m_def,
+        description='''
+        Contains other gromacs-specific energy contributions that are not already defined.
+        ''',
+        repeats=True)

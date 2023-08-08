@@ -75,9 +75,9 @@ def test_md_verbose(parser):
     assert sec_sccs[2].density.magnitude == approx(1007.9478759765625)
     assert sec_sccs[2].enthalpy.magnitude == approx(-1.184108268425108e+31)
     assert sec_sccs[2].virial_tensor[2][2].magnitude == approx(1.1367756347656254e-19)
-    assert len(sec_sccs[4].energy.contributions) == 12
-    assert sec_sccs[-2].energy.contributions[1].kind == 'x_gromacs_G96Angle'
-    assert sec_sccs[-2].energy.contributions[1].value.magnitude == approx(9.90594089232063e+27)
+    assert len(sec_sccs[4].energy.x_gromacs_energy_contributions) == 12
+    assert sec_sccs[-2].energy.x_gromacs_energy_contributions[1].kind == 'G96Angle'
+    assert sec_sccs[-2].energy.x_gromacs_energy_contributions[1].value.magnitude == approx(9.90594089232063e+27)
     assert sec_sccs[0].energy.total.value.magnitude == approx(-1.1863129365544755e+31)
     assert sec_sccs[0].energy.electrostatic.value.magnitude == approx(-1.6677869795296e+31)
     assert sec_sccs[0].energy.electrostatic.short_range.magnitude == approx(-1.5069901728906464e+31)

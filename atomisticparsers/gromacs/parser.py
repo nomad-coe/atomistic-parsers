@@ -50,7 +50,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
     RadialDistributionFunction, RadialDistributionFunctionValues,
     MolecularDynamics, MolecularDynamicsMethod
 )
-from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
+from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files, Entry
 from atomisticparsers.utils import MDAnalysisParser
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
@@ -86,13 +86,10 @@ class GromacsLogParser(TextParser):
             return parameters
 
         def str_to_energies(val_in):
-            thermo_common = ['Total Energy', 'Potential', 'Kinetic En.', 'Temperature',
-                             'Pressure (bar)', 'LJ (SR)', 'Coulomb (SR)', 'Bond', 'Proper Dih.']
-            for quant in thermo_common:
-                n_chars_val = re.search(rf'( +{quant})', val_in)
-                n_chars_val = len(n_chars_val.group(1)) if n_chars_val is not None else None
-                if n_chars_val is not None:
-                    break
+            thermo_common = [r'Total Energy', r'Potential', r'Kinetic En.', r'Temperature',
+                             r'Pressure \(bar\)', r'LJ \(SR\)', r'Coulomb \(SR\)', r'Proper Dih.']
+            n_chars_val = re.search(rf'( +{"| +".join(thermo_common)})', val_in)
+            n_chars_val = len(n_chars_val.group(1)) if n_chars_val is not None else None
             if n_chars_val is None:
                 n_chars_val = 15
             energies = {}
@@ -547,8 +544,7 @@ class GromacsParser:
         self._cum_max_atoms = 2500000
         self._gro_energy_units = ureg.kilojoule * MOL
         self._thermo_ignore_list = ['Time', 'Box-X', 'Box-Y', 'Box-Z']
-        # self._tensor_keys = np.array([['XX', 'XY', 'XZ'], ['YX', 'YY', 'YZ'], ['ZX', 'ZY', 'ZZ']])
-        self._dir_to_ind_map = {
+        self._tensor_index_map = {
             'XX': np.array([0, 0]), 'XY': np.array([0, 1]), 'XZ': np.array([0, 2]),
             'YX': np.array([1, 0]), 'YY': np.array([1, 1]), 'YZ': np.array([1, 2]),
             'ZX': np.array([2, 0]), 'ZY': np.array([2, 1]), 'ZZ': np.array([2, 2])}
@@ -563,7 +559,7 @@ class GromacsParser:
         self._energy_map = {'Potential': 'potential', 'Kinetic En.': 'kinetic', 'Total Energy': 'total', 'pV': 'pressure_volume_work'}
         self._vdw_map = {'LJ (SR)': 'short_range', 'LJ (LR)': 'long_range', 'Disper. corr.': 'correction'}
         self._electrostatic_map = {'Coulomb (SR)': 'short_range', 'Coul. recip.': 'long_range'}
-        self._energy_contains_list = ['bond', 'angle', 'dih.', 'coul-', 'coulomb-', 'lj-', 'en.']
+        self._energy_keys_contain = ['bond', 'angle', 'dih.', 'coul-', 'coulomb-', 'lj-', 'en.']
 
     @property
     def frame_rate(self):
@@ -694,12 +690,12 @@ class GromacsParser:
                     # accumulating tensor quantites
                     elif key.startswith('Pres-'):
                         dir = key.split('-')[1]
-                        ind = self._dir_to_ind_map.get(dir)
+                        ind = self._tensor_index_map.get(dir)
                         if ind is not None:
                             pressure_tensor[ind] = val * ureg.bar
                     elif key.startswith('Vir-'):
                         dir = key.split('-')[1]
-                        ind = self._dir_to_ind_map.get(dir)
+                        ind = self._tensor_index_map.get(dir)
                         if ind is not None:
                             virial_tensor[ind] = val * (ureg.bar * ureg.nm**3)
                     # well-defined, single Energy quantities
@@ -712,11 +708,13 @@ class GromacsParser:
                         electrostatic_dict[self._electrostatic_map[key]] = val * self._gro_energy_units
                     else:
                         # try to identify other known energy keys to be stored as gromacs-specific
-                        if any([keyword in key.lower() for keyword in self._energy_contains_list]):
+                        if any([keyword in key.lower() for keyword in self._energy_keys_contain]):
                             sec_energy.contributions.append(
                                 EnergyEntry(kind='x_gromacs_' + key, value=val * self._gro_energy_units))
                         else:  # store all other quantities as gromacs-specific under BaseCalculation
                             setattr(sec_scc, 'x_gromacs_' + key, val)  # TODO Need to create metainfo for these or store using Chema's method
+                            sec_scc.x_gromacs_thermo_contributions.append(
+                                Entry(kind=key, value=val))
 
                 sec_scc.pressure_tensor = pressure_tensor
                 sec_scc.virial_tensor = virial_tensor if virial_tensor is not None else None

@@ -2019,6 +2019,28 @@ class Constraint(simulation.system.Constraint):
         repeats=True,)
 
 
+class Entry(MSection):
+    '''
+    Section describing a type of energy or a contribution to the total energy.
+    '''
+
+    m_def = Section(validate=False)
+
+    kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Kind of the quantity.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Value of this contribution (units implied by Gromacs unit defaults).
+        ''')
+
+
 class Calculation(simulation.calculation.Calculation):
 
     m_def = Section(validate=False, extends_base_section=True,)
@@ -2026,3 +2048,10 @@ class Calculation(simulation.calculation.Calculation):
     x_gromacs_section_single_configuration_calculation = SubSection(
         sub_section=SectionProxy('x_gromacs_section_single_configuration_calculation'),
         repeats=True,)
+
+    x_gromacs_thermo_contributions = SubSection(
+        sub_section=Entry.m_def,
+        description='''
+        Contains other gromacs-specific thermodynamic and energy contributions that are not already defined.
+        ''',
+        repeats=True)

@@ -427,10 +427,6 @@ class MDAnalysisParser(FileParser):
         if bead_groups is {}:
             return bead_groups
 
-
-        print(self.universe.trajectory.filename)
-
-
         moltypes = [moltype for moltype in bead_groups.keys()]
         del_list = []
         for i_moltype, moltype in enumerate(moltypes):

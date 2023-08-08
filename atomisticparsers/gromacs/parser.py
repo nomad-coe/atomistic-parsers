@@ -855,16 +855,16 @@ class GromacsParser:
             n_atoms = self.traj_parser.get('n_atoms', 0)
 
         atoms_info = self.traj_parser.get('atoms_info', {})
-        for n in range(n_atoms):
-            sec_atom = sec_method.m_create(AtomParameters)
-            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
-            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
-            sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
+        # for n in range(n_atoms):
+        #     sec_atom = sec_method.m_create(AtomParameters)
+        #     sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
+        #     sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+        #     sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
+        #     sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
 
         if n_atoms == 0:
             self.logger.error('Error parsing interactions.')
@@ -1050,6 +1050,7 @@ class GromacsParser:
 
             # calculate the molecular mean squared displacements
             msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
+            print(msd_results)
             if msd_results is not None:
                 sec_msds = sec_results.m_create(MeanSquaredDisplacement)
                 sec_msds.type = 'molecular'

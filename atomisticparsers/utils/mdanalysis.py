@@ -427,6 +427,10 @@ class MDAnalysisParser(FileParser):
         if bead_groups is {}:
             return bead_groups
 
+
+        print(self.universe.trajectory.filename)
+
+
         moltypes = [moltype for moltype in bead_groups.keys()]
         del_list = []
         for i_moltype, moltype in enumerate(moltypes):
@@ -454,7 +458,7 @@ class MDAnalysisParser(FileParser):
         msd_results['times'] = []
         msd_results['diffusion_constant'] = []
         msd_results['error_diffusion_constant'] = []
-        for moltype in moltypes[:1]:
+        for moltype in moltypes:
             positions = self.get_nojump_positions(bead_groups[moltype])
             results = shifted_correlation_average(mean_squared_displacement, times, positions)
             msd_results['value'].append(results[1])

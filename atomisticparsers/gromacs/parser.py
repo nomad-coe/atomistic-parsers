@@ -545,9 +545,9 @@ class GromacsParser:
         self._gro_energy_units = ureg.kilojoule * MOL
         self._thermo_ignore_list = ['Time', 'Box-X', 'Box-Y', 'Box-Z']
         self._tensor_index_map = {
-            'XX': np.array([0, 0]), 'XY': np.array([0, 1]), 'XZ': np.array([0, 2]),
-            'YX': np.array([1, 0]), 'YY': np.array([1, 1]), 'YZ': np.array([1, 2]),
-            'ZX': np.array([2, 0]), 'ZY': np.array([2, 1]), 'ZZ': np.array([2, 2])}
+            'XX': (0, 0), 'XY': (0, 1), 'XZ': (0, 2),
+            'YX': (1, 0), 'YY': (1, 1), 'YZ': (1, 2),
+            'ZX': (2, 0), 'ZY': (2, 1), 'ZZ': (2, 2)}
         self._base_calc_map = {
             'Temperature': ('temperature', ureg.kelvin),
             'Volume': ('volume', ureg.nm**3),
@@ -692,12 +692,12 @@ class GromacsParser:
                         dir = key.split('-')[1]
                         ind = self._tensor_index_map.get(dir)
                         if ind is not None:
-                            pressure_tensor[ind] = val * ureg.bar
+                            pressure_tensor[ind] = val
                     elif key.startswith('Vir-'):
                         dir = key.split('-')[1]
                         ind = self._tensor_index_map.get(dir)
                         if ind is not None:
-                            virial_tensor[ind] = val * (ureg.bar * ureg.nm**3)
+                            virial_tensor[ind] = val
                     # well-defined, single Energy quantities
                     elif key in self._energy_map.keys():
                         sec_energy.m_add_sub_section(getattr(Energy, self._energy_map[key]), EnergyEntry(value=val * self._gro_energy_units))
@@ -716,8 +716,8 @@ class GromacsParser:
                             sec_scc.x_gromacs_thermo_contributions.append(
                                 Entry(kind=key, value=val))
 
-                sec_scc.pressure_tensor = pressure_tensor
-                sec_scc.virial_tensor = virial_tensor if virial_tensor is not None else None
+                sec_scc.pressure_tensor = pressure_tensor * ureg.bar
+                sec_scc.virial_tensor = virial_tensor * (ureg.bar * ureg.nm**3)
                 if vdw_dict:
                     total = sum(val for _, val in vdw_dict.items())
                     sec_energy.van_der_waals = EnergyEntry(value=total, short_range=vdw_dict.get('short_range'),

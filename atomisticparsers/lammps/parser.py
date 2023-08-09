@@ -29,10 +29,7 @@ from nomad.datamodel.metainfo.simulation.method import (
     NeighborSearching, ForceCalculations, ForceField, Method, Interaction, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.system import (
-    System, Atoms, AtomsGroup
-)
-from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry,
+    AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
     BarostatParameters, ThermostatParameters,
@@ -41,7 +38,8 @@ from nomad.datamodel.metainfo.simulation.workflow import (
     MolecularDynamics, GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
 )
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
-from atomisticparsers.utils import MDAnalysisParser
+from atomisticparsers.utils import MDAnalysisParser, MDParser
+
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
 re_n = r'[\n\r]'
@@ -345,6 +343,7 @@ class TrajParser(TextParser):
 
     def get_step(self, idx):
         step = self.get('time_step')
+        print('!!!!!!!!!!1', step)
         if step is None:
             return
         return step[idx]
@@ -467,16 +466,19 @@ class LogParser(TextParser):
 
         if thermo_data is None:
             return
+
+        data = {}
         for key, val in thermo_data.items():
             low_key = key.lower()
             if low_key.startswith('e_') or low_key.endswith('eng'):
-                thermo_data[key] = val * self.units.get('energy', 1)
+                data[key] = val * self.units.get('energy', 1)
             elif low_key == 'press':
-                thermo_data[key] = val * self.units.get('pressure', 1)
+                data[key] = val * self.units.get('pressure', 1)
             elif low_key == 'temp':
-                thermo_data[key] = val * self.units.get('temperature', 1)
-
-        return thermo_data
+                data[key] = val * self.units.get('temperature', 1)
+            else:
+                data[key] = val
+        return data
 
     def get_traj_files(self):
         dump = self.get('dump')
@@ -616,8 +618,9 @@ class TrajParsers:
                     return val
 
 
-class LammpsParser:
+class LammpsParser(MDParser):
     def __init__(self):
+        super().__init__()
         self.log_parser = LogParser()
         self._traj_parser = TrajParser()
         self._xyztraj_parser = XYZTrajParser()
@@ -629,23 +632,6 @@ class LammpsParser:
             'e_impro': 'improper', 'e_coul': 'coulomb', 'e_vdwl': 'van der Waals',
             'e_mol': 'molecular', 'e_long': 'kspace long range',
             'e_tail': 'van der Waals long range', 'kineng': 'kinetic', 'poteng': 'potential'}
-        self._frame_rate = None
-        # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 2500000
-
-    @property
-    def frame_rate(self):
-        if self._frame_rate is None:
-            n_frames = self.traj_parsers.eval('n_frames')
-            n_atoms = [self.traj_parsers.eval('get_n_atoms', n) for n in range(n_frames)]
-            n_atoms = max(n_atoms) if n_atoms else 0
-
-            if n_atoms == 0 or n_frames == 0:
-                self._frame_rate = 1
-            else:
-                cum_atoms = n_atoms * n_frames
-                self._frame_rate = 1 if cum_atoms <= self._cum_max_atoms else cum_atoms // self._cum_max_atoms
-        return self._frame_rate
 
     def get_time_step(self):
         time_unit = self.log_parser.units.get('time', None)
@@ -654,7 +640,7 @@ class LammpsParser:
 
     def parse_thermodynamic_data(self):
         sec_run = self.archive.run[-1]
-        sec_system = sec_run.system
+        # sec_system = sec_run.system
 
         time_step = self.get_time_step()
         thermo_data = self.log_parser.get_thermodynamic_data()
@@ -663,44 +649,35 @@ class LammpsParser:
         if not thermo_data:
             return
 
-        calculation_steps = thermo_data.get('Step')
-        calculation_steps = [int(val) if val is not None else None for val in calculation_steps]
+        for step in self.thermodynamics_steps:
+            step_data = {
+                'step': step,
+                'time': step * time_step,
+                'method_ref': sec_run.method[-1] if sec_run.method else None,
+                'energy': {
+                    'contributions': []
+                }
+            }
+            if step in self._trajectory_steps:
+                step_data['forces'] = dict(total=dict(
+                    value=self.traj_parsers.eval('get_forces', self._trajectory_steps.index(step)))),
 
-        step_map = {}
-        for i_calc, calculation_step in enumerate(calculation_steps):
-            system_index = self._system_step_map.pop(calculation_steps[i_calc], None)
-            step_map[calculation_step] = {'system_index': system_index, 'calculation_index': i_calc}
-        for step, i_sys in self._system_step_map.items():
-            step_map[step] = {'system_index': i_sys, 'calculation_index': None}
+            data_n = self._thermodynamics_steps.index(step)
+            for key, val in thermo_data.items():
+                key = key.lower()
+                if (kind := self._energy_mapping.get(key)) is not None:
+                    step_data['energy']['contributions'].append(dict(kind=kind, value=val[data_n]))
+                elif key == 'toteng':
+                    step_data['energy']['current'] = dict(value=val[data_n])
+                    step_data['energy']['total'] = dict(value=val[data_n])
+                elif key == 'press':
+                    step_data['pressure'] = val[data_n]
+                elif key == 'temp':
+                    step_data['temperature'] = val[data_n]
+                elif key == 'cpu':
+                    step_data['time_calculation'] = float(val[data_n])
 
-        for step in sorted(step_map):
-            sec_scc = sec_run.m_create(Calculation)
-            sec_scc.step = step
-            sec_scc.time = sec_scc.step * time_step  # TODO Physical times should not be stored for GeometryOpt
-            sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
-
-            system_index = step_map[step]['system_index']
-            if system_index is not None:
-                sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parsers.eval('get_forces', system_index)))
-                sec_scc.system_ref = sec_system[system_index]
-
-            calculation_index = step_map[step]['calculation_index']
-            if calculation_index is not None:
-                sec_energy = sec_scc.m_create(Energy)
-                for key, val in thermo_data.items():
-                    key = key.lower()
-                    if key in self._energy_mapping:
-                        sec_energy.contributions.append(
-                            EnergyEntry(kind=self._energy_mapping[key], value=val[calculation_index]))
-                    elif key == 'toteng':
-                        sec_energy.current = EnergyEntry(value=val[calculation_index])
-                        sec_energy.total = EnergyEntry(value=val[calculation_index])
-                    elif key == 'press':
-                        sec_scc.pressure = val[calculation_index]
-                    elif key == 'temp':
-                        sec_scc.temperature = val[calculation_index]
-                    elif key == 'cpu':
-                        sec_scc.time_calculation = float(val[calculation_index])
+            self.parse_thermodynamics_step(step_data)
 
     def parse_workflow(self):
         sec_run = self.archive.run[-1]
@@ -965,14 +942,14 @@ class LammpsParser:
             interval_indices.append(np.arange(n_traj_split)[len(interval_indices[0]) * 3:])
 
             # calculate molecular radial distribution functions
-            rdf_results = self.traj_parsers.eval('calc_molecular_rdf', n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
+            rdf_results = self.traj_parsers.eval('calc_molecular_rdf', n_traj_split=n_traj_split, n_prune=self.frame_rate, interval_indices=interval_indices)
             if rdf_results is None:
-                rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
+                rdf_results = self._mdanalysistraj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self.frame_rate, interval_indices=interval_indices)
             if rdf_results is not None and self.traj_parsers.eval('n_frames') is not None:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
                 sec_rdfs.type = 'molecular'
                 sec_rdfs.n_smooth = rdf_results.get('n_smooth')
-                sec_rdfs.n_prune = self._frame_rate
+                sec_rdfs.n_prune = self.frame_rate
                 sec_rdfs.variables_name = np.array(['distance'])
                 for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
                     sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
@@ -1032,32 +1009,30 @@ class LammpsParser:
             formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
             return formula
 
-        self._system_step_map = {}
-        for i in range(n_frames):
-            if (i % self.frame_rate) > 0:
-                continue
-
-            sec_system = sec_run.m_create(System)
-            step = self.traj_parsers.eval('get_step', i)  # TODO Physical times should not be stored for GeometryOpt
-            step = int(step) if step is not None else None
-            if step is not None:
-                self._system_step_map[step] = len(self._system_step_map)
-
-            sec_atoms = sec_system.m_create(Atoms)
-            sec_atoms.n_atoms = self.traj_parsers.eval('get_n_atoms', i)
-            lattice_vectors = self.traj_parsers.eval('get_lattice_vectors', i)
+        for step in self.trajectory_steps:
+            traj_n = self._trajectory_steps.index(step)
+            lattice_vectors = self.traj_parsers.eval('get_lattice_vectors', traj_n)
             if lattice_vectors is not None:
-                sec_atoms.lattice_vectors = apply_unit(lattice_vectors, 'distance')
-            sec_atoms.periodic = self.traj_parsers.eval('get_pbc', i)
-
-            sec_system.atoms.positions = apply_unit(self.traj_parsers.eval('get_positions', i), 'distance')
-            atom_labels = self.traj_parsers.eval('get_atom_labels', i)
-            sec_system.atoms.labels = atom_labels
-
-            velocities = self.traj_parsers.eval('get_velocities', i)
+                lattice_vectors = apply_unit(lattice_vectors, 'distance')
+            velocities = self.traj_parsers.eval('get_velocities', traj_n)
             if velocities is not None:
-                sec_system.atoms.velocities = apply_unit(velocities, 'velocity')
+                velocities = apply_unit(velocities, 'velocity')
+            self.parse_trajectory_step({
+                'step': self.traj_parsers.eval('get_step', traj_n),
+                'atoms': {
+                    'n_atoms': self.traj_parsers.eval('get_n_atoms', traj_n),
+                    'lattice_vectors': lattice_vectors,
+                    'periodic': self.traj_parsers.eval('get_pbc', traj_n),
+                    'positions': apply_unit(self.traj_parsers.eval('get_positions', traj_n), 'distance'),
+                    'labels': self.traj_parsers.eval('get_atom_labels', traj_n),
+                    'velocities': velocities
+                }
+            })
 
+        if not sec_run.system:
+            return
+
+        sec_system = sec_run.system[-1]
         # parse atomsgroup (moltypes --> molecules --> residues)
         atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
         if atoms_info is None:
@@ -1068,7 +1043,7 @@ class LammpsParser:
             atoms_moltypes = np.array(atoms_info.get('moltypes', []))
             atoms_molnums = np.array(atoms_info.get('molnums', []))
             atoms_resids = np.array(atoms_info.get('resids', []))
-            atoms_elements = np.array(atoms_info.get('elements', ['X'] * sec_atoms.n_atoms))
+            atoms_elements = np.array(atoms_info.get('elements', ['X'] * self.n_atoms))
             atoms_types = np.array(atoms_info.get('types', []))
             atom_labels = sec_system.atoms.get('labels')
             if 'X' in atoms_elements:
@@ -1268,7 +1243,6 @@ class LammpsParser:
         self.aux_log_parser.logger = self.logger
         self.log_parser._units = None
         self._traj_parser._chemical_symbols = None
-        self._frame_rate = None
 
     def parse(self, filepath, archive, logger):
         self.filepath = filepath
@@ -1344,6 +1318,17 @@ class LammpsParser:
                 self.log_parser.maindir, self.log_parser.get('log')[0])
             # we assign units here which is read from log parser
             self.aux_log_parser._units = self.log_parser.units
+
+        n_traj = self.traj_parsers.eval('n_frames')
+        self.n_atoms = [self.traj_parsers.eval('get_n_atoms', n) for n in range(n_traj)]
+        self.trajectory_steps = [step for n in range(n_traj) if (step := self.traj_parsers.eval('get_step', n)) is not None]
+
+        thermo_data = self.log_parser.get_thermodynamic_data()
+        if thermo_data is None:
+            thermo_data = self.aux_log_parser.get_thermodynamic_data()
+        if not thermo_data:
+            thermo_data = {}
+        self.thermodynamics_steps = [int(n) for n in thermo_data.get('Step', [])]
 
         self.parse_method()
 

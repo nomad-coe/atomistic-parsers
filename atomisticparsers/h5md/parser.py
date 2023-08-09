@@ -45,7 +45,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
     RadialDistributionFunction, RadialDistributionFunctionValues,
     MolecularDynamics, MolecularDynamicsMethod
 )
-from .metainfo.h5md import Entry
+from .metainfo.h5md import ParamEntry, CalcEntry
 # from nomad.atomutils import get_molecules_from_bond_list, is_same_molecule, get_composition
 from nomad.units import ureg
 
@@ -344,7 +344,7 @@ class H5MDParser(FileParser):
             particles_subgroup = particles_group.pop('particles_group', None)
             # set the remaining attributes
             for particles_group_key in particles_group.keys():
-                sec_atomsgroup.x_h5md_parameters.append(Entry(kind=particles_group_key, value=particles_group.get(particles_group_key)))
+                sec_atomsgroup.x_h5md_parameters.append(ParamEntry(kind=particles_group_key, value=particles_group.get(particles_group_key)))
             # get the next atomsgroup
             if particles_subgroup:
                 self.get_atomsgroup_fromh5md(sec_atomsgroup, particles_subgroup)
@@ -498,7 +498,8 @@ class H5MDParser(FileParser):
                             # setattr(sec_scc, obs_name_short, val)
                             sec_scc.m_set(sec_scc.m_get_quantity_definition(obs_name_short), val)
                         else:
-                            setattr(sec_scc, 'x_h5md_' + key, val)
+                            # setattr(sec_scc, 'x_h5md_' + key, val)
+                            sec_scc.x_h5md_thermo_contributions.append(CalcEntry(kind=key, value=val))
 
     def parse_system(self):
         sec_run = self.archive.run[-1]

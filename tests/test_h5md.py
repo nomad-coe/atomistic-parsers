@@ -112,6 +112,8 @@ def test_md(parser):
     assert sec_res[0].n_atoms == 24
     assert sec_res[0].atom_indices[10] == 337
     assert sec_res[0].is_molecule is False
+    assert sec_res[0].x_h5md_parameters[0].kind == 'hydrophobicity'
+    assert sec_res[0].x_h5md_parameters[0].value == '0.81'
 
     sec_method = sec_run.method
     sec_atom_params = sec_method[0].atom_parameters

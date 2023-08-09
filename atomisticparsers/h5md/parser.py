@@ -45,6 +45,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
     RadialDistributionFunction, RadialDistributionFunctionValues,
     MolecularDynamics, MolecularDynamicsMethod
 )
+from .metainfo.h5md import Entry
 # from nomad.atomutils import get_molecules_from_bond_list, is_same_molecule, get_composition
 from nomad.units import ureg
 
@@ -343,9 +344,7 @@ class H5MDParser(FileParser):
             particles_subgroup = particles_group.pop('particles_group', None)
             # set the remaining attributes
             for particles_group_key in particles_group.keys():
-                setattr(sec_atomsgroup, 'x_h5md_' + particles_group_key, self.hdf5_getter(particles_group, particles_group_key))
-                # sec_atomsgroup.m_set(sec_atomsgroup.m_get_quantity_definition(self._base_calc_map[key][0]),
-                #                       val * self._base_calc_map[key][1])
+                sec_atomsgroup.x_h5md_parameters.append(Entry(kind=particles_group_key, value=particles_group.get(particles_group_key)))
             # get the next atomsgroup
             if particles_subgroup:
                 self.get_atomsgroup_fromh5md(sec_atomsgroup, particles_subgroup)
@@ -400,6 +399,7 @@ class H5MDParser(FileParser):
         return self._parameter_info
 
     def parse_calculation(self):
+        print('in parse calc')
         sec_run = self.archive.run[-1]
         sec_system = sec_run.system
         calculation_info = self.observable_info.get('configurational')
@@ -449,6 +449,7 @@ class H5MDParser(FileParser):
                 self.logger.error('system_map_key not assigned correctly.')
 
         for frame in sorted(system_map):
+            print(frame)
             sec_scc = sec_run.m_create(Calculation)
             sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
             if system_map_key == 'time':
@@ -461,13 +462,20 @@ class H5MDParser(FileParser):
                     sec_scc.time = sec_scc.step * time_step
 
             system_index = system_map[frame]['system']
+            print(system_index)
             if system_index is not None:
+                print(system_info.items())
                 for key, val in system_info.items():
+                    print(key)
                     if key == 'forces':
                         sec_scc.forces = Forces(total=ForcesEntry(value=val))
                     else:
+                        print(BaseCalculation.__dict__.keys())
+                        print(key)
                         if key in BaseCalculation.__dict__.keys():
-                            setattr(sec_scc, key, val)
+                            print(key)
+                            # setattr(sec_scc, key, val)
+                            sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
                         else:
                             setattr(sec_scc, 'x_h5md_' + key, val)
 
@@ -486,7 +494,9 @@ class H5MDParser(FileParser):
                             setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
                     else:
                         if obs_name_short in BaseCalculation.__dict__.keys():
-                            setattr(sec_scc, obs_name_short, val)
+                            print(obs_name_short)
+                            # setattr(sec_scc, obs_name_short, val)
+                            sec_scc.m_set(sec_scc.m_get_quantity_definition(obs_name_short), val)
                         else:
                             setattr(sec_scc, 'x_h5md_' + key, val)
 

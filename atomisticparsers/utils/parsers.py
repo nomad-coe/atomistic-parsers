@@ -29,10 +29,42 @@ from nomad.datamodel.metainfo.simulation.calculation import Calculation
 from nomad.metainfo import MSection, SubSection
 
 
-class MDParser:
+# TODO put this in nomad.parsing
+class SimulationParser:
     def __init__(self, **kwargs) -> None:
         self._info: Dict[str, Any] = {}
         self._archive: EntryArchive = kwargs.get('archive')
+        for key, val in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, val)
+
+    @property
+    def archive(self) -> EntryArchive:
+        return self._archive
+
+    @archive.setter
+    def archive(self, value: EntryArchive):
+        self._info = {}
+        self._archive = value
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._info.get(key, default)
+
+    def parse_section(self, data: Dict[str, Any], root: MSection) -> None:
+        for key, val in data.items():
+            if not hasattr(root, key):
+                continue
+
+            if isinstance((section := getattr(root.m_def.section_cls, key)), SubSection):
+                for val_n in [val] if isinstance(val, dict) else val:
+                    self.parse_section(val_n, root.m_create(section.sub_section.section_cls, section))
+                continue
+
+            root.m_set(root.m_get_quantity_definition(key), val)
+
+
+class MDParser(SimulationParser):
+    def __init__(self, **kwargs) -> None:
         self.thermodynamics_quantities: List[str] = ['pressure', 'temperature', 'time']
         self.cum_max_atoms: int = 2500000
         self.logger = get_logger(__name__)
@@ -42,9 +74,7 @@ class MDParser:
         self._thermodynamics_steps_sampled: List[int] = []
         self._steps: List[int] = []
         self._steps_sampled: List[int] = []
-        for key, val in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, val)
+        super().__init__(**kwargs)
 
     @property
     def steps(self) -> List[int]:
@@ -131,23 +161,8 @@ class MDParser:
         self._steps_sampled = []
         self._archive = value
 
-    def get(self, key: str, default: Any = None) -> Any:
-        return self._info.get(key, default)
-
-    def parse_section(self, data: Dict[str, Any], root: MSection) -> None:
-        for key, val in data.items():
-            if not hasattr(root, key):
-                continue
-
-            if isinstance((section := getattr(root.m_def.section_cls, key)), SubSection):
-                for val_n in [val] if isinstance(val, dict) else val:
-                    self.parse_section(val_n, root.m_create(section.sub_section.section_cls, section))
-                continue
-
-            root.m_set(root.m_get_quantity_definition(key), val)
-
     def parse_trajectory_step(self, data: Dict[str, Any]) -> None:
-        if data.get('step') not in self.trajectory_steps:
+        if self.archive is None or data.get('step') not in self.trajectory_steps:
             return
 
         sec_run = self.archive.run[-1] if self.archive.run else self.archive.m_create(Run)
@@ -155,7 +170,7 @@ class MDParser:
         self.parse_section(data, sec_run.m_create(System))
 
     def parse_thermodynamics_step(self, data: Dict[str, Any]) -> None:
-        if data.get('step') not in self.thermodynamics_steps:
+        if self.archive is None or data.get('step') not in self.thermodynamics_steps:
             return
 
         sec_run = self.archive.run[-1] if self.archive.run else self.archive.m_create(Run)

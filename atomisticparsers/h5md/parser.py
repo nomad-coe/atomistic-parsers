@@ -344,6 +344,8 @@ class H5MDParser(FileParser):
             # set the remaining attributes
             for particles_group_key in particles_group.keys():
                 setattr(sec_atomsgroup, 'x_h5md_' + particles_group_key, self.hdf5_getter(particles_group, particles_group_key))
+                # sec_atomsgroup.m_set(sec_atomsgroup.m_get_quantity_definition(self._base_calc_map[key][0]),
+                #                       val * self._base_calc_map[key][1])
             # get the next atomsgroup
             if particles_subgroup:
                 self.get_atomsgroup_fromh5md(sec_atomsgroup, particles_subgroup)

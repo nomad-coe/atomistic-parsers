@@ -26,3 +26,40 @@ from nomad.datamodel.metainfo import simulation
 
 
 m_package = Package()
+
+class Entry(MSection):
+    '''
+    Generic section defining a parameter name and value
+    '''
+
+    m_def = Section(validate=False)
+
+    kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the parameter.
+        ''')
+
+    value = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Value of the parameter as a string.
+        ''')
+
+
+class AtomsGroup(simulation.system.AtomsGroup):
+    '''
+    Describes a group of atoms which may constitute a sub system as in the case of a
+    molecule.
+    '''
+
+    m_def = Section(validate=False, extends_base_section=True,)
+
+    x_h5md_parameters = SubSection(
+        sub_section=Entry.m_def,
+        description='''
+        Contains additional information about the atom group .
+        ''',
+        repeats=True)

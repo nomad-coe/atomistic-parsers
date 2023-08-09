@@ -36,18 +36,18 @@ class MDParser:
         self.thermodynamics_quantities: List[str] = ['pressure', 'temperature', 'time']
         self.cum_max_atoms: int = 2500000
         self.logger = get_logger(__name__)
-        self._trajectory_steps = []
-        self._thermodynamics_steps = []
-        self._trajectory_steps_sampled = []
-        self._thermodynamics_steps_sampled = []
-        self._steps = []
-        self._steps_sampled = []
+        self._trajectory_steps: List[int] = []
+        self._thermodynamics_steps: List[int] = []
+        self._trajectory_steps_sampled: List[int] = []
+        self._thermodynamics_steps_sampled: List[int] = []
+        self._steps: List[int] = []
+        self._steps_sampled: List[int] = []
         for key, val in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, val)
 
     @property
-    def steps(self):
+    def steps(self) -> List[int]:
         '''
         Returns the sampled steps. Steps are the set of trajectory and thermodynamics steps.
         '''
@@ -60,7 +60,7 @@ class MDParser:
         return self._steps_sampled
 
     @property
-    def trajectory_steps(self):
+    def trajectory_steps(self) -> List[int]:
         '''
         Returns the sampled trajectory steps.
         '''
@@ -70,14 +70,14 @@ class MDParser:
         return self._trajectory_steps_sampled
 
     @trajectory_steps.setter
-    def trajectory_steps(self, value):
+    def trajectory_steps(self, value: List[int]):
         self._trajectory_steps = value
         self._trajectory_steps.sort()
         self._trajectory_steps_sampled = []
         self._steps = list(set(self._trajectory_steps + self._thermodynamics_steps))
 
     @property
-    def thermodynamics_steps(self):
+    def thermodynamics_steps(self) -> List[int]:
         '''
         Returns the sampled thermodynamics steps.
         '''
@@ -87,14 +87,14 @@ class MDParser:
         return self._thermodynamics_steps_sampled
 
     @thermodynamics_steps.setter
-    def thermodynamics_steps(self, value):
+    def thermodynamics_steps(self, value: List[int]):
         self._thermodynamics_steps = value
         self._thermodynamics_steps.sort()
         self._thermodynamics_steps_sampled = []
         self._steps = list(set(self._trajectory_steps + self._thermodynamics_steps))
 
     @property
-    def n_atoms(self):
+    def n_atoms(self) -> int:
         return np.amax(self._info.get('n_atoms', [0]))
 
     @n_atoms.setter
@@ -117,11 +117,11 @@ class MDParser:
         return self.get('frame_rate')
 
     @property
-    def archive(self):
+    def archive(self) -> EntryArchive:
         return self._archive
 
     @archive.setter
-    def archive(self, value):
+    def archive(self, value: EntryArchive):
         self._info = {}
         self.trajectory_steps = []
         self.thermodynamics_steps = []
@@ -134,7 +134,7 @@ class MDParser:
     def get(self, key: str, default: Any = None) -> Any:
         return self._info.get(key, default)
 
-    def parse_section(self, data: Dict[str, Any], root: MSection):
+    def parse_section(self, data: Dict[str, Any], root: MSection) -> None:
         for key, val in data.items():
             if not hasattr(root, key):
                 continue

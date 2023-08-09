@@ -27,6 +27,7 @@ from nomad.datamodel.metainfo import simulation
 
 m_package = Package()
 
+
 class ParamEntry(MSection):
     '''
     Generic section defining a parameter name and value
@@ -48,9 +49,17 @@ class ParamEntry(MSection):
         Value of the parameter as a string.
         ''')
 
+    unit = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Unit of the parameter as a string.
+        ''')
+
+
 class CalcEntry(MSection):
     '''
-    Section describing a type of energy or a contribution to the total energy.
+    Section describing a general type of calculation.
     '''
 
     m_def = Section(validate=False)
@@ -66,8 +75,16 @@ class CalcEntry(MSection):
         type=np.dtype(np.float64),
         shape=[],
         description='''
-        Value of this contribution (units implied by Gromacs unit defaults).
+        Value of this contribution.
         ''')
+
+    unit = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Unit of the parameter as a string.
+        ''')
+
 
 class AtomsGroup(simulation.system.AtomsGroup):
     '''
@@ -77,7 +94,7 @@ class AtomsGroup(simulation.system.AtomsGroup):
 
     m_def = Section(validate=False, extends_base_section=True,)
 
-    x_h5md_parameters = SubSection(
+    x_h5md_parameters = SubSection(  # TODO should this be called parameters or attributes or what?
         sub_section=ParamEntry.m_def,
         description='''
         Contains additional information about the atom group .
@@ -89,10 +106,10 @@ class Calculation(simulation.calculation.Calculation):
 
     m_def = Section(validate=False, extends_base_section=True,)
 
-    x_h5md_thermo_contributions = SubSection(
+    x_h5md_custom_calculations = SubSection(
         sub_section=ParamEntry.m_def,
         description='''
-        Contains other custom thermodynamic and energy contributions that are not already defined.
+        Contains other generic custom calculations that are not already defined.
         ''',
         repeats=True)
 

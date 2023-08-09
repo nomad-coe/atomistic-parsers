@@ -65,18 +65,28 @@ def test_md(parser):
 
     sec_calc = sec_run.calculation
     assert len(sec_calc) == 5
+    assert np.shape(sec_calc[1].forces.total.value) == (31583, 3)
+    assert sec_calc[1].forces.total.value[2100][2].magnitude == 500.0
     assert sec_calc[2].temperature.magnitude == 300.0
+    assert len(sec_calc[1].x_h5md_custom_calculations) == 1
+    assert sec_calc[1].x_h5md_custom_calculations[0].kind == 'custom_thermo'
+    assert sec_calc[1].x_h5md_custom_calculations[0].value == 100.0
+    assert sec_calc[1].x_h5md_custom_calculations[0].unit == 'newton / angstrom ** 2'
     assert sec_calc[2].time.magnitude == 2.0
-    assert sec_calc[2].energy.kinetic.value.magnitude == approx(1000)
+    assert sec_calc[2].energy.kinetic.value.magnitude == approx(2000)
     assert sec_calc[2].energy.potential.value.magnitude == approx(1000)
+    assert sec_calc[1].energy.x_h5md_energy_contributions[0].kind == 'energy-custom'
+    assert sec_calc[1].energy.x_h5md_energy_contributions[0].value.magnitude == 3000.0
 
     sec_systems = sec_run.system
     assert len(sec_systems) == 5
     assert np.shape(sec_systems[0].atoms.positions) == (31583, 3)
+    assert np.shape(sec_systems[0].atoms.velocities) == (31583, 3)
     assert sec_systems[0].atoms.n_atoms == 31583
     assert sec_systems[0].atoms.labels[100] == 'H'
 
     assert sec_systems[2].atoms.positions[800][1].magnitude == approx(2.686057472229004e-09)
+    assert sec_systems[2].atoms.velocities[1200][2].magnitude == approx(40000.0)
     assert sec_systems[3].atoms.lattice_vectors[2][2].magnitude == approx(6.822318267822266e-09)
     assert sec_systems[0].atoms.bond_list[200][0] == 198
 
@@ -114,6 +124,7 @@ def test_md(parser):
     assert sec_res[0].is_molecule is False
     assert sec_res[0].x_h5md_parameters[0].kind == 'hydrophobicity'
     assert sec_res[0].x_h5md_parameters[0].value == '0.81'
+    assert sec_res[0].x_h5md_parameters[0].unit is None
 
     sec_method = sec_run.method
     sec_atom_params = sec_method[0].atom_parameters

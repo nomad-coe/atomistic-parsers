@@ -344,7 +344,13 @@ class H5MDParser(FileParser):
             particles_subgroup = particles_group.pop('particles_group', None)
             # set the remaining attributes
             for particles_group_key in particles_group.keys():
-                sec_atomsgroup.x_h5md_parameters.append(ParamEntry(kind=particles_group_key, value=particles_group.get(particles_group_key)))
+                unit = None
+                val = particles_group.get(particles_group_key)
+                has_units = hasattr(val, 'units') if val is not None else None
+                if has_units:
+                    unit = val.units
+                    val = val.magnitude
+                sec_atomsgroup.x_h5md_parameters.append(ParamEntry(kind=particles_group_key, value=val, unit=unit))
             # get the next atomsgroup
             if particles_subgroup:
                 self.get_atomsgroup_fromh5md(sec_atomsgroup, particles_subgroup)
@@ -468,16 +474,21 @@ class H5MDParser(FileParser):
                 for key, val in system_info.items():
                     print(key)
                     if key == 'forces':
-                        sec_scc.forces = Forces(total=ForcesEntry(value=val))
+                        sec_scc.forces = Forces(total=ForcesEntry(value=val[system_index]))
                     else:
                         print(BaseCalculation.__dict__.keys())
                         print(key)
                         if key in BaseCalculation.__dict__.keys():
                             print(key)
                             # setattr(sec_scc, key, val)
-                            sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
+                            sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val[system_index])
                         else:
-                            setattr(sec_scc, 'x_h5md_' + key, val)
+                            # setattr(sec_scc, 'x_h5md_' + key, val)
+                            unit = None
+                            if hasattr(val, 'units'):
+                                unit = val.units
+                                val = val.magnitude
+                            sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
 
                 sec_scc.system_ref = sec_system[system_index]
 
@@ -489,9 +500,12 @@ class H5MDParser(FileParser):
                     obs_name_short = key.split('-')[-1]
                     if 'energ' in key:  # TODO check for energies or energy when matching name
                         if obs_name_short in Energy.__dict__.keys():
-                            setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
+                            # setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
+                            sec_energy.m_add_sub_section(getattr(Energy, obs_name_short), EnergyEntry(value=val))
                         else:
-                            setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
+                            # setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
+                            sec_energy.x_h5md_energy_contributions.append(
+                                EnergyEntry(kind=key, value=val))
                     else:
                         if obs_name_short in BaseCalculation.__dict__.keys():
                             print(obs_name_short)
@@ -499,7 +513,11 @@ class H5MDParser(FileParser):
                             sec_scc.m_set(sec_scc.m_get_quantity_definition(obs_name_short), val)
                         else:
                             # setattr(sec_scc, 'x_h5md_' + key, val)
-                            sec_scc.x_h5md_thermo_contributions.append(CalcEntry(kind=key, value=val))
+                            unit = None
+                            if hasattr(val, 'units'):
+                                unit = val.units
+                                val = val.magnitude
+                            sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
@@ -528,6 +546,7 @@ class H5MDParser(FileParser):
                     if step is not None:
                         self._system_step_map[round(step)] = len(self._system_step_map)
                 else:
+                    print(key)
                     setattr(sec_atoms, key, system_info.get(key, [None] * (frame + 1))[frame])
 
             if frame == 0:  # TODO extend to time-dependent topologies

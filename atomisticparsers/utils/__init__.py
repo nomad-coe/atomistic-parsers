@@ -17,3 +17,4 @@
 # limitations under the License.
 
 from .mdanalysis import MDAnalysisParser
+from .parsers import MDParser

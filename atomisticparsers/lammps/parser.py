@@ -343,7 +343,6 @@ class TrajParser(TextParser):
 
     def get_step(self, idx):
         step = self.get('time_step')
-        print('!!!!!!!!!!1', step)
         if step is None:
             return
         return step[idx]

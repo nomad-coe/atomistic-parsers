@@ -19,7 +19,7 @@
 
 from typing import Any, Dict, List
 import numpy as np
-from collections import Iterable
+from collections.abc import Iterable
 
 from nomad.utils import get_logger
 from nomad.datamodel import EntryArchive

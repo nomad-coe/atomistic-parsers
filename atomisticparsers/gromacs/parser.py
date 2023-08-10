@@ -50,7 +50,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
     RadialDistributionFunction, RadialDistributionFunctionValues,
     MolecularDynamics, MolecularDynamicsMethod
 )
-from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files, Entry
+from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files, CalcEntry
 from atomisticparsers.utils import MDAnalysisParser
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
@@ -674,6 +674,8 @@ class GromacsParser:
                 electrostatic_dict = {}
 
                 sec_energy = sec_scc.m_create(Energy)
+                x_gromacs_thermo_contributions_dict = {}
+                x_gromacs_energy_contributions_dict = {}
                 for key in thermo_keys:
 
                     if key in self._thermo_ignore_list:
@@ -711,9 +713,14 @@ class GromacsParser:
                         if any([keyword in key.lower() for keyword in self._energy_keys_contain]):
                             sec_energy.x_gromacs_energy_contributions.append(
                                 EnergyEntry(kind=key, value=val * self._gro_energy_units))
+                            x_gromacs_energy_contributions_dict[key] = {'value': val, 'units': str(ureg.kilojoule / ureg.mole)}
                         else:  # store all other quantities as gromacs-specific under BaseCalculation
                             sec_scc.x_gromacs_thermo_contributions.append(
-                                Entry(kind=key, value=val))
+                                CalcEntry(kind=key, value=val))
+                            x_gromacs_thermo_contributions_dict[key] = {'value': val}
+
+                sec_scc.x_gromacs_thermo_contributions_json = x_gromacs_thermo_contributions_dict
+                sec_energy.x_gromacs_energy_contributions_json = x_gromacs_energy_contributions_dict
 
                 sec_scc.pressure_tensor = pressure_tensor * ureg.bar
                 sec_scc.virial_tensor = virial_tensor * (ureg.bar * ureg.nm**3)

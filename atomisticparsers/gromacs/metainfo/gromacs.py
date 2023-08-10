@@ -20,7 +20,7 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    Reference, JSON
 )
 from nomad.datamodel.metainfo import simulation
 
@@ -2041,6 +2041,35 @@ class Entry(MSection):
         ''')
 
 
+class CalcEntry(MSection):
+    '''
+    Section describing a general type of calculation.
+    '''
+
+    m_def = Section(validate=False)
+
+    kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Kind of the quantity.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Value of this contribution.
+        ''')
+
+    unit = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Unit of the parameter as a string.
+        ''')
+
+
 class Calculation(simulation.calculation.Calculation):
 
     m_def = Section(validate=False, extends_base_section=True,)
@@ -2050,11 +2079,16 @@ class Calculation(simulation.calculation.Calculation):
         repeats=True,)
 
     x_gromacs_thermo_contributions = SubSection(
-        sub_section=Entry.m_def,
+        sub_section=CalcEntry.m_def,
         description='''
         Contains other gromacs-specific thermodynamic and energy contributions that are not already defined.
         ''',
         repeats=True)
+
+    x_gromacs_thermo_contributions_json = Quantity(
+        type=JSON,
+        description='''Contains other gromacs-specific thermodynamic and energy contributions that are not already defined.
+        ''')
 
 
 class Energy(simulation.calculation.Energy):
@@ -2067,3 +2101,8 @@ class Energy(simulation.calculation.Energy):
         Contains other gromacs-specific energy contributions that are not already defined.
         ''',
         repeats=True)
+
+    x_gromacs_energy_contributions_json = Quantity(
+        type=JSON,
+        description='''Contains other gromacs-specific thermodynamic and energy contributions that are not already defined.
+        ''')

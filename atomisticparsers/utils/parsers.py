@@ -85,8 +85,8 @@ class MDParser(SimulationParser):
             self._steps.sort()
             self._info['n_frames'] = len(self._steps)
             self._steps_sampled = list(self._steps)
-            if self.frame_rate > 1:
-                self._steps_sampled = [step for n, step in enumerate(self._steps) if n % self.frame_rate == 0]
+            if self.archive_sampling_rate > 1:
+                self._steps_sampled = [step for n, step in enumerate(self._steps) if n % self.archive_sampling_rate == 0]
         return self._steps_sampled
 
     @property
@@ -132,19 +132,19 @@ class MDParser(SimulationParser):
         self._info['n_atoms'] = [value] if not isinstance(value, Iterable) else value
 
     @property
-    def frame_rate(self) -> int:
+    def archive_sampling_rate(self) -> int:
         '''
         Returns the sampling rate of saved thermodynamics data and trajectory.
         '''
-        if self.get('frame_rate') is None:
+        if self.get('archive_sampling_rate') is None:
             n_frames = self.get('n_frames', len(self._steps))
             n_atoms = np.amax(self.n_atoms)
             if n_atoms == 0 or n_frames == 0:
-                self._info['frame_rate'] = 1
+                self._info['archive_sampling_rate'] = 1
             else:
                 cum_atoms = n_atoms * n_frames
-                self._info['frame_rate'] = 1 if cum_atoms <= self.cum_max_atoms else -(-cum_atoms // self.cum_max_atoms)
-        return self.get('frame_rate')
+                self._info['archive_sampling_rate'] = 1 if cum_atoms <= self.cum_max_atoms else -(-cum_atoms // self.cum_max_atoms)
+        return self.get('archive_sampling_rate')
 
     @property
     def archive(self) -> EntryArchive:

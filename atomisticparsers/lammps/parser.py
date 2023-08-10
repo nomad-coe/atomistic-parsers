@@ -33,9 +33,8 @@ from nomad.datamodel.metainfo.simulation.system import (
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
     BarostatParameters, ThermostatParameters,
-    MolecularDynamicsMethod, DiffusionConstantValues, MeanSquaredDisplacement, MeanSquaredDisplacementValues,
-    MolecularDynamicsResults, RadialDistributionFunction, RadialDistributionFunctionValues,
-    MolecularDynamics, GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
+    MolecularDynamicsMethod, MolecularDynamicsResults, MolecularDynamics,
+    GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
 )
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
 from atomisticparsers.utils import MDAnalysisParser, MDParser

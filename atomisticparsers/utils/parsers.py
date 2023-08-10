@@ -71,23 +71,18 @@ class MDParser(SimulationParser):
         self._trajectory_steps: List[int] = []
         self._thermodynamics_steps: List[int] = []
         self._trajectory_steps_sampled: List[int] = []
-        self._thermodynamics_steps_sampled: List[int] = []
         self._steps: List[int] = []
-        self._steps_sampled: List[int] = []
         super().__init__(**kwargs)
 
     @property
     def steps(self) -> List[int]:
         '''
-        Returns the sampled steps. Steps are the set of trajectory and thermodynamics steps.
+        Returns the set of trajectory and thermodynamics steps.
         '''
-        if not self._steps_sampled:
+        if not self._steps:
+            self._steps = list(set(self.trajectory_steps + self.thermodynamics_steps))
             self._steps.sort()
-            self._info['n_frames'] = len(self._steps)
-            self._steps_sampled = list(self._steps)
-            if self.archive_sampling_rate > 1:
-                self._steps_sampled = [step for n, step in enumerate(self._steps) if n % self.archive_sampling_rate == 0]
-        return self._steps_sampled
+        return self._steps
 
     @property
     def trajectory_steps(self) -> List[int]:
@@ -96,32 +91,27 @@ class MDParser(SimulationParser):
         '''
         if not self._trajectory_steps_sampled:
             self._trajectory_steps_sampled = [
-                step for step in self._trajectory_steps if step in self.steps]
+                step for n, step in enumerate(self._trajectory_steps) if n % self.archive_sampling_rate == 0]
         return self._trajectory_steps_sampled
 
     @trajectory_steps.setter
     def trajectory_steps(self, value: List[int]):
         self._trajectory_steps = value
         self._trajectory_steps.sort()
+        self._info['n_frames'] = len(self._trajectory_steps)
         self._trajectory_steps_sampled = []
-        self._steps = list(set(self._trajectory_steps + self._thermodynamics_steps))
 
     @property
     def thermodynamics_steps(self) -> List[int]:
         '''
-        Returns the sampled thermodynamics steps.
+        Returns the thermodynamics steps.
         '''
-        if not self._thermodynamics_steps_sampled:
-            self._thermodynamics_steps_sampled = [
-                step for step in self._thermodynamics_steps if step in self.steps]
-        return self._thermodynamics_steps_sampled
+        return self._thermodynamics_steps
 
     @thermodynamics_steps.setter
     def thermodynamics_steps(self, value: List[int]):
         self._thermodynamics_steps = value
         self._thermodynamics_steps.sort()
-        self._thermodynamics_steps_sampled = []
-        self._steps = list(set(self._trajectory_steps + self._thermodynamics_steps))
 
     @property
     def n_atoms(self) -> int:
@@ -137,7 +127,7 @@ class MDParser(SimulationParser):
         Returns the sampling rate of saved thermodynamics data and trajectory.
         '''
         if self.get('archive_sampling_rate') is None:
-            n_frames = self.get('n_frames', len(self._steps))
+            n_frames = self.get('n_frames', len(self._trajectory_steps))
             n_atoms = np.amax(self.n_atoms)
             if n_atoms == 0 or n_frames == 0:
                 self._info['archive_sampling_rate'] = 1
@@ -157,8 +147,6 @@ class MDParser(SimulationParser):
         self.thermodynamics_steps = []
         self._steps = []
         self._trajectory_steps_sampled = []
-        self._thermodynamics_steps_sampled = []
-        self._steps_sampled = []
         self._archive = value
 
     def parse_trajectory_step(self, data: Dict[str, Any]) -> None:

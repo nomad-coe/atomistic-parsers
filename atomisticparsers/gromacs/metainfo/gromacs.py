@@ -2063,7 +2063,6 @@ class Calculation(simulation.calculation.Calculation):
         repeats=True)
 
 
-
 class Energy(simulation.calculation.Energy):
 
     m_def = Section(validate=False, extends_base_section=True,)
@@ -2074,4 +2073,3 @@ class Energy(simulation.calculation.Energy):
         Contains other gromacs-specific energy contributions that are not already defined.
         ''',
         repeats=True)
-

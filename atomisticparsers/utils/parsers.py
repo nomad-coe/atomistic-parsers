@@ -27,9 +27,7 @@ from nomad.metainfo import MSection, SubSection
 from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
-from nomad.datamodel.metainfo.simulation.workflow import (
-    MolecularDynamics, MolecularDynamicsMethod, MolecularDynamicsResults
-)
+from nomad.datamodel.metainfo.simulation.workflow import MolecularDynamics
 
 
 # TODO put this in nomad.parsing

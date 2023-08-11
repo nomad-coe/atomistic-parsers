@@ -19,8 +19,7 @@
 import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
-    MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy
 )
 from nomad.datamodel.metainfo import simulation
 
@@ -2019,6 +2018,35 @@ class Constraint(simulation.system.Constraint):
         repeats=True,)
 
 
+class CalcEntry(MSection):
+    '''
+    Section describing a general type of calculation.
+    '''
+
+    m_def = Section(validate=False)
+
+    kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Kind of the quantity.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Value of this contribution.
+        ''')
+
+    unit = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Unit of the parameter as a string.
+        ''')
+
+
 class Calculation(simulation.calculation.Calculation):
 
     m_def = Section(validate=False, extends_base_section=True,)
@@ -2026,3 +2054,22 @@ class Calculation(simulation.calculation.Calculation):
     x_gromacs_section_single_configuration_calculation = SubSection(
         sub_section=SectionProxy('x_gromacs_section_single_configuration_calculation'),
         repeats=True,)
+
+    x_gromacs_thermodynamics_contributions = SubSection(
+        sub_section=CalcEntry.m_def,
+        description='''
+        Contains other gromacs-specific thermodynamic and energy contributions that are not already defined.
+        ''',
+        repeats=True)
+
+
+class Energy(simulation.calculation.Energy):
+
+    m_def = Section(validate=False, extends_base_section=True,)
+
+    x_gromacs_energy_contributions = SubSection(
+        sub_section=simulation.calculation.EnergyEntry.m_def,
+        description='''
+        Contains other gromacs-specific energy contributions that are not already defined.
+        ''',
+        repeats=True)

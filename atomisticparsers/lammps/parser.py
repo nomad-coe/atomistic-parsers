@@ -32,8 +32,6 @@ from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
-    BarostatParameters, ThermostatParameters,
-    MolecularDynamicsMethod, MolecularDynamicsResults, MolecularDynamics,
     GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
 )
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
@@ -740,43 +738,38 @@ class LammpsParser(MDParser):
             workflow.results.energies = energies
             workflow.results.steps = steps
             workflow.results.optimization_steps = len(energies) + 1
+            self.archive.workflow2 = workflow
 
-        else:  # for now, only allow one workflow per runtime file
-            workflow = MolecularDynamics(
-                method=MolecularDynamicsMethod(), results=MolecularDynamicsResults())
-            workflow.results.finished_normally = self.log_parser.get('finished') is not None
-
+        else:
+            method, results = {}, {}
+            results['finished_normally'] = self.log_parser.get('finished') is not None
             dump_params = sec_lammps.x_lammps_inout_control_dump.split()
             if ',' in dump_params[3]:
                 coordinate_save_frequency = dump_params[3].replace(',', '')
             else:
                 coordinate_save_frequency = dump_params[3]
-            workflow.method.coordinate_save_frequency = int(coordinate_save_frequency)
-            workflow.method.n_steps = (len(sec_run.system) - 1) * workflow.method.coordinate_save_frequency
+            method['coordinate_save_frequency'] = int(coordinate_save_frequency)
+            method['n_steps'] = (len(sec_run.system) - 1) * method['coordinate_save_frequency']
             if 'vx' in dump_params[7:] or 'vy' in dump_params[7:] or 'vz' in dump_params[7:]:
-                workflow.method.velocity_save_frequency = int(dump_params[3])
+                method['velocity_save_frequency'] = int(dump_params[3])
             if 'fx' in dump_params[7:] or 'fy' in dump_params[7:] or 'fz' in dump_params[7:]:
-                workflow.method.force_save_frequency = int(dump_params[3])
+                method['force_save_frequency'] = int(dump_params[3])
             if sec_lammps.x_lammps_inout_control_thermo is not None:
-                workflow.method.thermodynamics_save_frequency = int(sec_lammps.x_lammps_inout_control_thermo.split()[0])
-
+                method['thermodynamics_save_frequency'] = int(sec_lammps.x_lammps_inout_control_thermo.split()[0])
             # runstyle has 2 options: Velocity-Verlet (default) or rRESPA Multi-Timescale
             runstyle = sec_lammps.x_lammps_inout_control_runstyle
             if runstyle is not None:
                 if 'respa' in runstyle.lower:
-                    workflow.method.integrator_type = 'rRESPA_multitimescale'
+                    method['integrator_type'] = 'rRESPA_multitimescale'
                 else:
-                    workflow.method.integrator_type = 'velocity_verlet'
+                    method['integrator_type'] = 'velocity_verlet'
             else:
-                workflow.method.integrator_type = 'velocity_verlet'
+                method['integrator_type'] = 'velocity_verlet'
             integration_timestep = self.get_time_step()
-            workflow.method.integration_timestep = integration_timestep
-            sec_thermostat_parameters = workflow.method.m_create(ThermostatParameters)
-            sec_barostat_parameters = workflow.method.m_create(BarostatParameters)
+            method['integration_timestep'] = integration_timestep
 
+            thermostat_parameters, barostat_parameters = {}, {}
             val = self.log_parser.get('fix', None)
-            flag_thermostat = False
-            flag_barostat = False
             if val is not None:
                 val_remove_duplicates = val if len(val) == 1 else []
                 val_tmp = val[0]
@@ -800,58 +793,52 @@ class LammpsParser(MDParser):
                     reference_temperature = None
                     coupling_constant = None
                     if 'nvt' in fix_style or 'npt' in fix_style:
-                        flag_thermostat = True
-                        sec_thermostat_parameters.thermostat_type = 'nose_hoover'
+                        thermostat_parameters['thermostat_type'] = 'nose_hoover'
                         if 'temp' in fix:
                             i_temp = np.where(fix == 'temp')[0]
                             reference_temperature = float(fix[i_temp + 2])  # stop temp
                             coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif fix_style == 'temp/berendsen':
-                        flag_thermostat = True
-                        sec_thermostat_parameters.thermostat_type = 'berendsen'
+                        thermostat_parameters['thermostat_type'] = 'berendsen'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
                         coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif fix_style == 'temp/csvr':
-                        flag_thermostat = True
-                        sec_thermostat_parameters.thermostat_type = 'velocity_rescaling'
+                        thermostat_parameters['thermostat_type'] = 'velocity_rescaling'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
                         coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif fix_style == 'temp/csld':
-                        flag_thermostat = True
-                        sec_thermostat_parameters.thermostat_type = 'velocity_rescaling_langevin'
+                        thermostat_parameters['thermostat_type'] = 'velocity_rescaling_langevin'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
                         coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif fix_style == 'langevin':
-                        flag_thermostat = True
-                        sec_thermostat_parameters.thermostat_type = 'langevin_schneider'
+                        thermostat_parameters['thermostat_type'] = 'langevin_schneider'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
                         coupling_constant = float(fix[i_temp + 3]) * integration_timestep
                     elif 'brownian' in fix_style:
-                        flag_thermostat = True
-                        sec_thermostat_parameters.thermostat_type = 'brownian'
+                        thermostat_parameters['thermostat_type'] = 'brownian'
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
                         # coupling_constant =  # ignore multiple coupling parameters
-                    sec_thermostat_parameters.reference_temperature = reference_temperature * temperature_conversion
-                    sec_thermostat_parameters.coupling_constant = coupling_constant
+                    thermostat_parameters['reference_temperature'] = reference_temperature * temperature_conversion
+                    thermostat_parameters['coupling_constant'] = coupling_constant
 
+                    barostat_type = None
                     if 'npt' in fix_style or 'nph' in fix_style:
-                        flag_barostat = True
                         coupling_constant = np.zeros(shape=(3, 3))
                         reference_pressure = np.zeros(shape=(3, 3))
                         compressibility = None
-                        sec_barostat_parameters.barostat_type = 'nose_hoover'
+                        barostat_type = 'nose_hoover'
                         if 'iso' in fix:
                             i_baro = np.where(fix == 'iso')[0]
-                            sec_barostat_parameters.coupling_type = 'isotropic'
+                            barostat_parameters['coupling_type'] = 'isotropic'
                             np.fill_diagonal(coupling_constant, float(fix[i_baro + 3]))
                             np.fill_diagonal(reference_pressure, float(fix[i_baro + 2]))
                         else:
-                            sec_barostat_parameters.coupling_type = 'anisotropic'
+                            barostat_parameters['coupling_type'] = 'anisotropic'
                         if 'x' in fix:
                             i_baro = np.where(fix == 'x')[0]
                             coupling_constant[0, 0] = float(fix[i_baro + 3])
@@ -882,24 +869,23 @@ class LammpsParser(MDParser):
                             coupling_constant[3, 0] = float(fix[i_baro + 3])
                             reference_pressure[0, 3] = float(fix[i_baro + 2])
                             reference_pressure[3, 0] = float(fix[i_baro + 2])
-                        sec_barostat_parameters.reference_pressure = reference_pressure * pressure_conversion  # stop pressure
-                        sec_barostat_parameters.coupling_constant = coupling_constant * integration_timestep
-                        sec_barostat_parameters.compressibility = compressibility
+                        barostat_parameters['reference_pressure'] = reference_pressure * pressure_conversion  # stop pressure
+                        barostat_parameters['coupling_constant'] = coupling_constant * integration_timestep
+                        barostat_parameters['compressibility'] = compressibility
 
                     if fix_style == 'press/berendsen':
-                        flag_barostat = False
-                        sec_barostat_parameters.barostat_type = 'berendsen'
+                        barostat_type = 'berendsen'
                         if 'iso' in fix:
                             i_baro = np.where(fix == 'iso')[0]
-                            sec_barostat_parameters.coupling_type = 'isotropic'
+                            barostat_parameters['coupling_type'] = 'isotropic'
                             np.fill_diagonal(coupling_constant, float(fix[i_baro + 3]))
                         elif 'aniso' in fix:
                             i_baro = np.where(fix == 'aniso')[0]
-                            sec_barostat_parameters.coupling_type = 'anisotropic'
+                            barostat_parameters['coupling_type'] = 'anisotropic'
                             coupling_constant[:3] += 1.
                             coupling_constant[:3] *= float(fix[i_baro + 3])
                         else:
-                            sec_barostat_parameters.coupling_type = 'anisotropic'
+                            barostat_parameters['coupling_type'] = 'anisotropic'
                         if 'x' in fix:
                             i_baro = np.where(fix == 'x')[0]
                             coupling_constant[0] = float(fix[i_baro + 3])
@@ -913,20 +899,24 @@ class LammpsParser(MDParser):
                             i_baro = np.where(fix == 'couple')[0]
                             couple = fix[i_baro]
                             if couple == 'xyz':
-                                sec_barostat_parameters.coupling_type = 'isotropic'
+                                barostat_parameters['coupling_type'] = 'isotropic'
                             elif couple == 'xy' or couple == 'yz' or couple == 'xz':
-                                sec_barostat_parameters.coupling_type = 'anisotropic'
-                        sec_barostat_parameters.reference_pressure = float(fix[i_baro + 2]) * pressure_conversion  # stop pressure
-                        sec_barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(fix[i_baro + 3]) * integration_timestep
+                                barostat_parameters['coupling_type'] = 'anisotropic'
+                        barostat_parameters['reference_pressure'] = float(fix[i_baro + 2]) * pressure_conversion  # stop pressure
+                        barostat_parameters['coupling_constant'] = np.ones(shape=(3, 3)) * float(fix[i_baro + 3]) * integration_timestep
+                    barostat_parameters['barostat_type'] = barostat_type
 
-            if flag_thermostat:
-                workflow.method.thermodynamic_ensemble = 'NPT' if flag_barostat else 'NVT'
-            elif flag_barostat:
-                workflow.method.thermodynamic_ensemble = 'NPH'
+            if thermostat_parameters:
+                method['thermodynamic_ensemble'] = 'NPT' if barostat_type == 'nose_hoover' else 'NVT'
+            elif barostat_type == 'nose_hoover':
+                method['thermodynamic_ensemble'] = 'NPH'
             else:
-                workflow.method.thermodynamic_ensemble = 'NVE'
+                method['thermodynamic_ensemble'] = 'NVE'
 
-        self.archive.workflow2 = workflow
+            method['thermostat_parameters'] = thermostat_parameters
+            method['barostat_parameters'] = barostat_parameters
+
+            self.parse_md_workflow(dict(method=method, results=results))
 
     def parse_system(self):
         sec_run = self.archive.run[-1]

@@ -23,10 +23,13 @@ from collections.abc import Iterable
 
 from nomad.utils import get_logger
 from nomad.datamodel import EntryArchive
+from nomad.metainfo import MSection, SubSection
 from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
-from nomad.metainfo import MSection, SubSection
+from nomad.datamodel.metainfo.simulation.workflow import (
+    MolecularDynamics, MolecularDynamicsMethod, MolecularDynamicsResults
+)
 
 
 # TODO put this in nomad.parsing
@@ -170,3 +173,11 @@ class MDParser(SimulationParser):
             sec_calc.system_ref = sec_run.system[system_ref_index]
         except Exception:
             pass
+
+    def parse_md_workflow(self, data: Dict[str, Any]) -> None:
+        if self.archive is None:
+            return
+
+        sec_workflow = MolecularDynamics()
+        self.parse_section(data, sec_workflow)
+        self.archive.workflow2 = sec_workflow

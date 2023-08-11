@@ -664,10 +664,10 @@ class GromacsParser:
             if calculation_index is not None:
                 thermo_keys = thermo_data.keys()
                 pressure_tensor = None
-                if any([key.startswith('Pres-') for key in thermo_keys]):
+                if any(key.startswith('Pres-') for key in thermo_keys):
                     pressure_tensor = np.zeros(shape=(3, 3))
                 virial_tensor = None
-                if any([key.startswith('Vir-') for key in thermo_keys]):
+                if any(key.startswith('Vir-') for key in thermo_keys):
                     virial_tensor = np.zeros(shape=(3, 3))
 
                 vdw_dict = {}
@@ -708,7 +708,7 @@ class GromacsParser:
                         electrostatic_dict[self._electrostatic_map[key]] = val * self._gro_energy_units
                     else:
                         # try to identify other known energy keys to be stored as gromacs-specific
-                        if any([keyword in key.lower() for keyword in self._energy_keys_contain]):
+                        if any(keyword in key.lower() for keyword in self._energy_keys_contain):
                             sec_energy.x_gromacs_energy_contributions.append(
                                 EnergyEntry(kind=key, value=val * self._gro_energy_units))
                         else:  # store all other quantities as gromacs-specific under BaseCalculation

@@ -643,6 +643,10 @@ class LammpsParser(MDParser):
         if thermo_data is None:
             thermo_data = self.aux_log_parser.get_thermodynamic_data()
         if not thermo_data:
+            thermo_data = {}
+        self.thermodynamics_steps = [int(n) for n in thermo_data.get('Step', [])]
+
+        if not thermo_data:
             return
 
         for step in self.thermodynamics_steps:
@@ -921,9 +925,12 @@ class LammpsParser(MDParser):
     def parse_system(self):
         sec_run = self.archive.run[-1]
 
-        n_frames = self.traj_parsers.eval('n_frames')
-        if n_frames is None:
+        n_traj = self.traj_parsers.eval('n_frames')
+        if n_traj is None:
             return
+
+        self.n_atoms = [self.traj_parsers.eval('get_n_atoms', n) for n in range(n_traj)]
+        self.trajectory_steps = [step for n in range(n_traj) if (step := self.traj_parsers.eval('get_step', n)) is not None]
 
         units = self.log_parser.units
 
@@ -946,7 +953,6 @@ class LammpsParser(MDParser):
             if velocities is not None:
                 velocities = apply_unit(velocities, 'velocity')
             self.parse_trajectory_step({
-                'step': self.traj_parsers.eval('get_step', traj_n),
                 'atoms': {
                     'n_atoms': self.traj_parsers.eval('get_n_atoms', traj_n),
                     'lattice_vectors': lattice_vectors,
@@ -1246,17 +1252,6 @@ class LammpsParser(MDParser):
                 self.log_parser.maindir, self.log_parser.get('log')[0])
             # we assign units here which is read from log parser
             self.aux_log_parser._units = self.log_parser.units
-
-        n_traj = self.traj_parsers.eval('n_frames')
-        self.n_atoms = [self.traj_parsers.eval('get_n_atoms', n) for n in range(n_traj)]
-        self.trajectory_steps = [step for n in range(n_traj) if (step := self.traj_parsers.eval('get_step', n)) is not None]
-
-        thermo_data = self.log_parser.get_thermodynamic_data()
-        if thermo_data is None:
-            thermo_data = self.aux_log_parser.get_thermodynamic_data()
-        if not thermo_data:
-            thermo_data = {}
-        self.thermodynamics_steps = [int(n) for n in thermo_data.get('Step', [])]
 
         self.parse_method()
 

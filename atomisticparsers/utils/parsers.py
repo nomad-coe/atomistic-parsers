@@ -151,7 +151,10 @@ class MDParser(SimulationParser):
         self._archive = value
 
     def parse_trajectory_step(self, data: Dict[str, Any]) -> None:
-        if self.archive is None or data.get('step') not in self.trajectory_steps:
+        if self.archive is None:
+            return
+
+        if (step := data.get('step')) is not None and step not in self.trajectory_steps:
             return
 
         sec_run = self.archive.run[-1] if self.archive.run else self.archive.m_create(Run)
@@ -159,7 +162,10 @@ class MDParser(SimulationParser):
         self.parse_section(data, sec_run.m_create(System))
 
     def parse_thermodynamics_step(self, data: Dict[str, Any]) -> None:
-        if self.archive is None or data.get('step') not in self.thermodynamics_steps:
+        if self.archive is None:
+            return
+
+        if (step := data.get('step')) is not None and step not in self.thermodynamics_steps:
             return
 
         sec_run = self.archive.run[-1] if self.archive.run else self.archive.m_create(Run)

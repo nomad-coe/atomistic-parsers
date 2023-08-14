@@ -42,7 +42,7 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.workflow import (
     GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
 )
-from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files, CalcEntry
+from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser, MDParser
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
@@ -585,7 +585,6 @@ class GromacsParser(MDParser):
 
     def parse_thermodynamic_data(self):
         sec_run = self.archive.run[-1]
-        sec_system = sec_run.system
 
         n_frames = self.traj_parser.get('n_frames')
         time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
@@ -643,13 +642,13 @@ class GromacsParser(MDParser):
                 elif (match := re.match(r'Pres-([XYZ]{2})', key)):
                     if pressure_tensor is None:
                         pressure_tensor = np.zeros(shape=(3, 3))
-                    pressure_tensor[tuple(['XYZ'.index(n) for n in match.group(1)])] = val
+                    pressure_tensor[tuple('XYZ'.index(n) for n in match.group(1))] = val
 
                 # virial tensor
                 elif (match := re.match(r'Vir-([XYZ]{2})', key)):
                     if virial_tensor is None:
                         virial_tensor = np.zeros(shape=(3, 3))
-                    virial_tensor[tuple(['XYZ'.index(n) for n in match.group(1)])] = val
+                    virial_tensor[tuple('XYZ'.index(n) for n in match.group(1))] = val
 
                 # well-defined, single Energy quantities
                 elif (nomad_key := self._energy_map.get(key)) is not None:

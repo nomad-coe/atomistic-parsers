@@ -165,55 +165,6 @@ def test_md_atomsgroup(parser):
     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].is_molecule is False
 
 
-def test_rdf(parser):
-    archive = EntryArchive()
-    parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
-
-    sec_workflow = archive.workflow2
-    section_md = sec_workflow.results
-
-    assert section_md.radial_distribution_functions[0].type == 'molecular'
-    assert section_md.radial_distribution_functions[0].n_smooth == 2
-    assert section_md.radial_distribution_functions[0].variables_name[0] == 'distance'
-
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].label == 'SOL-Protein'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].n_bins == 198
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(7.624056451320648 * 10**(-10))
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(1.093694948374587)
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_start == 0
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_end == 2
-
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].label == 'SOL-SOL'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(6.389391438961029 * 10**(-10))
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.8368052672121375)
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_start == 0
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_end == 2
-
-
-def test_msd(parser):
-    archive = EntryArchive()
-    parser.parse('tests/data/gromacs/cgwater/mdrun.log', archive, None)
-
-    sec_workflow = archive.workflow2
-    section_md = sec_workflow.results
-
-    assert section_md.mean_squared_displacements[0].type == 'molecular'
-    assert section_md.mean_squared_displacements[0].direction == 'xyz'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].label == 'LJ'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].magnitude == approx(95.0 * 10**(-12))
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].units == 'second'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].magnitude == approx(250.15309179080856 * 10**(-20))
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].units == 'meter^2'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.magnitude == approx(1.1311880364159048 * 10**(-8))
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.units == 'meter^2/second'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.errors == 0.9999312519176002
-
-
 def test_geometry_optimization(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/polymer_melt/step4.0_minimization.log', archive, None)

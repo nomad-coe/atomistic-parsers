@@ -587,7 +587,6 @@ class GromacsParser(MDParser):
         sec_run = self.archive.run[-1]
 
         n_frames = self.traj_parser.get('n_frames')
-        time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
 
         # # TODO read also from ene
         edr_file = self.get_gromacs_file('edr')
@@ -616,8 +615,11 @@ class GromacsParser(MDParser):
             # get it from edr file
             thermo_data = self.energy_parser
 
-        calculation_times = thermo_data.get('Time')
-        self.thermodynamics_steps = [int(time / time_step.magnitude) for time in calculation_times]
+        calculation_times = thermo_data.get('Time', [])
+        time_step = self.log_parser.get('input_parameters', {}).get('dt')
+        if time_step is None and len(calculation_times) > 1:
+            time_step = calculation_times[1] - calculation_times[0]
+        self.thermodynamics_steps = [int(time / time_step if time_step else 1) for time in calculation_times]
 
         for n, step in enumerate(self.thermodynamics_steps):
             data = {

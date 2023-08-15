@@ -144,7 +144,7 @@ class AsapParser(MDParser):
 
         for step in self.trajectory_steps:
             traj = self.traj_parser.traj[steps.index(step)]
-            lattice_vectors =  traj.get_cell() * ureg.angstrom
+            lattice_vectors = traj.get_cell() * ureg.angstrom
             labels = traj.get_chemical_symbols()
             positions = traj.get_positions() * ureg.angstrom
             periodic = traj.get_pbc()

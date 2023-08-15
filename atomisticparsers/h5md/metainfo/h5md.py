@@ -124,3 +124,42 @@ class Energy(simulation.calculation.Energy):
         Contains other custom energy contributions that are not already defined.
         ''',
         repeats=True)
+
+
+class Author(MSection):
+    '''
+    Contains the specifications of the program.
+    '''
+
+    m_def = Section(validate=False)
+
+    name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Specifies the name of the author who generated the h5md file.
+        ''',)
+
+    email = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Author's email.
+        ''',)
+
+
+class Run(simulation.run.Run):
+
+    m_def = Section(validate=False, extends_base_section=True,)
+
+    # TODO Not sure how we are dealing with versioning with H5MD-NOMAD
+    x_h5md_version = Quantity(
+        type=np.dtype(np.int32),
+        shape=[2],
+        description='''
+        Specifies the version of the h5md schema being followed.
+        ''',)
+
+    x_h5md_author = SubSection(sub_section=Author.m_def)
+
+    x_h5md_creator = SubSection(sub_section=simulation.run.Program.m_def)

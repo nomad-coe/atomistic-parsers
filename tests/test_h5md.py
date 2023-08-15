@@ -39,6 +39,12 @@ def test_md(parser):
     sec_run = archive.run[0]
     assert sec_run.program.name == 'OpenMM'
     assert sec_run.program.version == '-1.-1.-1'
+    assert len(sec_run.x_h5md_version) == 2
+    assert sec_run.x_h5md_version[1] == 0
+    assert sec_run.x_h5md_author.name == 'Joseph F. Rudzinski'
+    assert sec_run.x_h5md_author.email == 'joseph.rudzinski@physik.hu-berlin.de'
+    assert sec_run.x_h5md_creator.name == 'h5py'
+    assert sec_run.x_h5md_creator.version == '3.6.0'
 
     sec_workflow = archive.workflow2
     assert sec_workflow.m_def.name == 'MolecularDynamics'

@@ -45,7 +45,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
     RadialDistributionFunction, RadialDistributionFunctionValues,
     MolecularDynamics, MolecularDynamicsMethod
 )
-from .metainfo.h5md import ParamEntry, CalcEntry
+from .metainfo.h5md import ParamEntry, CalcEntry, Author
 # from nomad.atomutils import get_molecules_from_bond_list, is_same_molecule, get_composition
 from nomad.units import ureg
 
@@ -666,10 +666,17 @@ class H5MDParser(FileParser):
         sec_run = self.archive.m_create(Run)
 
         program_name = self.hdf5_attr_getter(self.filehdf5, 'h5md.program', 'name', None)
-        version = self.hdf5_attr_getter(self.filehdf5, 'h5md.program', 'version', None)
-        program_version = '.'.join([str(i) for i in version]) if version is not None else None
+        program_version = self.hdf5_attr_getter(self.filehdf5, 'h5md.program', 'version', None)
         sec_run.program = Program(name=program_name, version=program_version)
-        #  TODO get the remaining information from the h5md root level
+        h5md_version = self.hdf5_attr_getter(self.filehdf5, 'h5md', 'version', None)
+        # h5md_version = '.'.join([str(i) for i in h5md_version]) if h5md_version is not None else None
+        sec_run.x_h5md_version = h5md_version
+        h5md_author_name = self.hdf5_attr_getter(self.filehdf5, 'h5md.author', 'name', None)
+        h5md_author_email = self.hdf5_attr_getter(self.filehdf5, 'h5md.author', 'email', None)
+        sec_run.x_h5md_author = Author(name=h5md_author_name, email=h5md_author_email)
+        h5md_creator_name = self.hdf5_attr_getter(self.filehdf5, 'h5md.creator', 'name', None)
+        h5md_creator_version = self.hdf5_attr_getter(self.filehdf5, 'h5md.creator', 'version', None)
+        sec_run.x_h5md_creator = Program(name=h5md_creator_name, version=h5md_creator_version)
 
         self.parse_method()
 

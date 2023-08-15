@@ -20,6 +20,7 @@
 import os
 import logging
 import numpy as np
+from typing import Dict, Any
 
 from nomad.units import ureg
 from nomad.datamodel import EntryArchive
@@ -203,39 +204,40 @@ class NAMDParser(MDParser):
             index = saved_trajectories.index(step)
             self.parse_trajectory_step(get_system_data(index))
 
-        for step in steps_data:
-            step_n = int(step[0])
-            if step_n not in self.thermodynamics_steps:
+        for step_data in steps_data:
+            step = int(step_data[0])
+            if step not in self.thermodynamics_steps:
                 continue
 
-            data = {'step': step_n, 'energy': {}}
+            energy: Dict[str, Any] = {}
+            thermo_data = {'step': step, 'energy': energy}
             for index, name in enumerate(property_names):
                 metainfo_name = self._metainfo_map.get(name)
                 if metainfo_name is None:
                     continue
-                value = step[index]
+                value = step_data[index]
                 if metainfo_name.startswith('energy_contribution_'):
-                    data['energy'].setdefault('contributions', [])
+                    energy.setdefault('contributions', [])
                     metainfo_name = metainfo_name.replace('energy_contribution_', '')
-                    data['energy']['contributions'].append(dict(kind=metainfo_name, value=value * energy_unit))
+                    energy['contributions'].append(dict(kind=metainfo_name, value=value * energy_unit))
                 elif metainfo_name.startswith('energy_'):
                     metainfo_name = metainfo_name.replace('energy_', '')
-                    data['energy'][metainfo_name] = dict(value=value * energy_unit)
+                    energy[metainfo_name] = dict(value=value * energy_unit)
                     if metainfo_name == 'total':
                         # include potential and kinetic terms
                         for key in ['kinetic', 'potential']:
                             try:
-                                data['energy']['total'][key] = step[property_names.index(key)] * energy_unit
+                                energy['total'][key] = step_data[property_names.index(key)] * energy_unit
                             except Exception:
                                 pass
                 elif 'pressure' in metainfo_name:
-                    data[metainfo_name] = value * ureg.bar
+                    thermo_data[metainfo_name] = value * ureg.bar
                 elif 'temperature' in metainfo_name:
-                    data[metainfo_name] = value * ureg.kelvin
+                    thermo_data[metainfo_name] = value * ureg.kelvin
                 elif 'volume' in metainfo_name:
-                    data[metainfo_name] = value * ureg.angstrom ** 3
+                    thermo_data[metainfo_name] = value * ureg.angstrom ** 3
                 # forces
-            self.parse_thermodynamics_step(data)
+            self.parse_thermodynamics_step(thermo_data)
 
         # workflow
         self.archive.workflow2 = MolecularDynamics()

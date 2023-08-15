@@ -31,7 +31,7 @@ from nomad.datamodel.metainfo.simulation.workflow import MolecularDynamics
 
 
 # TODO put this in nomad.parsing
-class SimulationParser:
+class AtomisticParser:
     def __init__(self, **kwargs) -> None:
         self._info: Dict[str, Any] = {}
         self._archive: EntryArchive = kwargs.get('archive')
@@ -49,9 +49,15 @@ class SimulationParser:
         self._archive = value
 
     def get(self, key: str, default: Any = None) -> Any:
+        '''
+        Returns variables stored in _info, if not the provided default.
+        '''
         return self._info.get(key, default)
 
     def parse_section(self, data: Dict[str, Any], root: MSection) -> None:
+        '''
+        Write the quantities in data into an archive section.
+        '''
         for key, val in data.items():
             if not hasattr(root, key):
                 continue
@@ -64,9 +70,8 @@ class SimulationParser:
             root.m_set(root.m_get_quantity_definition(key), val)
 
 
-class MDParser(SimulationParser):
+class MDParser(AtomisticParser):
     def __init__(self, **kwargs) -> None:
-        self.thermodynamics_quantities: List[str] = ['pressure', 'temperature', 'time']
         self.cum_max_atoms: int = 2500000
         self.logger = get_logger(__name__)
         self._trajectory_steps: List[int] = []
@@ -107,6 +112,7 @@ class MDParser(SimulationParser):
         '''
         Returns the thermodynamics steps.
         '''
+        # TODO is it necessary to sample thermodynamics steps
         return self._thermodynamics_steps
 
     @thermodynamics_steps.setter
@@ -151,6 +157,9 @@ class MDParser(SimulationParser):
         self._archive = value
 
     def parse_trajectory_step(self, data: Dict[str, Any]) -> None:
+        '''
+        Create a system section and write the provided data.
+        '''
         if self.archive is None:
             return
 
@@ -162,6 +171,9 @@ class MDParser(SimulationParser):
         self.parse_section(data, sec_run.m_create(System))
 
     def parse_thermodynamics_step(self, data: Dict[str, Any]) -> None:
+        '''
+        Create a calculation section and write the provided data.
+        '''
         if self.archive is None:
             return
 
@@ -179,6 +191,9 @@ class MDParser(SimulationParser):
             pass
 
     def parse_md_workflow(self, data: Dict[str, Any]) -> None:
+        '''
+        Create an md workflow section and write the provided data.
+        '''
         if self.archive is None:
             return
 

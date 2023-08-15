@@ -102,7 +102,7 @@ class MDParser(AtomisticParser):
 
     @trajectory_steps.setter
     def trajectory_steps(self, value: List[int]):
-        self._trajectory_steps = value
+        self._trajectory_steps = list(set(value))
         self._trajectory_steps.sort()
         self._info['n_frames'] = len(self._trajectory_steps)
         self._trajectory_steps_sampled = []
@@ -117,7 +117,7 @@ class MDParser(AtomisticParser):
 
     @thermodynamics_steps.setter
     def thermodynamics_steps(self, value: List[int]):
-        self._thermodynamics_steps = value
+        self._thermodynamics_steps = list(set(value))
         self._thermodynamics_steps.sort()
 
     @property

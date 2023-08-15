@@ -24,20 +24,11 @@ import numpy as np
 from nomad.units import ureg
 from nomad.datamodel import EntryArchive
 from nomad.parsing.file_parser import TextParser, Quantity
-from nomad.datamodel.metainfo.simulation.run import (
-    Run, Program
-)
-from nomad.datamodel.metainfo.simulation.method import (
-    Method
-)
-from nomad.datamodel.metainfo.simulation.system import (
-    System, Atoms
-)
-from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry
-)
+from nomad.datamodel.metainfo.simulation.run import Run, Program
+from nomad.datamodel.metainfo.simulation.method import Method
 from nomad.datamodel.metainfo.simulation.workflow import MolecularDynamics
-from atomisticparsers.utils import MDAnalysisParser
+from atomisticparsers.utils import MDAnalysisParser, MDParser
+from .metainfo import m_env  # pylint: disable=unused-import
 
 
 MOL = 6.022140857e+23
@@ -103,14 +94,11 @@ class MainfileParser(TextParser):
         return {p[0]: p[1] for p in self.get('simulation_parameters', {}).get('parameter', [])}
 
 
-class NAMDParser:
+class NAMDParser(MDParser):
     def __init__(self) -> None:
         self.mainfile_parser = MainfileParser()
         self.config_parser = ConfigParser()
         self.traj_parser = MDAnalysisParser()
-        self._frame_rate = None
-        # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 1000000
         self._metainfo_map = {
             'bond': 'energy_contribution_bond',
             'angle': 'energy_contribution_angle',
@@ -130,23 +118,7 @@ class NAMDParser:
             'pressavg': 'x_namd_pressure_average',
             'gpressavg': 'x_namd_gpressure_average'
         }
-
-    @property
-    def frame_rate(self):
-        '''
-        Sampling rate of the for trajectories calculated as the ratio of the cumulative
-        number of atoms in all frames and the maximum allowable atoms in the trajectories
-        to be parsed given by _cum_max_atoms.
-        '''
-        if self._frame_rate is None:
-            n_atoms = self.traj_parser.get('n_atoms', 0)
-            n_frames = self.traj_parser.get('n_frames', 0)
-            if n_atoms == 0 or n_frames == 0:
-                self._frame_rate = 1
-            else:
-                cum_atoms = n_atoms * n_frames
-                self._frame_rate = 1 if cum_atoms <= self._cum_max_atoms else cum_atoms // self._cum_max_atoms
-        return self._frame_rate
+        super().__init__()
 
     def init_parser(self):
         '''
@@ -156,7 +128,6 @@ class NAMDParser:
         self.mainfile_parser.logger = self.logger
         self.config_parser.logger = self.logger
         self.traj_parser.logger = self.logger
-        self._frame_rate = None
 
     def parse(self, filepath: str, archive: EntryArchive, logger=None):
         '''
@@ -181,28 +152,31 @@ class NAMDParser:
         sec_method.x_namd_input_parameters = self.config_parser.get_parameters()
         sec_method.x_namd_simulation_parameters = self.mainfile_parser.get_parameters()
 
-        def parse_system(index=0):
+        def get_system_data(index):
             if self.traj_parser.mainfile is None:
-                return
+                return {}
 
-            sec_system = sec_run.m_create(System)
-            sec_system.atoms = Atoms(
-                labels=self.traj_parser.get_atom_labels(index), positions=self.traj_parser.get_positions(index),
-                velocities=self.traj_parser.get_velocities(index))
+            labels = self.traj_parser.get_atom_labels(index)
+            positions = self.traj_parser.get_positions(index)
+            velocities = self.traj_parser.get_velocities(index)
             lattice_vectors = self.traj_parser.get_lattice_vectors(index)
             if lattice_vectors is None:
                 # get if from simulation parameters
                 lattice_vectors = self.mainfile_parser.get('simulation_parameters', {}).get('cell')
                 lattice_vectors = lattice_vectors * ureg.angstrom if lattice_vectors is not None else lattice_vectors
-            sec_system.atoms.lattice_vectors = lattice_vectors
-            return sec_system
+            return dict(atoms=dict(
+                labels=labels, positions=positions, velocities=velocities, lattice_vectors=lattice_vectors))
 
         # input structure
         parameters = self.mainfile_parser.get('simulation_parameters', {})
         self.traj_parser.mainfile = os.path.join(self.maindir, parameters.get('coordinate_file'))
-        initial_system = parse_system()
+
+        # initial_system
+        self.parse_trajectory_step(get_system_data(0))
+
         # energy unit is kcal / mol
-        energy_unit = ureg.J * 4184.0 * self.traj_parser.get('n_atoms') / MOL
+        n_atoms = self.traj_parser.get('n_atoms')
+        energy_unit = ureg.J * 4184.0 * n_atoms / MOL
 
         # trajectories
         # TODO other formats
@@ -214,48 +188,54 @@ class NAMDParser:
         # output properties at each step
         property_names = self.mainfile_parser.get('property_names', [])
         # saved trajectories
-        saved_trajectories = self.mainfile_parser.get('coordinates_write_step')
+        saved_trajectories = self.mainfile_parser.get('coordinates_write_step', [])
+        # md data
+        steps_data = self.mainfile_parser.get('step', [])
+        # set up md parser
+        self.n_atoms = n_atoms
+        self.trajectory_steps = saved_trajectories
+        self.thermodynamics_steps = [int(step[0]) for step in steps_data]
 
-        for step_n, step in enumerate(self.mainfile_parser.get('step', [])):
-            # parse only calculation if step coincides with frame rate sampling
-            if (step_n % self.frame_rate) > 0:
+        for step in self.trajectory_steps:
+            if self.traj_parser.mainfile is None:
                 continue
 
-            sec_calc = sec_run.m_create(Calculation)
-            sec_energy = sec_calc.m_create(Energy)
+            index = saved_trajectories.index(step)
+            self.parse_trajectory_step(get_system_data(index))
+
+        for step in steps_data:
+            step_n = int(step[0])
+            if step_n not in self.thermodynamics_steps:
+                continue
+
+            data = {'step': step_n, 'energy': {}}
             for index, name in enumerate(property_names):
                 metainfo_name = self._metainfo_map.get(name)
                 if metainfo_name is None:
                     continue
                 value = step[index]
                 if metainfo_name.startswith('energy_contribution_'):
+                    data['energy'].setdefault('contributions', [])
                     metainfo_name = metainfo_name.replace('energy_contribution_', '')
-                    sec_energy.contributions.append(EnergyEntry(kind=metainfo_name, value=value * energy_unit))
+                    data['energy']['contributions'].append(dict(kind=metainfo_name, value=value * energy_unit))
                 elif metainfo_name.startswith('energy_'):
                     metainfo_name = metainfo_name.replace('energy_', '')
-                    setattr(sec_energy, metainfo_name, EnergyEntry(value=value * energy_unit))
+                    data['energy'][metainfo_name] = dict(value=value * energy_unit)
                     if metainfo_name == 'total':
                         # include potential and kinetic terms
                         for key in ['kinetic', 'potential']:
                             try:
-                                setattr(sec_energy.total, key, step[property_names.index(key)] * energy_unit)
+                                data['energy']['total'][key] = step[property_names.index(key)] * energy_unit
                             except Exception:
                                 pass
                 elif 'pressure' in metainfo_name:
-                    setattr(sec_calc, metainfo_name, value * ureg.bar)
+                    data[metainfo_name] = value * ureg.bar
                 elif 'temperature' in metainfo_name:
-                    setattr(sec_calc, metainfo_name, value * ureg.kelvin)
+                    data[metainfo_name] = value * ureg.kelvin
                 elif 'volume' in metainfo_name:
-                    setattr(sec_calc, metainfo_name, value * ureg.angstrom ** 3)
-                # TODO how about forces
-
-            # parse system if coordinates are written to file
-            time_step = step[0]
-            if time_step in saved_trajectories:
-                frame = saved_trajectories.index(time_step)
-                sec_calc.system_ref = parse_system(frame)
-
-        sec_run.calculation[0].system_ref = initial_system
+                    data[metainfo_name] = value * ureg.angstrom ** 3
+                # forces
+            self.parse_thermodynamics_step(data)
 
         # workflow
         self.archive.workflow2 = MolecularDynamics()

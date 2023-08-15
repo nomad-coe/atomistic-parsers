@@ -27,14 +27,11 @@ from nomad.parsing.file_parser import FileParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model)
-from nomad.datamodel.metainfo.simulation.system import (
-    System, Atoms, Constraint)
-from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry)
 from nomad.datamodel.metainfo.simulation.workflow import (
     GeometryOptimization, GeometryOptimizationMethod,
-    MolecularDynamics, MolecularDynamicsMethod
 )
+from atomisticparsers.utils import MDParser
+from .metainfo.asap import MolecularDynamics  # pylint: disable=unused-import
 
 
 class TrajParser(FileParser):
@@ -62,63 +59,14 @@ class TrajParser(FileParser):
             return '3.x.x'
 
 
-class AsapParser:
+class AsapParser(MDParser):
     def __init__(self):
         self.traj_parser = TrajParser()
+        super().__init__()
 
     def init_parser(self):
         self.traj_parser.mainfile = self.filepath
         self.traj_parser.logger = self.logger
-
-    def parse_system(self, traj):
-        sec_system = self.archive.run[0].m_create(System)
-
-        sec_atoms = sec_system.m_create(Atoms)
-        sec_atoms.lattice_vectors = traj.get_cell() * ureg.angstrom
-        sec_atoms.labels = traj.get_chemical_symbols()
-        sec_atoms.positions = traj.get_positions() * ureg.angstrom
-        sec_atoms.periodic = traj.get_pbc()
-        if traj.get_velocities() is not None:
-            sec_atoms.velocities = traj.get_velocities() * (ureg.angstrom / ureg.fs)
-
-        def get_constraint_name(constraint):
-            def index():
-                d = constraint['kwargs'].get('direction')
-                return ((d / np.linalg.norm(d)) ** 2).argsort()[2]
-
-            name = constraint.get('name')
-            if name == 'FixedPlane':
-                return ['fix_yz', 'fix_xz', 'fix_xy'][index()]
-            elif name == 'FixedLine':
-                return ['fix_x', 'fix_y', 'fix_z'][index()]
-            elif name == 'FixAtoms':
-                return 'fix_xyz'
-            else:
-                return name
-
-        for constraint in traj.constraints:
-            sec_constraint = sec_system.m_create(Constraint)
-            as_dict = constraint.todict()
-            indices = as_dict['kwargs'].get('a', as_dict['kwargs'].get('indices'))
-            sec_constraint.indices = np.asarray(indices)
-            sec_constraint.kind = get_constraint_name(as_dict)
-
-    def parse_scc(self, traj):
-        sec_scc = self.archive.run[0].m_create(Calculation)
-
-        try:
-            sec_energy = sec_scc.m_create(Energy)
-            sec_energy.total = EnergyEntry(value=traj.get_total_energy() * ureg.eV)
-        except Exception:
-            pass
-
-        try:
-            sec_forces = sec_scc.m_create(Forces)
-            sec_forces.total = ForcesEntry(
-                value=traj.get_forces() * ureg.eV / ureg.angstrom,
-                value_raw=traj.get_forces(apply_constraint=False) * ureg.eV / ureg.angstrom)
-        except Exception:
-            pass
 
     def parse_method(self):
         traj = self.traj_parser.traj
@@ -131,27 +79,29 @@ class AsapParser:
         if not description:
             return
 
-        workflow = None
         calc_type = description.get('type')
         if calc_type == 'optimization':
             workflow = GeometryOptimization(method=GeometryOptimizationMethod())
             workflow.x_asap_maxstep = description.get('maxstep', 0)
             workflow.method.method = description.get('optimizer', '').lower()
+            self.archive.workflow2 = workflow
         elif calc_type == 'molecular-dynamics':
-            workflow = MolecularDynamics(method=MolecularDynamicsMethod())
-            workflow.x_asap_timestep = description.get('timestep', 0)
-            workflow.x_asap_temperature = description.get('temperature', 0)
+            data = {}
+            data['x_asap_timestep'] = description.get('timestep', 0)
+            data['x_asap_temperature'] = description.get('temperature', 0)
             md_type = description.get('md-type', '')
+            thermodynamic_ensemble = None
             if 'Langevin' in md_type:
-                workflow.x_asap_langevin_friction = description.get('friction', 0)
-                workflow.method.thermodynamic_ensemble = 'NVT'
+                data['x_asap_langevin_friction'] = description.get('friction', 0)
+                thermodynamic_ensemble = 'NVT'
             elif 'NVT' in md_type:
-                workflow.method.thermodynamic_ensemble = 'NVT'
+                thermodynamic_ensemble = 'NVT'
             elif 'Verlet' in md_type:
-                workflow.method.thermodynamic_ensemble = 'NVE'
+                thermodynamic_ensemble = 'NVE'
             elif 'NPT' in md_type:
-                workflow.method.thermodynamic_ensemble = 'NPT'
-        self.archive.workflow2 = workflow
+                thermodynamic_ensemble = 'NPT'
+            data['method'] = {'thermodynamic_ensemble': thermodynamic_ensemble}
+            self.parse_md_workflow(data)
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)
@@ -169,10 +119,55 @@ class AsapParser:
 
         # TODO do we build the topology and method for each frame
         self.parse_method()
-        for traj in self.traj_parser.traj:
-            self.parse_system(traj)
-            self.parse_scc(traj)
-            # add references to scc
-            sec_scc = sec_run.calculation[-1]
-            sec_scc.method_ref = sec_run.method[-1]
-            sec_scc.system_ref = sec_run.system[-1]
+
+        # set up md parser
+        self.n_atoms = [traj.get_global_number_of_atoms() for traj in self.traj_parser.traj]
+        steps = [(traj.description if hasattr(traj, 'description') else dict()).get(
+            'interval', 1) * n for n, traj in enumerate(self.traj_parser.traj)]
+        self.trajectory_steps = steps
+        self.thermodynamics_steps = steps
+
+        def get_constraint_name(constraint):
+            def index():
+                d = constraint['kwargs'].get('direction')
+                return ((d / np.linalg.norm(d)) ** 2).argsort()[2]
+
+            name = constraint.get('name')
+            if name == 'FixedPlane':
+                return ['fix_yz', 'fix_xz', 'fix_xy'][index()]
+            elif name == 'FixedLine':
+                return ['fix_x', 'fix_y', 'fix_z'][index()]
+            elif name == 'FixAtoms':
+                return 'fix_xyz'
+            else:
+                return name
+
+        for step in self.trajectory_steps:
+            traj = self.traj_parser.traj[steps.index(step)]
+            lattice_vectors =  traj.get_cell() * ureg.angstrom
+            labels = traj.get_chemical_symbols()
+            positions = traj.get_positions() * ureg.angstrom
+            periodic = traj.get_pbc()
+            if (velocities := traj.get_velocities()) is not None:
+                velocities = velocities * (ureg.angstrom / ureg.fs)
+
+            constraints = []
+            for constraint in traj.constraints:
+                as_dict = constraint.todict()
+                indices = as_dict['kwargs'].get('a', as_dict['kwargs'].get('indices'))
+                constraints.append(dict(atom_indices=np.asarray(indices), kind=get_constraint_name(as_dict)))
+            self.parse_trajectory_step(dict(atoms=dict(
+                lattice_vectors=lattice_vectors, labels=labels, positions=positions,
+                periodic=periodic, velocities=velocities), constraint=constraints))
+
+        for step in self.thermodynamics_steps:
+            traj = self.traj_parser.traj[steps.index(step)]
+            if (total_energy := traj.get_total_energy()) is not None:
+                total_energy = total_energy * ureg.eV
+            if (forces := traj.get_forces()) is not None:
+                forces = forces * ureg.eV / ureg.angstrom
+            if (forces_raw := traj.get_forces(apply_constraint=False)) is not None:
+                forces_raw * ureg.eV / ureg.angstrom
+            self.parse_thermodynamics_step(dict(
+                energy=dict(total=dict(value=total_energy)),
+                forces=dict(total=dict(value=forces, value_raw=forces_raw))))

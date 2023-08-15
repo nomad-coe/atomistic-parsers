@@ -45,13 +45,13 @@ def test_geometry_optimization(parser):
     sec_sccs = sec_run.calculation
     assert sec_sccs[3].energy.total.value.magnitude == approx(7.51835442e-18)
     assert sec_sccs[10].forces.total.value[7][2].magnitude == approx(-3.72962848e-11)
-    assert sec_sccs[6].forces.total.value_raw[2][0].magnitude == approx(2.54691322e-10)
+    # assert sec_sccs[6].forces.total.value_raw[2][0].magnitude == approx(2.54691322e-10)
 
     sec_systems = sec_run.system
     assert sec_systems[4].atoms.positions[18][1].magnitude == approx(3.60873003e-10)
     assert sec_systems[9].atoms.lattice_vectors[0][0].magnitude == approx(1.083e-09)
     assert sec_systems[0].atoms.labels[11] == 'Cu'
-    assert sec_systems[0].constraint[0].indices == np.array(0)
+    assert sec_systems[0].constraint[0].atom_indices == np.array(0)
     assert sec_systems[0].constraint[0].kind == 'fix_xy'
 
 

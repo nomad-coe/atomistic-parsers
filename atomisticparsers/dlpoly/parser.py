@@ -27,15 +27,6 @@ from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, Interaction, AtomParameters, MoleculeParameters
 )
-from nomad.datamodel.metainfo.simulation.system import (
-    System, Atoms, Constraint
-)
-from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry
-)
-from nomad.datamodel.metainfo.simulation.workflow import (
-    MolecularDynamics, MolecularDynamicsMethod
-)
 from atomisticparsers.utils import MDParser
 from .metainfo.dl_poly import m_package  # pylint: disable=unused-import
 
@@ -455,8 +446,8 @@ class DLPolyParser(MDParser):
 
         def get_system_data(frame_index):
             frame = self.traj_parser.get('frame')[frame_index]
-            labels=[atom.get('label') for atom in frame.get('atoms', [])]
-            lattice_vectors=frame.get('lattice_vectors') * ureg.angstrom
+            labels = [atom.get('label') for atom in frame.get('atoms', [])]
+            lattice_vectors = frame.get('lattice_vectors') * ureg.angstrom
             array = np.transpose([atom.get('array') for atom in frame.get('atoms', [])], axes=(1, 0, 2))
             positions = array[0] * ureg.angstrom
             velocities = None
@@ -495,16 +486,16 @@ class DLPolyParser(MDParser):
                     for key, val in interaction.items():
                         setattr(sec_interaction, key, val)
             # add constraints to initial system
+            constraint_data = []
             for constraint in molecule.get('constraints', []):
-                sec_constraint = sec_run.system[0].m_create(Constraint)
-                sec_constraint.kind = 'fixed bond length'
-                sec_constraint.atom_indices = constraint.get('atom_indices')
-                sec_constraint.parameters = constraint.get('parameters')
+                constraint_data.append(dict(
+                    kind='fixed bond length', atom_indices=constraint.get('atom_indices'),
+                    parameters=constraint.get('parameters')))
             # rigid atoms
             for rigid in molecule.get('rigid', []):
-                sec_constraint = sec_run.system[0].m_create(Constraint)
-                sec_constraint.kind = 'static atoms'
-                sec_constraint.atom_indices = rigid
+                constraint_data.append(dict(
+                    kind='static atoms', atom_indices=rigid))
+            self.parse_section(dict(constraint=constraint_data), sec_run.system[0])
         # TODO add atom groups in system
 
         # non-bonded
@@ -524,7 +515,6 @@ class DLPolyParser(MDParser):
 
         # set up md parser
         self.n_atoms = n_atoms
-        frames = {frame.get('info', {}).get('step'): n for n, frame in enumerate(self.traj_parser.get('frame', []))}
         traj_steps = [frame.get('info', {}).get('step') for frame in self.traj_parser.get('frame', [])]
         self.trajectory_steps = traj_steps
         step_n = names.index('step')
@@ -563,7 +553,7 @@ class DLPolyParser(MDParser):
                 elif name == 'enthalpy':
                     data['enthalpy'] = instantaneous[n] * energy_unit
                 elif 'temperature' in name:
-                    data[name] =  instantaneous[n] * ureg.kelvin
+                    data[name] = instantaneous[n] * ureg.kelvin
                 elif 'pressure' in name:
                     # TODO verify if atmosphere is the unit
                     data[name] = instantaneous[n] * ureg.atm
@@ -583,7 +573,7 @@ class DLPolyParser(MDParser):
                 array = np.transpose([atom.get('array') for atom in frame.get('atoms', [])])
                 if len(array) > 2:
                     data['forces'] = dict(
-                        total=ForcesEntry(value=np.transpose(array[2]) * ureg.amu * ureg.angstrom / ureg.ps ** 2))
+                        total=dict(value=np.transpose(array[2]) * ureg.amu * ureg.angstrom / ureg.ps ** 2))
             self.parse_thermodynamics_step(data)
 
         ensemble_type = control_parameters.get('Ensemble')

@@ -354,14 +354,14 @@ class TinkerParser(MDParser):
             self.parse_md_workflow(dict(
                 method=dict(thermodynamic_ensemble=ensemble, integration_timestep=parameters[1] * ureg.fs if parameters[1] else parameters[1]),
                 x_tinker_barostat_tau=control_parameters.get('tau-pressure'),
-                x_tinker_barostat_type = control_parameters.get('barostat'),
-                x_tinker_integrator_type = control_parameters.get('integrator'),
-                x_tinker_number_of_steps_requested = parameters[0],
-                x_tinker_integrator_dt = parameters[1] * ureg.ps if parameters[1] else parameters,
-                x_tinker_thermostat_target_temperature = parameters[4] * ureg.kelvin if parameters[4] else parameters[4],
-                x_tinker_barostat_target_pressure = parameters[5] * ureg.atmosphere if parameters[5] else parameters[5],
-                x_tinker_thermostat_tau = control_parameters.get('tau-temperature'),
-                x_tinker_thermostat_type = control_parameters.get('thermostat')))
+                x_tinker_barostat_type=control_parameters.get('barostat'),
+                x_tinker_integrator_type=control_parameters.get('integrator'),
+                x_tinker_number_of_steps_requested=parameters[0],
+                x_tinker_integrator_dt=parameters[1] * ureg.ps if parameters[1] else parameters,
+                x_tinker_thermostat_target_temperature=parameters[4] * ureg.kelvin if parameters[4] else parameters[4],
+                x_tinker_barostat_target_pressure=parameters[5] * ureg.atmosphere if parameters[5] else parameters[5],
+                x_tinker_thermostat_tau=control_parameters.get('tau-temperature'),
+                x_tinker_thermostat_type=control_parameters.get('thermostat')))
 
         elif workflow_type == 'geometry_optimization':
             workflow = GeometryOptimization(method=GeometryOptimizationMethod())

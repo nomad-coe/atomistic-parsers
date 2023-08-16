@@ -692,12 +692,13 @@ class GromacsParser(MDParser):
 
         n_frames = self.traj_parser.get('n_frames', 0)
         self.n_atoms = [self.traj_parser.get_n_atoms(n) for n in range(n_frames)]
-        self.trajectory_steps = [self.traj_parser.get_step(n) for n in range(n_frames)]
+        traj_steps = [self.traj_parser.get_step(n) for n in range(n_frames)]
+        self.trajectory_steps = traj_steps
 
         pbc = self.log_parser.get_pbc()
         self._system_time_map = {}
         for step in self.trajectory_steps:
-            n = self.trajectory_steps.index(step)
+            n = traj_steps.index(step)
             positions = self.traj_parser.get_positions(n)
             if positions is None:
                 continue

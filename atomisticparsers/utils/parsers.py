@@ -136,7 +136,7 @@ class MDParser(AtomisticParser):
         if self.get('archive_sampling_rate') is None:
             n_frames = self.get('n_frames', len(self._trajectory_steps))
             n_atoms = np.amax(self.n_atoms)
-            if n_atoms == 0 or n_frames == 0:
+            if not n_atoms or not n_frames:
                 self._info['archive_sampling_rate'] = 1
             else:
                 cum_atoms = n_atoms * n_frames

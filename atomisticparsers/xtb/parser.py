@@ -32,8 +32,9 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, ScfIteration, Energy, EnergyEntry, BandEnergies, Multipoles, MultipolesEntry
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
-    SinglePoint, GeometryOptimization, GeometryOptimizationMethod, MolecularDynamics
+    SinglePoint, GeometryOptimization, GeometryOptimizationMethod
 )
+from atomisticparsers.utils import MDParser
 from atomisticparsers.xtb.metainfo import m_env  # pylint: disable=unused-import
 
 
@@ -487,7 +488,7 @@ class TrajParser(TextParser):
         return aseAtoms(symbols=labels, positions=frame.positions)
 
 
-class XTBParser:
+class XTBParser(MDParser):
     def __init__(self):
         self.out_parser = OutParser()
         self.coord_parser = CoordParser()
@@ -499,6 +500,7 @@ class XTBParser:
             'RF solver': 'rf_solver', 'linear?': 'linear', 'Hlow (freq-cutoff)': 'hlow',
             'Hmax (freq-cutoff)': 'hmax', 'S6 in model hess.': 's6'
         }
+        super().__init__()
 
     def init_parser(self):
         self.out_parser.mainfile = self.filepath
@@ -596,7 +598,7 @@ class XTBParser:
             return
 
         # determine file extension of input structure file
-        coord_file = self.archive.run[-1].x_xtb_calculation_setup.get('coordinate_file', 'coord')
+        coord_file = self.archive.run[-1].x_xtb_calculation_setup.get('coordinate file', 'coord')
         if section == 'final_single_point':
             extension = 'coord' if coord_file == 'coord' else coord_file.split('.')[-1]
             coord_file = f'xtbopt.{extension}'
@@ -648,23 +650,34 @@ class XTBParser:
         # get trj dump frequency to determine which frame to parse in trajectory file
         trj_freq = module.get('x_xtb_dumpstep_trj', 1)
 
-        for cycle in module.get('cycle', []):
-            # cycle[0] is the timestep, we divide it with trj_freq to get corresponding frame
-            sec_system = self.parse_system(int(cycle[0] // trj_freq))
-            sec_calc = self.archive.run[-1].m_create(Calculation)
-            sec_calc.time_physical = cycle[1] * ureg.ps
-            sec_calc.energy = Energy(total=EnergyEntry(
-                potential=cycle[2] * ureg.hartree, kinetic=cycle[3] * ureg.hartree,
-                value=cycle[6] * ureg.hartree
-            ))
-            sec_calc.temperature = cycle[5] * ureg.kelvin
-            sec_calc.system_ref = sec_system
+        traj_steps = [n * int(trj_freq) for n in range(len(self.traj_parser.get('frame', [])))]
+        self.n_atoms = self.archive.run[-1].x_xtb_calculation_setup.get('number of atoms', 0)
+        self.trajectory_steps = traj_steps
+        self.thermodynamics_steps = [int(cycle[0]) for cycle in module.get('cycle', [])]
+
+        for step in self.trajectory_steps:
+            atoms = self.traj_parser.get_atoms(traj_steps.index(step))
+            data = dict(labels=atoms.get_chemical_symbols(), positions=atoms.get_positions() * ureg.angstrom)
+            lattice_vectors = np.array(atoms.get_cell())
+            if np.count_nonzero(lattice_vectors) > 0:
+                data['lattice_vectors'] = lattice_vectors * ureg.angstrom
+            self.parse_trajectory_step(dict(atoms=data))
+
+        for n_frame, step in enumerate(self.thermodynamics_steps):
+            cycle = module.get('cycle')[n_frame]
+            data = dict(
+                step=step, time_physical=cycle[1] * ureg.ps, energy=dict(total=dict(
+                    potential=cycle[2] * ureg.hartree, kinetic=cycle[3] * ureg.hartree,
+                    value=cycle[6] * ureg.hartree)),
+                temperature=cycle[5] * ureg.kelvin)
+            self.parse_thermodynamics_step(data)
 
         # workflow parameters
-        workflow = MolecularDynamics()
-        for key, val in module.items():
-            if key.startswith('x_xtb_'):
-                setattr(workflow, key, val)
+        self.parse_md_workflow({key: val for key, val in module.items() if key.startswith('x_xtb')})
+        # workflow = MolecularDynamics()
+        # for key, val in module.items():
+        #     if key.startswith('x_xtb_'):
+        #         setattr(workflow, key, val)
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)

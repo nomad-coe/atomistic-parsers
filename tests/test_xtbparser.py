@@ -109,8 +109,8 @@ def test_md(parser):
 
     sec_run = archive.run[0]
     sec_system = sec_run.system
-    assert len(sec_system) == 51
-    assert sec_system[4].atoms.positions[1][1].magnitude == approx(-3.9255935e-13)
+    assert len(sec_system) == 201
+    assert sec_system[4].atoms.positions[1][1].to('angstrom').magnitude == approx(0.01016905962746)
     assert sec_system[10].atoms.labels[7] == 'H'
 
     sec_calc = sec_run.calculation

@@ -55,7 +55,7 @@ def test_0(parser):
     assert sec_model.contributions[2].parameters[1] == approx(3.1545)
 
     sec_system = archive.run[0].system
-    assert len(sec_system) == 1
+    assert len(sec_system) == 3
     assert sec_system[0].atoms.lattice_vectors[2][2].magnitude == approx(9.878128e-09)
     assert sec_system[0].atoms.labels[10] == 'Na'
     assert np.shape(sec_system[0].atoms.positions) == (27000, 3)
@@ -70,8 +70,7 @@ def test_0(parser):
     assert sec_calc[17].temperature.magnitude == approx(503.57)
     assert sec_calc[9].pressure.magnitude == approx(-696315.532)
     assert sec_calc[6].x_dl_poly_virial_configurational == approx(1.5826e+08)
-    # extended metainfo does not seem to convert
-    assert sec_calc[1].x_dl_poly_volume.magnitude == approx(9.6388e+05)
+    assert sec_calc[1].x_dl_poly_volume.to('angstrom ** 3').magnitude == approx(9.6388e+05)
 
     assert archive.workflow2.method.thermodynamic_ensemble == 'NVT'
     assert archive.workflow2.method.integration_timestep.magnitude == approx(1e-15)

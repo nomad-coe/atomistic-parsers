@@ -923,7 +923,7 @@ class GromacsParser(MDParser):
             thermostat_parameters = {}
             thermostat_parameters['thermostat_type'] = value
             if 'sd' in integrator:
-                thermostat_parameters.thermostat_type = 'langevin_goga'
+                thermostat_parameters['thermostat_type'] = 'langevin_goga'
             if thermostat_parameters['thermostat_type']:
                 reference_temperature = input_parameters.get('ref-t', None)
                 if isinstance(reference_temperature, str):
@@ -1049,9 +1049,10 @@ class GromacsParser(MDParser):
         self.traj_parser.mainfile = topology_file
         self.traj_parser.auxilliary_files = [trajectory_file]
         # check to see if the trr file can be read properly (and has positions), otherwise try xtc file instead
-        positions = getattr(self.traj_parser, 'universe', None)
-        positions = getattr(positions, 'atoms', None) if positions else None
-        positions = getattr(positions, 'positions', None) if positions else None
+        positions = None
+        if (universe := self.traj_parser.universe) is not None:
+            atoms = getattr(universe, 'atoms', None)
+            positions = getattr(atoms, 'positions', None)
         if positions is None:
             self.traj_parser.auxilliary_files = [xtc_file] if xtc_file else [trr_file]
 

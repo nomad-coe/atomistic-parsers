@@ -32,9 +32,9 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     ChargesValue
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
-    GeometryOptimization, GeometryOptimizationMethod, SinglePoint, MolecularDynamics
+    GeometryOptimization, GeometryOptimizationMethod, SinglePoint
 )
-
+from atomisticparsers.utils import MDParser
 from atomisticparsers.bopfox.metainfo.bopfox import x_bopfox_onsite_levels, x_bopfox_onsite_levels_value
 
 
@@ -310,10 +310,10 @@ class MainfileParser(TextParser):
         ] + calc_quantities
 
     def get_simulation_parameters(self):
-        return {v[0]: v[2] if v[1] == '--' else v[1] for v in self.get('simulation', {}).get('parameter', [])}
+        return {v[0]: (v[2] if v[2] != 'none' else None) if v[1] == '--' else v[1] for v in self.get('simulation', {}).get('parameter', [])}
 
 
-class BOPfoxParser:
+class BOPfoxParser(MDParser):
     def __init__(self):
         self.mainfile_parser = MainfileParser()
         self.strucbx_parser = StrucbxParser()
@@ -325,6 +325,7 @@ class BOPfoxParser:
             'binding': 'total', 'coulomb': 'electrostatic', 'ionic': 'nuclear_repulsion',
             'total': 'total'
         }
+        super().__init__()
 
     def init_parser(self):
         self.mainfile_parser.logger = self.logger
@@ -538,7 +539,7 @@ class BOPfoxParser:
         sec_calc.system_ref = sec_system
         workflow = None
         if task in ['energy', 'force']:
-            workflow = SinglePoint()
+            archive.workflow2 = SinglePoint()
 
         elif task == 'relax':
             # relaxation trajectory from struc.RX.xyz
@@ -564,6 +565,7 @@ class BOPfoxParser:
             workflow = GeometryOptimization(method=GeometryOptimizationMethod())
             workflow.method.convergence_tolerance_energy_difference = parameters.get('rxeconv', 0) * ureg.eV
             workflow.method.convergence_tolerance_force_maximum = parameters.get('rxfconv', 0) * ureg.eV / ureg.angstrom
+            archive.workflow2 = workflow
 
         elif task == 'md':
             # md trajectory from struc.MD.xyz
@@ -571,22 +573,49 @@ class BOPfoxParser:
             # thermodynamic properties from struc.erg.dat
             # TODO determine if the column names are arbitrary
             self.dat_parser.mainfile = os.path.join(self.maindir, f'{struc_basename}.erg.dat')
-            n_atoms = self.mainfile_parser.get('n_atoms', [1, 1])[0]
-            frames = {frame.get('step'): frame for frame in self.xyz_parser.get('frame', [])}
-            for n, data in enumerate(self.dat_parser.data):
-                # md does not do an initial single point calculation so override first calc
-                sec_calc = sec_calc if n == 0 else sec_run.m_create(Calculation)
-                sec_calc.time_physical = data[0] * ureg.fs
-                sec_calc.time_step = n
-                sec_calc.energy = Energy(total=EnergyEntry(
-                    value=data[1] * n_atoms * ureg.eV, potential=data[2] * n_atoms * ureg.eV,
-                    kinetic=data[3] * n_atoms * ureg.eV
-                ))
-                sec_calc.temperature = data[5] * ureg.K
-                sec_calc.pressure = data[7] * ureg.MPa
-                # read frame from trajectory
-                sec_system = parse_system(frames.get(data[0]))
-                sec_calc.system_ref = sec_system
-            workflow = MolecularDynamics()
 
-        archive.workflow2 = workflow
+            traj_steps = [int(frame.get('step', 0)) for frame in self.xyz_parser.get('frame', [])]
+            time_step = parameters.get('mdtimestep', 1.0)
+            thermo_steps = [int(d[0] / time_step) for d in self.dat_parser.data]
+            n_atoms = self.mainfile_parser.get('n_atoms', [1, 1])[0]
+
+            self.n_atoms = n_atoms
+            self.trajectory_steps = traj_steps
+            self.thermodynamics_steps = thermo_steps
+
+            if (lattice_vectors := self.strucbx_parser.get('lattice_vectors')) is None:
+                lattice_vectors = lattice_vectors * ureg.angstrom
+            for step in self.trajectory_steps:
+                frame = self.xyz_parser.frame[traj_steps.index(step)]
+                labels = frame.get('labels')
+                positions = frame.get('positions')
+                if positions is None or labels is None:
+                    continue
+                self.parse_trajectory_step(dict(atoms=dict(
+                    labels=labels, positions=positions * ureg.angstrom,
+                    lattice_vectors=lattice_vectors)))
+
+            for n, step in enumerate(self.thermodynamics_steps):
+                # md does not do an initial single point calculation so override first calc
+                data = self.dat_parser.data[n]
+                thermo_data = dict(
+                    time_physical=data[0] * ureg.fs, time_step=step, energy=dict(
+                        total=dict(
+                            value=data[1] * n_atoms * ureg.eV, potential=data[2] * n_atoms * ureg.eV,
+                            kinetic=data[3] * n_atoms * ureg.eV)),
+                    temperature=data[5] * ureg.K, pressure=data[7] * ureg.MPa)
+                if n == 0:
+                    self.parse_section(thermo_data, archive.run[-1].calculation[0])
+                else:
+                    self.parse_thermodynamics_step(thermo_data)
+
+            integrator_map = {'velocity-verlet': 'velocity_verlet'}
+            ensemble = None
+            if parameters.get('mdthermostat'):
+                ensemble = 'NVT'
+            elif parameters.get('mdbarostat'):
+                ensemble = 'NVE'
+            self.parse_md_workflow(dict(method=dict(
+                integration_timestep=time_step * ureg.fs,
+                integrator_type=integrator_map.get(parameters.get('mdkernel')),
+                n_steps=parameters.get('mdsteps'), thermodynamic_ensemble=ensemble)))

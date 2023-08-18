@@ -320,6 +320,16 @@ class MDAnalysisParser(FileParser):
         frame = self.get_frame(frame_index)
         return frame.time * ureg.picosecond if frame is not None else None
 
+    def get_step(self, frame_index):
+        '''
+        Returns the step of the frame with index frame_index.
+        '''
+        frame = self.get_frame(frame_index)
+        if not (dt := frame.dt if frame.dt else getattr(self.universe.trajectory, 'dt')):
+            return
+        if frame:
+            return int(frame.time / dt)
+
     def get_lattice_vectors(self, frame_index):
         '''
         Returns the lattice vectors of the frame with index frame_index.

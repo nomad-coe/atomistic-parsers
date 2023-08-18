@@ -32,12 +32,12 @@ from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, VibrationalFrequencies
+    Calculation, Energy, EnergyEntry, VibrationalFrequencies
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
-    GeometryOptimization, GeometryOptimizationMethod, MolecularDynamics, MolecularDynamicsMethod
+    GeometryOptimization, GeometryOptimizationMethod
 )
-from atomisticparsers.utils import MDAnalysisParser
+from atomisticparsers.utils import MDAnalysisParser, MDParser
 from .metainfo.tinker import x_tinker_section_control_parameters
 
 re_n = r'[\n\r]'
@@ -238,7 +238,7 @@ class OutParser(TextParser):
         ]
 
 
-class TinkerParser:
+class TinkerParser(MDParser):
     def __init__(self):
         self.out_parser = OutParser()
         self.traj_parser = MDAnalysisParser()
@@ -247,6 +247,7 @@ class TinkerParser:
         self._run_types = {
             'vibrate': 'single_point', 'minimize': 'geometry_optimization',
             'dynamic': 'molecular_dynamics'}
+        super().__init__()
 
     def init_parser(self):
         self.out_parser.mainfile = self.filepath
@@ -341,27 +342,26 @@ class TinkerParser:
             return ensemble_type
 
         # TODO handle multiple workflow sections
-        workflow = None
         parameters = list(program.get('parameters', []))
         # so we cover the case when optional parameters are missing
         parameters.extend([None] * 6)
         workflow_type = self.resolve_workflow_type(run)
         if workflow_type == 'molecular_dynamics':
-            workflow = MolecularDynamics(method=MolecularDynamicsMethod())
             control_parameters = self.archive.run[-1].x_tinker_control_parameters
             # TODO verify this! I am sure it is wrong but tinker documentation does not specify clearly
             ensemble_types = ['NVE', 'NVT', 'NPT', None, None]
-            workflow.method.thermodynamic_ensemble = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
-            workflow.method.integration_timestep = parameters[1] * ureg.fs if parameters[1] else parameters[1]
-            workflow.x_tinker_barostat_tau = control_parameters.get('tau-pressure')
-            workflow.x_tinker_barostat_type = control_parameters.get('barostat')
-            workflow.x_tinker_integrator_type = control_parameters.get('integrator')
-            workflow.x_tinker_number_of_steps_requested = parameters[0]
-            workflow.x_tinker_integrator_dt = parameters[1] * ureg.ps if parameters[1] else parameters
-            workflow.x_tinker_thermostat_target_temperature = parameters[4] * ureg.kelvin if parameters[4] else parameters[4]
-            workflow.x_tinker_barostat_target_pressure = parameters[5] * ureg.atmosphere if parameters[5] else parameters[5]
-            workflow.x_tinker_thermostat_tau = control_parameters.get('tau-temperature')
-            workflow.x_tinker_thermostat_type = control_parameters.get('thermostat')
+            ensemble = ensemble_types[int(parameters[3]) - 1] if parameters[3] is not None else resolve_ensemble_type()
+            self.parse_md_workflow(dict(
+                method=dict(thermodynamic_ensemble=ensemble, integration_timestep=parameters[1] * ureg.fs if parameters[1] else parameters[1]),
+                x_tinker_barostat_tau=control_parameters.get('tau-pressure'),
+                x_tinker_barostat_type=control_parameters.get('barostat'),
+                x_tinker_integrator_type=control_parameters.get('integrator'),
+                x_tinker_number_of_steps_requested=parameters[0],
+                x_tinker_integrator_dt=parameters[1] * ureg.ps if parameters[1] else parameters,
+                x_tinker_thermostat_target_temperature=parameters[4] * ureg.kelvin if parameters[4] else parameters[4],
+                x_tinker_barostat_target_pressure=parameters[5] * ureg.atmosphere if parameters[5] else parameters[5],
+                x_tinker_thermostat_tau=control_parameters.get('tau-temperature'),
+                x_tinker_thermostat_type=control_parameters.get('thermostat')))
 
         elif workflow_type == 'geometry_optimization':
             workflow = GeometryOptimization(method=GeometryOptimizationMethod())
@@ -371,7 +371,7 @@ class TinkerParser:
                 if key.startswith('x_tinker'):
                     setattr(workflow, key, val)
 
-        self.archive.workflow2 = workflow
+            self.archive.workflow2 = workflow
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)
@@ -400,6 +400,7 @@ class TinkerParser:
         # necesarry to extract program parameters from the cli command in basename.run
         self.run_parser.mainfile = os.path.join(self.maindir, f'{self._base_name}.run')
 
+        # TODO put runs in separate archives
         for run in self.out_parser.get('run', []):
             sec_run = archive.m_create(Run)
             sec_run.program = Program(name='tinker', version=run.get('program_version'))
@@ -445,28 +446,56 @@ class TinkerParser:
                 self.traj_parser.mainfile = self._get_tinker_file('arc')
                 self.traj_parser.options = dict(topology_format='ARC')
                 average_values = {value.step: value for value in run.dynamic.get('average_values', [])}
+                # set up md parser
+                # TODO this is not efficient as we need to load traj file to know if it exists
+                traj_steps, thermo_steps, n_atoms, filenames = [], [], [], []
                 for nframe, value in enumerate(run.dynamic.get('instantaneous_values', [])):
                     filename = os.path.join(self.maindir, value.get('coordinate_file', ''))
-
                     index = nframe if filename.endswith('.arc') else 0
-                    sec_system = self.parse_system(index, filename)
-                    n_atoms = len(sec_system.atoms.positions)
-                    sec_scc = sec_run.m_create(Calculation)
-                    sec_scc.energy = Energy(
-                        total=EnergyEntry(value=(value.potential + value.kinetic) * n_atoms),
-                        kinetic=EnergyEntry(value=value.kinetic * n_atoms),
-                        potential=EnergyEntry(value=value.potential * n_atoms)
-                    )
-                    sec_scc.step = int(value.step)
-                    average_value = average_values.get(value.step)
-                    if average_value:
-                        sec_scc.temperature = average_value.temperature
-                        sec_scc.pressure = average_value.pressure
+                    filenames.append((filename, index))
+                    thermo_steps.append(value.step)
+                    self.traj_parser.mainfile = filename
+                    self.traj_parser.options = dict(topology_format='ARC' if filename.endswith('.arc') else 'TXYZ')
                     trajectory = self.traj_parser.universe.trajectory[index]
-                    if trajectory is not None and trajectory.has_forces:
-                        sec_scc.forces = Forces(total=ForcesEntry(value=trajectory.forces * (ureg.kJ / ureg.angstrom)))
+                    if trajectory is not None:
+                        traj_steps.append(value.step)
+                        n_atoms.append(len(trajectory))
+                self.n_atoms = n_atoms
+                self.trajectory_steps = traj_steps
+                self.thermodynamics_steps = thermo_steps
 
-                    sec_scc.system_ref = sec_system
+                for n_frame, step in enumerate(self.thermodynamics_steps):
+                    self.traj_parser.mainfile = filenames[n_frame][0]
+                    trajectory = self.traj_parser.universe.trajectory[filenames[n_frame][1]]
+                    if step in self.trajectory_steps:
+                        # sampled trajectory
+                        positions = trajectory.positions * ureg.angstrom
+                        labels = [atom.name for atom in list(self.traj_parser.universe.atoms)]
+                        lattice_vectors, periodic, velocities = None, None, None
+                        if trajectory.triclinic_dimensions is not None:
+                            lattice_vectors = trajectory.triclinic_dimensions * ureg.angstrom
+                            periodic = [True, True, True]
+                        if trajectory.has_velocities:
+                            velocities = trajectory.velocities * (ureg.angstrom / ureg.ps)
+                        self.parse_trajectory_step(dict(atoms=dict(
+                            positions=positions, labels=labels, lattice_vectors=lattice_vectors,
+                            periodic=periodic, velocities=velocities)))
+                    # thermo properties
+                    instantaneous = run.dynamic.instantaneous_values[n_frame]
+                    n_atoms_step = n_atoms[traj_steps.index(step)]
+                    energy = dict(total=dict(
+                        value=(instantaneous.potential + instantaneous.kinetic) * n_atoms_step,
+                        kinetic=instantaneous.kinetic * n_atoms_step,
+                        potential=instantaneous.potential * n_atoms_step))
+                    data = dict(energy=energy, step=instantaneous.step)
+                    average = average_values.get(instantaneous.step)
+                    if average:
+                        data['temperature'] = average.temperature
+                        data['pressure'] = average.pressure
+                    if trajectory is not None and trajectory.has_forces:
+                        data['forces'] = dict(total=dict(value=trajectory.forces * (ureg.kJ / ureg.angstrom)))
+                    self.parse_thermodynamics_step(data)
+
             # TODO add support for other tinker programs
 
             # control parameters

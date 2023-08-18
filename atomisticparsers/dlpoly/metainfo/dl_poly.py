@@ -209,3 +209,69 @@ class AtomParameters(simulation.method.AtomParameters):
         shape=[],
         description='''
         ''')
+
+
+class Calculation(simulation.calculation.Calculation):
+
+    m_def = Section(validate=False, extends_base_section=True)
+
+    x_dl_poly_virial_configurational = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_virial_short_range = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_virial_coulomb = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_virial_bond = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_virial_angle = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_virial_constraint = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_virial_tethering = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_volume = Quantity(
+        type=np.dtype(np.float64),
+        unit='m ** 3',
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_core_shell = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')
+
+    x_dl_poly_virial_potential_mean_force = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        ''')

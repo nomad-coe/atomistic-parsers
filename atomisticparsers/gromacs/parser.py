@@ -37,21 +37,13 @@ from nomad.datamodel.metainfo.simulation.method import (
     NeighborSearching, ForceCalculations, Method, ForceField, Model, Interaction, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.system import (
-    System, Atoms, AtomsGroup
-)
-from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry,
-    # RadiusOfGyration, RadiusOfGyrationValues
+    AtomsGroup
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
-    GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults,
-    BarostatParameters, ThermostatParameters, DiffusionConstantValues,
-    MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
-    RadialDistributionFunction, RadialDistributionFunctionValues,
-    MolecularDynamics, MolecularDynamicsMethod
+    GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
 )
-from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files, CalcEntry
-from atomisticparsers.utils import MDAnalysisParser
+from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
+from atomisticparsers.utils import MDAnalysisParser, MDParser
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
 re_n = r'[\n\r]'
@@ -534,20 +526,13 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
         return interactions
 
 
-class GromacsParser:
+class GromacsParser(MDParser):
     def __init__(self):
         self.log_parser = GromacsLogParser()
         self.traj_parser = GromacsMDAnalysisParser()
         self.energy_parser = GromacsEDRParser()
-        self._frame_rate = None
-        # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 2500000
         self._gro_energy_units = ureg.kilojoule * MOL
         self._thermo_ignore_list = ['Time', 'Box-X', 'Box-Y', 'Box-Z']
-        self._tensor_index_map = {
-            'XX': (0, 0), 'XY': (0, 1), 'XZ': (0, 2),
-            'YX': (1, 0), 'YY': (1, 1), 'YZ': (1, 2),
-            'ZX': (2, 0), 'ZY': (2, 1), 'ZZ': (2, 2)}
         self._base_calc_map = {
             'Temperature': ('temperature', ureg.kelvin),
             'Volume': ('volume', ureg.nm**3),
@@ -560,18 +545,7 @@ class GromacsParser:
         self._vdw_map = {'LJ (SR)': 'short_range', 'LJ (LR)': 'long_range', 'Disper. corr.': 'correction'}
         self._electrostatic_map = {'Coulomb (SR)': 'short_range', 'Coul. recip.': 'long_range'}
         self._energy_keys_contain = ['bond', 'angle', 'dih.', 'coul-', 'coulomb-', 'lj-', 'en.']
-
-    @property
-    def frame_rate(self):
-        if self._frame_rate is None:
-            n_atoms = self.traj_parser.get('n_atoms', 0)
-            n_frames = self.traj_parser.get('n_frames', 0)
-            if n_atoms == 0 or n_frames == 0:
-                self._frame_rate = 1
-            else:
-                cum_atoms = n_atoms * n_frames
-                self._frame_rate = 1 if cum_atoms <= self._cum_max_atoms else cum_atoms // self._cum_max_atoms
-        return self._frame_rate
+        super().__init__()
 
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
@@ -611,10 +585,12 @@ class GromacsParser:
 
     def parse_thermodynamic_data(self):
         sec_run = self.archive.run[-1]
-        sec_system = sec_run.system
 
         n_frames = self.traj_parser.get('n_frames')
-        time_step = self.log_parser.get('input_parameters', {}).get('dt', 1.0) * ureg.ps
+
+        # # TODO read also from ene
+        edr_file = self.get_gromacs_file('edr')
+        self.energy_parser.mainfile = edr_file
 
         # get it from edr file
         if self.energy_parser.keys():
@@ -639,127 +615,107 @@ class GromacsParser:
             # get it from edr file
             thermo_data = self.energy_parser
 
-        calculation_times_ps = thermo_data.get('Time')
+        calculation_times = thermo_data.get('Time', [])
+        time_step = self.log_parser.get('input_parameters', {}).get('dt')
+        if time_step is None and len(calculation_times) > 1:
+            time_step = calculation_times[1] - calculation_times[0]
+        self.thermodynamics_steps = [int(time / time_step if time_step else 1) for time in calculation_times]
 
-        time_map = {}
-        for i_calc, calculation_time in enumerate(calculation_times_ps):
-            system_index = self._system_time_map.pop(
-                round(calculation_times_ps[i_calc], 5), None) if calculation_times_ps[i_calc] is not None else None
-            time_map[calculation_time] = {'system_index': system_index, 'calculation_index': i_calc}
-        for time, i_sys in self._system_time_map.items():
-            time_map[time] = {'system_index': i_sys, 'calculation_index': None}
+        for n, step in enumerate(self.thermodynamics_steps):
+            data = {
+                'step': step,
+                'time': calculation_times[n] * ureg.picosecond,
+                'method_ref': sec_run.method[-1] if sec_run.method else None,
+                'energy': {}
+            }
+            if step in self._trajectory_steps:
+                data['forces'] = dict(total=dict(value=self.traj_parser.get_forces(self._trajectory_steps.index(step))))
 
-        for time in sorted(time_map):
-            sec_scc = sec_run.m_create(Calculation)
-            sec_scc.time = time * ureg.picosecond  # TODO Physical times should not be stored for GeometryOpt
-            sec_scc.step = int((time / time_step).magnitude)
-            sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
+            pressure_tensor, virial_tensor = None, None
+            for key in thermo_data.keys():
+                if key in self._thermo_ignore_list or (val := thermo_data.get(key)[n]) is None:
+                    continue
 
-            system_index = time_map[time]['system_index']
-            if system_index is not None:
-                sec_scc.forces = Forces(total=ForcesEntry(value=self.traj_parser.get_forces(system_index)))
-                sec_scc.system_ref = sec_system[system_index]
+                # Attributes of BaseCalculation
+                if key in self._base_calc_map:
+                    data[self._base_calc_map[key][0]] = val * self._base_calc_map[key][1]
 
-            calculation_index = time_map[time]['calculation_index']
-            if calculation_index is not None:
-                thermo_keys = thermo_data.keys()
-                pressure_tensor = None
-                if any(key.startswith('Pres-') for key in thermo_keys):
-                    pressure_tensor = np.zeros(shape=(3, 3))
-                virial_tensor = None
-                if any(key.startswith('Vir-') for key in thermo_keys):
-                    virial_tensor = np.zeros(shape=(3, 3))
+                # pressure tensor
+                elif (match := re.match(r'Pres-([XYZ]{2})', key)):
+                    if pressure_tensor is None:
+                        pressure_tensor = np.zeros(shape=(3, 3))
+                    pressure_tensor[tuple('XYZ'.index(n) for n in match.group(1))] = val
 
-                vdw_dict = {}
-                electrostatic_dict = {}
+                # virial tensor
+                elif (match := re.match(r'Vir-([XYZ]{2})', key)):
+                    if virial_tensor is None:
+                        virial_tensor = np.zeros(shape=(3, 3))
+                    virial_tensor[tuple('XYZ'.index(n) for n in match.group(1))] = val
 
-                sec_energy = sec_scc.m_create(Energy)
-                for key in thermo_keys:
+                # well-defined, single Energy quantities
+                elif (nomad_key := self._energy_map.get(key)) is not None:
+                    data['energy'][nomad_key] = dict(value=val * self._gro_energy_units)
+                # well-defined, piecewise energy quantities
+                elif (nomad_key := self._vdw_map.get(key)) is not None:
+                    data['energy'].setdefault('van_der_waals', {'value': 0. * self._gro_energy_units})
+                    data['energy']['van_der_waals'][nomad_key] = val * self._gro_energy_units
+                    data['energy']['van_der_waals']['value'] += val * self._gro_energy_units
+                elif (nomad_key := self._electrostatic_map.get(key)) is not None:
+                    data['energy'].setdefault('electrostatic', {'value': 0. * self._gro_energy_units})
+                    data['energy']['electrostatic'][nomad_key] = val * self._gro_energy_units
+                    data['energy']['electrostatic']['value'] += val * self._gro_energy_units
+                # try to identify other known energy keys to be stored as gromacs-specific
+                elif any(keyword in key.lower() for keyword in self._energy_keys_contain):
+                    data['energy'].setdefault('x_gromacs_energy_contributions', [])
+                    data['energy']['x_gromacs_energy_contributions'].append(dict(
+                        kind=key, value=val * self._gro_energy_units))
+                else:  # store all other quantities as gromacs-specific under BaseCalculation
+                    data.setdefault('x_gromacs_thermodynamics_contributions', [])
+                    data['x_gromacs_thermodynamics_contributions'].append(dict(
+                        kind=key, value=val))
 
-                    if key in self._thermo_ignore_list:
-                        continue
+            if pressure_tensor is not None:
+                data['pressure_tensor'] = pressure_tensor * ureg.bar
 
-                    val = thermo_data.get(key)[calculation_index]
-                    if val is None:
-                        continue
+            if virial_tensor is not None:
+                data['virial_tensor'] = virial_tensor * (ureg.bar * ureg.nm ** 3)
 
-                    # Attributes of BaseCalculation
-                    if key in self._base_calc_map:
-                        sec_scc.m_set(sec_scc.m_get_quantity_definition(self._base_calc_map[key][0]),
-                                      val * self._base_calc_map[key][1])
-                    # accumulating tensor quantites
-                    elif key.startswith('Pres-'):
-                        dir = key.split('-')[1]
-                        ind = self._tensor_index_map.get(dir)
-                        if ind is not None:
-                            pressure_tensor[ind] = val
-                    elif key.startswith('Vir-'):
-                        dir = key.split('-')[1]
-                        ind = self._tensor_index_map.get(dir)
-                        if ind is not None:
-                            virial_tensor[ind] = val
-                    # well-defined, single Energy quantities
-                    elif key in self._energy_map.keys():
-                        sec_energy.m_add_sub_section(getattr(Energy, self._energy_map[key]), EnergyEntry(value=val * self._gro_energy_units))
-                    # well-defined, piecewise energy quantities
-                    elif key in self._vdw_map:
-                        vdw_dict[self._vdw_map[key]] = val * self._gro_energy_units
-                    elif key in self._electrostatic_map:
-                        electrostatic_dict[self._electrostatic_map[key]] = val * self._gro_energy_units
-                    else:
-                        # try to identify other known energy keys to be stored as gromacs-specific
-                        if any(keyword in key.lower() for keyword in self._energy_keys_contain):
-                            sec_energy.x_gromacs_energy_contributions.append(
-                                EnergyEntry(kind=key, value=val * self._gro_energy_units))
-                        else:  # store all other quantities as gromacs-specific under BaseCalculation
-                            sec_scc.x_gromacs_thermodynamics_contributions.append(
-                                CalcEntry(kind=key, value=val))
-
-                sec_scc.pressure_tensor = pressure_tensor * ureg.bar
-                sec_scc.virial_tensor = virial_tensor * (ureg.bar * ureg.nm**3)
-                if vdw_dict:
-                    total = sum(val for _, val in vdw_dict.items())
-                    sec_energy.van_der_waals = EnergyEntry(value=total, short_range=vdw_dict.get('short_range'),
-                                                           long_range=vdw_dict.get('long_range'), correction=vdw_dict.get('correction'))
-                if electrostatic_dict:
-                    total = sum(val for _, val in electrostatic_dict.items())
-                    sec_energy.electrostatic = EnergyEntry(value=total, short_range=electrostatic_dict.get('short_range'),
-                                                           long_range=electrostatic_dict.get('long_range'))
+            self.parse_thermodynamics_step(data)
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
-
-        n_frames = self.traj_parser.get('n_frames', 0)
 
         def get_composition(children_names):
             children_count_tup = np.unique(children_names, return_counts=True)
             formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
             return formula
 
+        n_frames = self.traj_parser.get('n_frames', 0)
+        self.n_atoms = [self.traj_parser.get_n_atoms(n) for n in range(n_frames)]
+        traj_steps = [self.traj_parser.get_step(n) for n in range(n_frames)]
+        self.trajectory_steps = traj_steps
+
         pbc = self.log_parser.get_pbc()
         self._system_time_map = {}
-        for n in range(n_frames):
-            if (n % self.frame_rate) > 0:
-                continue
+        for step in self.trajectory_steps:
+            n = traj_steps.index(step)
             positions = self.traj_parser.get_positions(n)
-            sec_system = sec_run.m_create(System)
-            time = self.traj_parser.get_time(n)  # TODO Physical times should not be stored for GeometryOpt
-            if time is not None:
-                self._system_time_map[round(ureg.convert(
-                    time.magnitude, time.units, ureg.picosecond), 5)] = len(self._system_time_map)
             if positions is None:
                 continue
 
-            sec_atoms = sec_system.m_create(Atoms)
-            sec_atoms.n_atoms = self.traj_parser.get_n_atoms(n)
-            sec_atoms.periodic = pbc
-            sec_atoms.lattice_vectors = self.traj_parser.get_lattice_vectors(n)
-            sec_atoms.labels = self.traj_parser.get_atom_labels(n)
-            sec_atoms.positions = positions
+            self.parse_trajectory_step({
+                'atoms': {
+                    'n_atoms': self.traj_parser.get_n_atoms(n),
+                    'periodic': pbc,
+                    'lattice_vectors': self.traj_parser.get_lattice_vectors(n),
+                    'labels': self.traj_parser.get_atom_labels(n),
+                    'positions': positions,
+                    'velocities': self.traj_parser.get_velocities(n)
+                }
+            })
 
-            velocities = self.traj_parser.get_velocities(n)
-            if velocities is not None:
-                sec_atoms.velocities = velocities
+        if not sec_run.system:
+            return
 
         # parse atomsgroup (segments --> molecules --> residues)
         atoms_info = self.traj_parser._results['atoms_info']
@@ -937,139 +893,79 @@ class GromacsParser:
             final_force_maximum = self.log_parser.get('maximum_force')
             final_force_maximum = float(re.split('=|\n', final_force_maximum)[1]) if final_force_maximum else None
             workflow.results.final_force_maximum = float(final_force_maximum) * force_conversion if final_force_maximum else None
+            self.archive.workflow2 = workflow
         else:
-            workflow = MolecularDynamics(
-                method=MolecularDynamicsMethod(
-                    thermostat_parameters=ThermostatParameters(),
-                    barostat_parameters=BarostatParameters()
-                ), results=MolecularDynamicsResults()
-            )
-
+            method, results = {}, {}
             nsteps = input_parameters.get('nsteps', None)
-            workflow.method.n_steps = int(nsteps) if nsteps else None
+            method['n_steps'] = int(nsteps) if nsteps else None
             nstxout = input_parameters.get('nstxout', None)
-            workflow.method.coordinate_save_frequency = int(nstxout) if nstxout else None
+            method['coordinate_save_frequency'] = int(nstxout) if nstxout else None
             nstvout = input_parameters.get('nstvout', None)
-            workflow.method.velocity_save_frequency = int(nstvout) if nstvout else None
+            method['velocity_save_frequency'] = int(nstvout) if nstvout else None
             nstfout = input_parameters.get('nstfout', None)
-            workflow.method.force_save_frequency = int(nstfout) if nstfout else None
+            method['force_save_frequency'] = int(nstfout) if nstfout else None
             nstenergy = input_parameters.get('nstenergy', None)
-            workflow.method.thermodynamics_save_frequency = int(nstenergy) if nstenergy else None
+            method['thermodynamics_save_frequency'] = int(nstenergy) if nstenergy else None
 
             integrator_map = {'md': 'leap_frog', 'md-vv': 'velocity_verlet', 'sd': 'langevin_goga',
                               'bd': 'brownian'}
             value = integrator_map.get(integrator, [val for key, val in integrator_map.items() if key in integrator])
             value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
-            workflow.method.integrator_type = value
+            method['integrator_type'] = value
             timestep = input_parameters.get('dt', None)
-            workflow.method.integration_timestep = float(timestep) * ureg.picosecond if timestep else None
+            method['integration_timestep'] = float(timestep) * ureg.picosecond if timestep else None
 
-            flag_thermostat = False
             thermostat = input_parameters.get('tcoupl', 'no').lower()
             thermostat_map = {'berendsen': 'berendsen', 'v-rescale': 'velocity_rescaling',
                               'nose-hoover': 'nose_hoover', 'andersen': 'andersen'}
             value = thermostat_map.get(thermostat, [val for key, val in thermostat_map.items() if key in thermostat])
             value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
-            workflow.method.thermostat_parameters.thermostat_type = value
+            thermostat_parameters = {}
+            thermostat_parameters['thermostat_type'] = value
             if 'sd' in integrator:
-                workflow.method.thermostat_parameters.thermostat_type = 'langevin_goga'
-            if workflow.method.thermostat_parameters.thermostat_type:
-                flag_thermostat = True
+                thermostat_parameters['thermostat_type'] = 'langevin_goga'
+            if thermostat_parameters['thermostat_type']:
                 reference_temperature = input_parameters.get('ref-t', None)
                 if isinstance(reference_temperature, str):
                     reference_temperature = float(reference_temperature.split()[0])
                 reference_temperature *= ureg.kelvin if reference_temperature else None
-                workflow.method.thermostat_parameters.reference_temperature = reference_temperature
+                thermostat_parameters['reference_temperature'] = reference_temperature
                 coupling_constant = input_parameters.get('tau-t', None)
                 if isinstance(coupling_constant, str):
                     coupling_constant = float(coupling_constant.split()[0])
                 coupling_constant *= ureg.picosecond if coupling_constant else None
-                workflow.method.thermostat_parameters.coupling_constant = coupling_constant
+                thermostat_parameters['coupling_constant'] = coupling_constant
+            method['thermostat_parameters'] = thermostat_parameters
 
-            flag_barostat = False
             barostat = input_parameters.get('pcoupl', 'no').lower()
             barostat_map = {'berendsen': 'berendsen', 'parrinello-rahman': 'parrinello_rahman',
                             'mttk': 'martyna_tuckerman_tobias_klein', 'c-rescale': 'stochastic_cell_rescaling'}
             value = barostat_map.get(barostat, [val for key, val in barostat_map.items() if key in barostat])
             value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
-            workflow.method.barostat_parameters.barostat_type = value
-            if workflow.method.barostat_parameters.barostat_type:
-                flag_barostat = True
+            barostat_parameters = {}
+            barostat_parameters['barostat_type'] = value
+            if barostat_parameters['barostat_type']:
                 couplingtype = input_parameters.get('pcoupltype', None).lower()
                 couplingtype_map = {'isotropic': 'isotropic', 'semiisotropic': 'semi_isotropic',
                                     'anisotropic': 'anisotropic'}
                 value = couplingtype_map.get(couplingtype, [val for key, val in couplingtype_map.items() if key in couplingtype])
-                workflow.method.barostat_parameters.coupling_type = value[0] if isinstance(value, list) else value
+                barostat_parameters['coupling_type'] = value[0] if isinstance(value, list) else value
                 taup = input_parameters.get('tau-p', None)
-                workflow.method.barostat_parameters.coupling_constant = np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond if taup else None
+                barostat_parameters['coupling_constant'] = np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond if taup else None
                 refp = input_parameters.get('ref-p', None)
-                workflow.method.barostat_parameters.reference_pressure = refp * ureg.bar if refp is not None else None
+                barostat_parameters['reference_pressure'] = refp * ureg.bar if refp is not None else None
                 compressibility = input_parameters.get('compressibility', None)
-                workflow.method.barostat_parameters.compressibility = compressibility * (1. / ureg.bar) if compressibility is not None else None
+                barostat_parameters['compressibility'] = compressibility * (1. / ureg.bar) if compressibility is not None else None
+            method['barostat_parameters'] = barostat_parameters
 
-            if flag_thermostat:
-                workflow.method.thermodynamic_ensemble = 'NPT' if flag_barostat else 'NVT'
-            elif flag_barostat:
-                workflow.method.thermodynamic_ensemble = 'NPH'
+            if thermostat_parameters.get('thermostat_type'):
+                method['thermodynamic_ensemble'] = 'NPT' if barostat_parameters.get('barostat_type') else 'NVT'
+            elif barostat_parameters.get('barostat_type'):
+                method['thermodynamic_ensemble'] = 'NPH'
             else:
-                workflow.method.thermodynamic_ensemble = 'NVE'
+                method['thermodynamic_ensemble'] = 'NVE'
 
-            # calculate molecular radial distribution functions
-            sec_results = workflow.results
-            n_traj_split = 10  # number of intervals to split trajectory into for averaging
-            interval_indices = []  # 2D array specifying the groups of the n_traj_split intervals to be averaged
-            # first 20% of trajectory
-            interval_indices.append(np.arange(int(n_traj_split * 0.20)))
-            # last 80% of trajectory
-            interval_indices.append(np.arange(n_traj_split)[len(interval_indices[0]):])
-            # last 60% of trajectory
-            interval_indices.append(np.arange(n_traj_split)[len(interval_indices[0]) * 2:])
-            # last 40% of trajectory
-            interval_indices.append(np.arange(n_traj_split)[len(interval_indices[0]) * 3:])
-
-            rdf_results = self.traj_parser.calc_molecular_rdf(n_traj_split=n_traj_split, n_prune=self._frame_rate, interval_indices=interval_indices)
-            if rdf_results is not None:
-                sec_rdfs = sec_results.m_create(RadialDistributionFunction)
-                sec_rdfs.type = 'molecular'
-                sec_rdfs.n_smooth = rdf_results.get('n_smooth')
-                sec_rdfs.n_prune = self._frame_rate
-                sec_rdfs.n_variables = 1
-                sec_rdfs.variables_name = np.array(['distance'])
-                for i_pair, pair_type in enumerate(rdf_results.get('types', [])):
-                    sec_rdf_values = sec_rdfs.m_create(RadialDistributionFunctionValues)
-                    sec_rdf_values.label = str(pair_type)
-                    sec_rdf_values.n_bins = len(rdf_results.get('bins', [[]] * i_pair)[i_pair])
-                    sec_rdf_values.bins = rdf_results['bins'][i_pair] if rdf_results.get(
-                        'bins') is not None else []
-                    sec_rdf_values.value = rdf_results['value'][i_pair] if rdf_results.get(
-                        'value') is not None else []
-                    sec_rdf_values.frame_start = rdf_results['frame_start'][i_pair] if rdf_results.get(
-                        'frame_start') is not None else []
-                    sec_rdf_values.frame_end = rdf_results['frame_end'][i_pair] if rdf_results.get(
-                        'frame_end') is not None else []
-
-            # calculate the molecular mean squared displacements
-            msd_results = self.traj_parser.calc_molecular_mean_squared_displacements()
-            if msd_results is not None:
-                sec_msds = sec_results.m_create(MeanSquaredDisplacement)
-                sec_msds.type = 'molecular'
-                sec_msds.direction = 'xyz'
-                for i_type, moltype in enumerate(msd_results.get('types', [])):
-                    sec_msd_values = sec_msds.m_create(MeanSquaredDisplacementValues)
-                    sec_msd_values.label = str(moltype)
-                    sec_msd_values.n_times = len(msd_results.get('times', [[]] * i_type)[i_type])
-                    sec_msd_values.times = msd_results['times'][i_type] if msd_results.get(
-                        'times') is not None else []
-                    sec_msd_values.value = msd_results['value'][i_type] if msd_results.get(
-                        'value') is not None else []
-                    sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-                    sec_diffusion.value = msd_results['diffusion_constant'][i_type] if msd_results.get(
-                        'diffusion_constant') is not None else []
-                    sec_diffusion.error_type = 'Pearson correlation coefficient'
-                    sec_diffusion.errors = msd_results['error_diffusion_constant'][i_type] if msd_results.get(
-                        'error_diffusion_constant') is not None else []
-
-        self.archive.workflow2 = workflow
+            self.parse_md_workflow(dict(method=method, results=results))
 
     def parse_input(self):
         sec_run = self.archive.run[-1]
@@ -1153,19 +1049,16 @@ class GromacsParser:
         self.traj_parser.mainfile = topology_file
         self.traj_parser.auxilliary_files = [trajectory_file]
         # check to see if the trr file can be read properly (and has positions), otherwise try xtc file instead
-        positions = getattr(self.traj_parser, 'universe', None)
-        positions = getattr(positions, 'atoms', None) if positions else None
-        positions = getattr(positions, 'positions', None) if positions else None
+        positions = None
+        if (universe := self.traj_parser.universe) is not None:
+            atoms = getattr(universe, 'atoms', None)
+            positions = getattr(atoms, 'positions', None)
         if positions is None:
             self.traj_parser.auxilliary_files = [xtc_file] if xtc_file else [trr_file]
 
         self.parse_method()
 
         self.parse_system()
-
-        # TODO read also from ene
-        edr_file = self.get_gromacs_file('edr')
-        self.energy_parser.mainfile = edr_file
 
         self.parse_thermodynamic_data()
 

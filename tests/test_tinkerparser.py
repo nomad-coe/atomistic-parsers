@@ -104,9 +104,9 @@ def test_arc(parser):
 
     assert len(sec_run[0].calculation) == 2
     assert sec_run[0].calculation[0].energy.total.value.magnitude == approx(-1.75498075e-13)
-    assert sec_run[0].calculation[0].energy.potential.value.magnitude == approx(-2.24844458e-13)
+    assert sec_run[0].calculation[0].energy.total.potential.magnitude == approx(-2.24844458e-13)
     assert sec_run[0].calculation[0].step == approx(100)
-    assert sec_run[0].calculation[1].energy.kinetic.value.magnitude == approx(4.77713513e-14)
+    assert sec_run[0].calculation[1].energy.total.kinetic.magnitude == approx(4.77713513e-14)
     assert sec_run[0].calculation[1].pressure.magnitude == approx(4.99210036e+08)
     assert sec_run[0].calculation[1].temperature.magnitude == approx(254.89)
 

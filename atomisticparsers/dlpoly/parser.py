@@ -27,15 +27,8 @@ from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, Interaction, AtomParameters, MoleculeParameters
 )
-from nomad.datamodel.metainfo.simulation.system import (
-    System, Atoms, Constraint
-)
-from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry
-)
-from nomad.datamodel.metainfo.simulation.workflow import (
-    MolecularDynamics, MolecularDynamicsMethod
-)
+from atomisticparsers.utils import MDParser
+from .metainfo.dl_poly import m_package  # pylint: disable=unused-import
 
 
 re_f = r'[-+]?\d*\.\d*(?:[Ee][-+]\d+)?'
@@ -384,14 +377,11 @@ class MainfileParser(TextParser):
         return {val[0]: val[1] for val in self.get('control_parameters', {}).get('parameter', [])}
 
 
-class DLPolyParser:
+class DLPolyParser(MDParser):
     def __init__(self):
         self.mainfile_parser = MainfileParser()
         self.traj_parser = TrajParser()
         self.field_parser = FieldParser()
-        self._frame_rate = None
-        # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 1000000
         self._units = {
             'kj/mol': ureg.kJ / MOL,
             'kj': ureg.kJ / MOL,
@@ -401,6 +391,7 @@ class DLPolyParser:
             'dl_poly internal units (10 j/mol)': 10 * ureg.J / MOL
         }
         self._metainfo_map = {
+            'step': 'step',
             'eng_tot': 'energy_total',
             'temp_tot': 'temperature',
             'eng_cfg': 'energy_contribution_configurational',
@@ -411,6 +402,8 @@ class DLPolyParser:
             'eng_ang': 'energy_contribution_angle',
             'eng_dih': 'energy_contribution_dihedral',
             'eng_tet': 'energy_contribution_tethering',
+            'time(ps)': 'time',
+            'time': 'time',
             'eng_pv': 'enthalpy',
             'temp_rot': 'x_dl_poly_temperature_rotational',
             # TODO include virial to nomad metainfo
@@ -421,6 +414,8 @@ class DLPolyParser:
             'vir_ang': 'x_dl_poly_virial_angle',
             'vir_con': 'x_dl_poly_virial_constraint',
             'vir_tet': 'x_dl_poly_virial_tethering',
+            'cpu  (s)': 'time_physical',
+            'cpu time': 'time_physical',
             'volume': 'x_dl_poly_volume',
             'temp_shl': 'x_dl_poly_core_shell',
             'eng_shl': 'energy_contribution_core_shell',
@@ -428,6 +423,7 @@ class DLPolyParser:
             'vir_pmf': 'x_dl_poly_virial_potential_mean_force',
             'press': 'pressure'
         }
+        super().__init__()
 
     def init_parser(self):
         self.mainfile_parser.logger = self.logger
@@ -446,24 +442,24 @@ class DLPolyParser:
         sec_run = archive.m_create(Run)
         version_date = self.mainfile_parser.get('program_version_date', [None, None])
         sec_run.program = Program(name=self.mainfile_parser.program_name, version=version_date[0])
-        sec_run.x_dl_poly_program_version_date = version_date[1]
+        sec_run.x_dl_poly_program_version_date = str(version_date[1])
 
-        def parse_system(frame_index):
+        def get_system_data(frame_index):
             frame = self.traj_parser.get('frame')[frame_index]
-
-            sec_system = sec_run.m_create(System)
-            sec_system.atoms = Atoms(
-                labels=[atom.get('label') for atom in frame.get('atoms', [])],
-                lattice_vectors=frame.get('lattice_vectors') * ureg.angstrom)
+            labels = [atom.get('label') for atom in frame.get('atoms', [])]
+            lattice_vectors = frame.get('lattice_vectors') * ureg.angstrom
             array = np.transpose([atom.get('array') for atom in frame.get('atoms', [])], axes=(1, 0, 2))
-            sec_system.atoms.positions = array[0] * ureg.angstrom
+            positions = array[0] * ureg.angstrom
+            velocities = None
             if len(array) > 1:
-                sec_system.atoms.velocities = array[1] * ureg.angstrom / ureg.ps
-            return sec_system
+                velocities = array[1] * ureg.angstrom / ureg.ps
+            return dict(atoms=dict(
+                labels=labels, lattice_vectors=lattice_vectors, positions=positions,
+                velocities=velocities))
 
         # parse initial system from CONFIG
         self.traj_parser.mainfile = os.path.join(self.maindir, 'CONFIG')
-        parse_system(0)
+        self.parse_trajectory_step(get_system_data(0))
 
         # method
         sec_method = sec_run.m_create(Method)
@@ -490,16 +486,16 @@ class DLPolyParser:
                     for key, val in interaction.items():
                         setattr(sec_interaction, key, val)
             # add constraints to initial system
+            constraint_data = []
             for constraint in molecule.get('constraints', []):
-                sec_constraint = sec_run.system[0].m_create(Constraint)
-                sec_constraint.kind = 'fixed bond length'
-                sec_constraint.atom_indices = constraint.get('atom_indices')
-                sec_constraint.parameters = constraint.get('parameters')
+                constraint_data.append(dict(
+                    kind='fixed bond length', atom_indices=constraint.get('atom_indices'),
+                    parameters=constraint.get('parameters')))
             # rigid atoms
             for rigid in molecule.get('rigid', []):
-                sec_constraint = sec_run.system[0].m_create(Constraint)
-                sec_constraint.kind = 'static atoms'
-                sec_constraint.atom_indices = rigid
+                constraint_data.append(dict(
+                    kind='static atoms', atom_indices=rigid))
+            self.parse_section(dict(constraint=constraint_data), sec_run.system[0])
         # TODO add atom groups in system
 
         # non-bonded
@@ -516,52 +512,71 @@ class DLPolyParser:
         names = [self._metainfo_map.get(name) for name in properties.get('names', [])]
         # parse trajectory from HISTORY
         self.traj_parser.mainfile = os.path.join(self.maindir, 'HISTORY')
-        # map the timesteps to the trajectories
-        frames = {frame.get('info', {}).get('step'): n for n, frame in enumerate(self.traj_parser.get('frame', []))}
-        for n_step, instantaneous in enumerate(properties.get('instantaneous', [])):
+
+        # set up md parser
+        self.n_atoms = n_atoms
+        traj_steps = [frame.get('info', {}).get('step') for frame in self.traj_parser.get('frame', [])]
+        self.trajectory_steps = traj_steps
+        step_n = names.index('step')
+        self.thermodynamics_steps = [int(val[step_n]) for val in properties.get('instantaneous', [])]
+
+        for step in self.trajectory_steps:
+            self.parse_trajectory_step(get_system_data(traj_steps.index(step)))
+
+        unit_conversion = {'m': 60, 'f': 0.001, 's': 1, 'p': 1}
+        for step in self.thermodynamics_steps:
+            data = {}
+            energy = {'contributions': []}
+            instantaneous = properties.get('instantaneous')[self.thermodynamics_steps.index(step)]
             # instataneous should be an array of floats, however some outputs may not be all floats and in that
             # case TextParser fails to convert them properly because it reuses the data type from
             # previous parsing run. Convert them manually here
             for n, val in enumerate(instantaneous):
                 try:
-                    instantaneous[n] = float(val)
+                    if isinstance(val, str) and val[-1] in unit_conversion:
+                        instantaneous[n] = float(val[:-1]) * unit_conversion.get(val[-1])
+                    else:
+                        instantaneous[n] = float(val)
                 except Exception:
-                    pass
+                    instantaneous[n] = None
 
-            sec_calc = sec_run.m_create(Calculation)
-            sec_energy = sec_calc.m_create(Energy)
             for n, name in enumerate(names):
-                if name is None:
+                if name is None or instantaneous[n] is None:
                     continue
                 if name.startswith('energy_contribution_'):
-                    sec_energy.contributions.append(EnergyEntry(
+                    energy['contributions'].append(dict(
                         kind=name.replace('energy_contribution_', ''), value=instantaneous[n] * energy_unit))
                 elif name == 'energy_enthalpy':
-                    sec_energy.enthalpy = instantaneous[n] * energy_unit
+                    energy['enthalpy'] = instantaneous[n] * energy_unit
                 elif name.startswith('energy_'):
-                    setattr(sec_energy, name.replace('energy_', ''), EnergyEntry(value=instantaneous[n] * energy_unit))
+                    energy[name.replace('energy_', '')] = dict(value=instantaneous[n] * energy_unit)
                 elif name == 'enthalpy':
-                    sec_calc.enthalpy = instantaneous[n] * energy_unit
+                    data['enthalpy'] = instantaneous[n] * energy_unit
                 elif 'temperature' in name:
-                    setattr(sec_calc, name, instantaneous[n] * ureg.kelvin)
+                    data[name] = instantaneous[n] * ureg.kelvin
                 elif 'pressure' in name:
                     # TODO verify if atmosphere is the unit
-                    setattr(sec_calc, name, instantaneous[n] * ureg.atm)
+                    data[name] = instantaneous[n] * ureg.atm
                 elif 'volume' in name:
-                    setattr(sec_calc, name, instantaneous[n] * ureg.angstrom ** 3)
+                    data[name] = instantaneous[n] * ureg.angstrom ** 3
+                elif name == 'step':
+                    data[name] = int(instantaneous[n])
+                elif name == 'time':
+                    data[name] = instantaneous[n] * ureg.ps
+                elif name == 'time_physical':
+                    data[name] = instantaneous[n] * ureg.s
                 else:
-                    setattr(sec_calc, name, instantaneous[n])
-            if frames.get(n_step) is not None:
-                sec_calc.system_ref = parse_system(frames[n_step])
-                # get forces from trajectory file
-                array = np.transpose([atom.get('array') for atom in frames[n_step].get('atoms', [])])
+                    data[name] = instantaneous[n]
+            data['energy'] = energy
+            if step in traj_steps:
+                frame = self.traj_parser.get('frames')[traj_steps.index(step)]
+                array = np.transpose([atom.get('array') for atom in frame.get('atoms', [])])
                 if len(array) > 2:
-                    sec_calc.forces = Forces(
-                        total=ForcesEntry(value=np.transpose(array[2]) * ureg.amu * ureg.angstrom / ureg.ps ** 2))
-            # TODO add rdf output
+                    data['forces'] = dict(
+                        total=dict(value=np.transpose(array[2]) * ureg.amu * ureg.angstrom / ureg.ps ** 2))
+            self.parse_thermodynamics_step(data)
 
         ensemble_type = control_parameters.get('Ensemble')
-        workflow = MolecularDynamics(method=MolecularDynamicsMethod())
-        workflow.method.thermodynamic_ensemble = ensemble_type.split()[0] if ensemble_type is not None else None
-        workflow.method.integration_timestep = control_parameters.get('fixed simulation timestep', 0) * ureg.ps
-        archive.workflow2 = workflow
+        self.parse_md_workflow(dict(method=dict(
+            thermodynamic_ensemble=ensemble_type.split()[0] if ensemble_type is not None else None,
+            integration_timestep=control_parameters.get('fixed simulation timestep', 0) * ureg.ps)))

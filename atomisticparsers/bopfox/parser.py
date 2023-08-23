@@ -24,7 +24,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, DataTextParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
-    Method, TB, TBModel, ForceField, Model, Interaction
+    Method, TB, xTB, ForceField, Model, Interaction
 )
 from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from nomad.datamodel.metainfo.simulation.calculation import (
@@ -359,7 +359,7 @@ class BOPfoxParser(MDParser):
                 tb = model.parameters.get('version', 'bop').lower() in ['bop', 'tight-binding']
                 if tb:
                     sec_method_type = sec_method.m_create(TB)
-                    sec_model = sec_method_type.m_create(TBModel)
+                    sec_model = sec_method_type.m_create(xTB)
                 else:
                     sec_method_type = sec_method.m_create(ForceField)
                     sec_model = sec_method_type.m_create(Model)

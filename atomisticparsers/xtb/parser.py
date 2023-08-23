@@ -26,7 +26,7 @@ from datetime import datetime
 from nomad.units import ureg
 from nomad.parsing.file_parser import Quantity, TextParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program, TimeRun
-from nomad.datamodel.metainfo.simulation.method import Method, TB, TBModel, Interaction
+from nomad.datamodel.metainfo.simulation.method import Method, TB, xTB, Interaction
 from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, ScfIteration, Energy, EnergyEntry, BandEnergies, Multipoles, MultipolesEntry
@@ -573,7 +573,7 @@ class XTBParser(MDParser):
         sec_method.x_xtb_setup = parameters
         # tight-binding model
         sec_method.tb = TB()
-        sec_tb_model = sec_method.tb.m_create(TBModel)
+        sec_tb_model = sec_method.tb.m_create(xTB)
         sec_tb_model.name = section
 
         if model.get('reference') is not None:
@@ -582,13 +582,13 @@ class XTBParser(MDParser):
         for contribution in model.get('contribution', []):
             name = contribution.name.lower()
             if name == 'hamiltonian':
-                sec_interaction = sec_tb_model.m_create(Interaction, TBModel.hamiltonian)
+                sec_interaction = sec_tb_model.m_create(Interaction, xTB.hamiltonian)
             elif name == 'coulomb':
-                sec_interaction = sec_tb_model.m_create(Interaction, TBModel.coulomb)
+                sec_interaction = sec_tb_model.m_create(Interaction, xTB.coulomb)
             elif name == 'repulsion':
-                sec_interaction = sec_tb_model.m_create(Interaction, TBModel.repulsion)
+                sec_interaction = sec_tb_model.m_create(Interaction, xTB.repulsion)
             else:
-                sec_interaction = sec_tb_model.m_create(Interaction, TBModel.contributions)
+                sec_interaction = sec_tb_model.m_create(Interaction, xTB.contributions)
                 sec_interaction.type = name
             sec_interaction.parameters = {
                 p[0]: p[1].tolist() if isinstance(p[1], np.ndarray) else p[1] for p in contribution.parameters}

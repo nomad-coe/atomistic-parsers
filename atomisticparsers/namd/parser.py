@@ -253,7 +253,7 @@ class NAMDParser(MDParser):
             # timing = timings.get((step // timing_step + 1) * timing_step)
             if index_time < len(timings):
                 thermo_data['time_calculation'] = timings[index_time][2]
-                thermo_data['time_physical'] = (0 if index_time == 0 else timings[index_time -1][1]) + timings[index_time][2] * (step % timing_step + 1)
+                thermo_data['time_physical'] = (0 if index_time == 0 else timings[index_time - 1][1]) + timings[index_time][2] * (step % timing_step + 1)
             elif time_per_step:
                 thermo_data['time_calculation'] = time_per_step
                 thermo_data['time_physical'] = time_per_step * step

@@ -47,6 +47,7 @@ def test_scf(parser):
     assert sec_method[0].x_xtb_setup['Broyden damping'] == approx(0.4)
 
     sec_model = sec_method[0].tb.model
+    print(sec_model)
     assert sec_model[0].hamiltonian[0].parameters['H0-scaling (s, p, d)'][1] == approx(2.23)
     assert sec_model[0].contributions[0].type == 'dispersion'
     assert sec_model[0].contributions[0].parameters['a1'][0] == approx(0.52)

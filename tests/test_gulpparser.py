@@ -127,7 +127,7 @@ def test_single_md_conv_old(parser):
     assert sec_calc[1].energy.total.kinetic.magnitude == approx(3.82803257e-19)
     assert sec_calc[3].energy.total.potential.magnitude == approx(-2.1107173e-16)
     assert sec_calc[2].energy.x_gulp_total_averaged.kinetic.magnitude == approx(5.07815332e-19)
-    # assert sec_calc[1].time_physical.magnitude == approx(5e-15)
+    assert sec_calc[1].time.magnitude == approx(5e-15)
     assert sec_calc[4].temperature.magnitude == approx(291.528999)
     assert sec_calc[1].pressure.magnitude == approx(5.56407e+08)
     assert sec_calc[2].x_gulp_temperature_averaged.magnitude == approx(389.215575)

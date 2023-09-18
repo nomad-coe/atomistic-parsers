@@ -48,11 +48,11 @@ def test_nvt(parser):
     assert sec_workflow.method.n_steps == 80000
     assert sec_workflow.method.coordinate_save_frequency == 400
     assert sec_workflow.method.thermodynamics_save_frequency == 400
-    assert sec_workflow.method.thermostat_parameters.thermostat_type == 'nose_hoover'
-    assert sec_workflow.method.thermostat_parameters.reference_temperature.magnitude == 300.0
-    assert sec_workflow.method.thermostat_parameters.reference_temperature.units == 'kelvin'
-    assert sec_workflow.method.thermostat_parameters.coupling_constant.magnitude == 2.5e-14
-    assert sec_workflow.method.thermostat_parameters.coupling_constant.units == 'second'
+    assert sec_workflow.method.thermostat_parameters[0].thermostat_type == 'nose_hoover'
+    assert sec_workflow.method.thermostat_parameters[0].reference_temperature.magnitude == 300.0
+    assert sec_workflow.method.thermostat_parameters[0].reference_temperature.units == 'kelvin'
+    assert sec_workflow.method.thermostat_parameters[0].coupling_constant.magnitude == 2.5e-14
+    assert sec_workflow.method.thermostat_parameters[0].coupling_constant.units == 'second'
 
     sec_method = sec_run.method[0]
     assert len(sec_method.force_field.model[0].contributions) == 3744

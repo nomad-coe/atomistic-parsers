@@ -339,7 +339,7 @@ class H5MDParser(FileParser):
             sec_atomsgroup.atom_indices = particles_group.pop('indices', None)
             sec_atomsgroup.n_atoms = len(sec_atomsgroup.atom_indices) if sec_atomsgroup.atom_indices is not None else None
             sec_atomsgroup.is_molecule = particles_group.pop('is_molecule', None)
-            sec_atomsgroup.label = particles_group.pop('label', None)
+            sec_atomsgroup.label = key # particles_group.pop('label', None)
             sec_atomsgroup.composition_formula = particles_group.pop('formula', None)
             particles_subgroup = particles_group.pop('particles_group', None)
             # set the remaining attributes

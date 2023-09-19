@@ -51,6 +51,7 @@ from nomad.units import ureg
 
 MOL = 6.022140857e+23
 
+
 class H5MDParser(FileParser):
     def __init__(self):
         self._n_frames = None
@@ -339,7 +340,7 @@ class H5MDParser(FileParser):
             sec_atomsgroup.atom_indices = particles_group.pop('indices', None)
             sec_atomsgroup.n_atoms = len(sec_atomsgroup.atom_indices) if sec_atomsgroup.atom_indices is not None else None
             sec_atomsgroup.is_molecule = particles_group.pop('is_molecule', None)
-            sec_atomsgroup.label = key # particles_group.pop('label', None)
+            sec_atomsgroup.label = particles_group.pop('label', None)
             sec_atomsgroup.composition_formula = particles_group.pop('formula', None)
             particles_subgroup = particles_group.pop('particles_group', None)
             # set the remaining attributes
@@ -405,7 +406,6 @@ class H5MDParser(FileParser):
         return self._parameter_info
 
     def parse_calculation(self):
-        print('in parse calc')
         sec_run = self.archive.run[-1]
         sec_system = sec_run.system
         calculation_info = self.observable_info.get('configurational')
@@ -455,7 +455,6 @@ class H5MDParser(FileParser):
                 self.logger.error('system_map_key not assigned correctly.')
 
         for frame in sorted(system_map):
-            print(frame)
             sec_scc = sec_run.m_create(Calculation)
             sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
             if system_map_key == 'time':
@@ -468,18 +467,12 @@ class H5MDParser(FileParser):
                     sec_scc.time = sec_scc.step * time_step
 
             system_index = system_map[frame]['system']
-            print(system_index)
             if system_index is not None:
-                print(system_info.items())
                 for key, val in system_info.items():
-                    print(key)
                     if key == 'forces':
                         sec_scc.forces = Forces(total=ForcesEntry(value=val[system_index]))
                     else:
-                        print(BaseCalculation.__dict__.keys())
-                        print(key)
                         if key in BaseCalculation.__dict__.keys():
-                            print(key)
                             # setattr(sec_scc, key, val)
                             sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val[system_index])
                         else:
@@ -508,7 +501,6 @@ class H5MDParser(FileParser):
                                 EnergyEntry(kind=key, value=val))
                     else:
                         if obs_name_short in BaseCalculation.__dict__.keys():
-                            print(obs_name_short)
                             # setattr(sec_scc, obs_name_short, val)
                             sec_scc.m_set(sec_scc.m_get_quantity_definition(obs_name_short), val)
                         else:
@@ -546,7 +538,6 @@ class H5MDParser(FileParser):
                     if step is not None:
                         self._system_step_map[round(step)] = len(self._system_step_map)
                 else:
-                    print(key)
                     setattr(sec_atoms, key, system_info.get(key, [None] * (frame + 1))[frame])
 
             if frame == 0:  # TODO extend to time-dependent topologies
@@ -642,6 +633,12 @@ class H5MDParser(FileParser):
                         setattr(workflow.method.barostat_parameters, baro_key, baro_val)
                 else:
                     self.logger.warning(key + 'is not a valid molecular dynamics workflow section. Corresponding parameters will not be stored.')
+
+        ensemble_average_observables = self.observable_info.get('ensemble_average')
+        for key, val in ensemble_average_observables.items():
+
+        print(ensemble_average_observables)
+        # HERE I AM -- I need to essentially strip the name again and group together the original set for possible plotting
 
         self.archive.workflow2 = workflow
 

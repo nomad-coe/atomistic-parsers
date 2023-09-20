@@ -43,7 +43,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
     BarostatParameters, ThermostatParameters, DiffusionConstantValues,
     MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
     RadialDistributionFunction, RadialDistributionFunctionValues,
-    MolecularDynamics, MolecularDynamicsMethod
+    MolecularDynamics, MolecularDynamicsMethod, EnsembleProperty, EnsemblePropertyValues
 )
 from .metainfo.h5md import ParamEntry, CalcEntry, Author
 # from nomad.atomutils import get_molecules_from_bond_list, is_same_molecule, get_composition
@@ -294,6 +294,43 @@ class H5MDParser(FileParser):
                     self._system_info[sec_key][box_key] = [self._system_info[sec_key][box_key]] * n_frames
         return self._system_info
 
+    # @property
+    # def observable_info(self):
+    #     if self._observable_info is None:
+    #         self._observable_info = {
+    #             'configurational': {},
+    #             'ensemble_average': {},
+    #             'correlation_function': {}
+    #         }
+
+    #         def get_observable_paths(observable_group, current_path, paths):
+    #             for obs_key in observable_group.keys():
+    #                 path = obs_key + '.'
+    #                 observable = self.hdf5_getter(observable_group, obs_key)
+    #                 observable_type = self.hdf5_getter(observable_group, obs_key).attrs.get('type')
+    #                 if not observable_type:
+    #                     paths = get_observable_paths(observable, current_path + path, paths)
+    #                 else:
+    #                     paths.append(current_path + path[:-1])
+
+    #             return paths
+
+    #         observable_group = self.hdf5_getter(self.filehdf5, 'observables')  # TODO Extend to arbitrary particle groups
+    #         observable_paths = get_observable_paths(observable_group, current_path='', paths=[])
+
+    #         for path in observable_paths:
+    #             observable = self.hdf5_getter(observable_group, path)
+    #             observable_type = self.hdf5_getter(observable_group, path).attrs.get('type')
+    #             observable_name = '-'.join(path.split('.'))
+    #             self._observable_info[observable_type][observable_name] = {}
+    #             for key in observable.keys():
+    #                 observable_attribute = self.hdf5_getter(observable, key)
+    #                 if type(observable_attribute) == h5py.Group:
+    #                     self.logger.warning('Group structures within individual observables not supported. ' + key + ' values will not be stored.')
+    #                     continue
+    #                 self._observable_info[observable_type][observable_name][key] = observable_attribute
+    #     return self._observable_info
+
     @property
     def observable_info(self):
         if self._observable_info is None:
@@ -321,14 +358,17 @@ class H5MDParser(FileParser):
             for path in observable_paths:
                 observable = self.hdf5_getter(observable_group, path)
                 observable_type = self.hdf5_getter(observable_group, path).attrs.get('type')
-                observable_name = '-'.join(path.split('.'))
-                self._observable_info[observable_type][observable_name] = {}
+                observable_name = path.split('.')[0]
+                observable_label = '-'.join(path.split('.')[1:]) if len(path.split('.')) > 1 else ''
+                if observable_name not in self._observable_info[observable_type].keys():
+                    self._observable_info[observable_type][observable_name] = {}
+                self._observable_info[observable_type][observable_name][observable_label] = {}
                 for key in observable.keys():
                     observable_attribute = self.hdf5_getter(observable, key)
                     if type(observable_attribute) == h5py.Group:
                         self.logger.warning('Group structures within individual observables not supported. ' + key + ' values will not be stored.')
                         continue
-                    self._observable_info[observable_type][observable_name][key] = observable_attribute
+                    self._observable_info[observable_type][observable_name][observable_label][key] = observable_attribute
         return self._observable_info
 
     def get_atomsgroup_fromh5md(self, nomad_sec, h5md_sec_particlesgroup):
@@ -428,31 +468,59 @@ class H5MDParser(FileParser):
             self.logger.warning('No step or time available for system data. Cannot make calculation to system references.')
             system_map_key = 'time'
 
-        for key, observable in calculation_info.items():
-            if system_map_key == 'time':
-                times = observable.get('time')
-                if times is not None:
-                    times = np.around(times.magnitude * ureg.convert(1.0, times.units, ureg.picosecond), 5)  # TODO What happens if no units are given?
-                    for i_time, time in enumerate(times):
-                        map_entry = system_map.get(time)
-                        if map_entry:
-                            map_entry[key] = i_time
-                        else:
-                            system_map[time] = {key: i_time}
+        # for key, observable in calculation_info.items():
+        #     if system_map_key == 'time':
+        #         times = observable.get('time')
+        #         if times is not None:
+        #             times = np.around(times.magnitude * ureg.convert(1.0, times.units, ureg.picosecond), 5)  # TODO What happens if no units are given?
+        #             for i_time, time in enumerate(times):
+        #                 map_entry = system_map.get(time)
+        #                 if map_entry:
+        #                     map_entry[key] = i_time
+        #                 else:
+        #                     system_map[time] = {key: i_time}
+        #         else:
+        #             self.logger.warning('No time information available for ' + observable + '. Cannot store values.')
+        #     elif system_map_key == 'step':
+        #         steps = observable.get('step')
+        #         if steps:
+        #             steps = np.around(steps)
+        #             for i_step, step in enumerate(steps):
+        #                 map_entry = system_map.get(step)
+        #                 if map_entry:
+        #                     map_entry[key] = i_step
+        #                 else:
+        #                     system_map[time] = {key: i_step}
+        #     else:
+        #         self.logger.error('system_map_key not assigned correctly.')
+
+        for observable_type, observable_dict in calculation_info.items():
+            for key, observable in observable_dict.items():
+                map_key = observable_type + '-' + key if key else observable_type
+                if system_map_key == 'time':
+                    times = observable.get('time')
+                    if times is not None:
+                        times = np.around(times.magnitude * ureg.convert(1.0, times.units, ureg.picosecond), 5)  # TODO What happens if no units are given?
+                        for i_time, time in enumerate(times):
+                            map_entry = system_map.get(time)
+                            if map_entry:
+                                map_entry[map_key] = i_time
+                            else:
+                                system_map[time] = {map_key: i_time}
+                    else:
+                        self.logger.warning('No time information available for ' + observable + '. Cannot store values.')
+                elif system_map_key == 'step':
+                    steps = observable.get('step')
+                    if steps:
+                        steps = np.around(steps)
+                        for i_step, step in enumerate(steps):
+                            map_entry = system_map.get(step)
+                            if map_entry:
+                                map_entry[map_key] = i_step
+                            else:
+                                system_map[time] = {map_key: i_step}
                 else:
-                    self.logger.warning('No time information available for ' + observable + '. Cannot store values.')
-            elif system_map_key == 'step':
-                steps = observable.get('step')
-                if steps:
-                    steps = np.around(steps)
-                    for i_step, step in enumerate(steps):
-                        map_entry = system_map.get(step)
-                        if map_entry:
-                            map_entry[key] = i_step
-                        else:
-                            system_map[time] = {key: i_step}
-            else:
-                self.logger.error('system_map_key not assigned correctly.')
+                    self.logger.error('system_map_key not assigned correctly.')
 
         for frame in sorted(system_map):
             sec_scc = sec_run.m_create(Calculation)
@@ -485,31 +553,64 @@ class H5MDParser(FileParser):
 
                 sec_scc.system_ref = sec_system[system_index]
 
+            # sec_energy = sec_scc.m_create(Energy)
+            # for key, observable in calculation_info.items():
+            #     obs_index = system_map[frame].get(key)
+            #     if obs_index:
+            #         val = observable.get('value', [None] * (obs_index + 1))[obs_index]
+            #         obs_name_short = key.split('-')[-1]
+            #         if 'energ' in key:  # TODO check for energies or energy when matching name
+            #             if obs_name_short in Energy.__dict__.keys():
+            #                 # setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
+            #                 sec_energy.m_add_sub_section(getattr(Energy, obs_name_short), EnergyEntry(value=val))
+            #             else:
+            #                 # setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
+            #                 sec_energy.x_h5md_energy_contributions.append(
+            #                     EnergyEntry(kind=key, value=val))
+            #         else:
+            #             if obs_name_short in BaseCalculation.__dict__.keys():
+            #                 # setattr(sec_scc, obs_name_short, val)
+            #                 sec_scc.m_set(sec_scc.m_get_quantity_definition(obs_name_short), val)
+            #             else:
+            #                 # setattr(sec_scc, 'x_h5md_' + key, val)
+            #                 unit = None
+            #                 if hasattr(val, 'units'):
+            #                     unit = val.units
+            #                     val = val.magnitude
+            #                 sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
+
             sec_energy = sec_scc.m_create(Energy)
-            for key, observable in calculation_info.items():
-                obs_index = system_map[frame].get(key)
-                if obs_index:
-                    val = observable.get('value', [None] * (obs_index + 1))[obs_index]
-                    obs_name_short = key.split('-')[-1]
-                    if 'energ' in key:  # TODO check for energies or energy when matching name
-                        if obs_name_short in Energy.__dict__.keys():
-                            # setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
-                            sec_energy.m_add_sub_section(getattr(Energy, obs_name_short), EnergyEntry(value=val))
+            for observable_type, observable_dict in calculation_info.items():
+                for key, observable in observable_dict.items():
+                    map_key = observable_type + '-' + key if key else observable_type
+                    obs_index = system_map[frame].get(map_key)
+                    if obs_index:
+                        val = observable.get('value', [None] * (obs_index + 1))[obs_index]
+                        # obs_name_short = key.split('-')[-1]
+                        if 'energ' in observable_type:  # TODO check for energies or energy when matching name
+                            if key in Energy.__dict__.keys():
+                                # setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
+                                sec_energy.m_add_sub_section(getattr(Energy, key), EnergyEntry(value=val))
+                            else:
+                                # setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
+                                sec_energy.x_h5md_energy_contributions.append(
+                                    EnergyEntry(kind=map_key, value=val))
                         else:
-                            # setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
-                            sec_energy.x_h5md_energy_contributions.append(
-                                EnergyEntry(kind=key, value=val))
-                    else:
-                        if obs_name_short in BaseCalculation.__dict__.keys():
-                            # setattr(sec_scc, obs_name_short, val)
-                            sec_scc.m_set(sec_scc.m_get_quantity_definition(obs_name_short), val)
-                        else:
-                            # setattr(sec_scc, 'x_h5md_' + key, val)
-                            unit = None
-                            if hasattr(val, 'units'):
-                                unit = val.units
-                                val = val.magnitude
-                            sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
+                            if key == '':
+                                key = observable_type
+                            else:
+                                key = map_key
+
+                            if key in BaseCalculation.__dict__.keys():
+                                # setattr(sec_scc, obs_name_short, val)
+                                sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
+                            else:
+                                # setattr(sec_scc, 'x_h5md_' + key, val)
+                                unit = None
+                                if hasattr(val, 'units'):
+                                    unit = val.units
+                                    val = val.magnitude
+                                sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=map_key, value=val, unit=unit))
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
@@ -635,10 +736,78 @@ class H5MDParser(FileParser):
                     self.logger.warning(key + 'is not a valid molecular dynamics workflow section. Corresponding parameters will not be stored.')
 
         ensemble_average_observables = self.observable_info.get('ensemble_average')
-        for key, val in ensemble_average_observables.items():
+        sec_results = workflow.results
+        workflow.results.n_steps = 2
+        print(workflow.results.n_steps)
+        print(sec_results)
+        # print(ensemble_average_observables)
+        for observable_type, observable_dict in ensemble_average_observables.items():
+            print(observable_type)
+            # sec_ensemble = sec_results.m_create(EnsembleProperty)
+            # sec_ensemble.label = observable_type
+            # for key, observable in observable_dict.items():
+            #     sec_ensemble_vals = sec_ensemble.m_create(EnsemblePropertyValues)
+            #     sec_ensemble_vals.label = key
+            #     for quant_name, val in observable.items():
+            #         if quant_name in EnsembleProperty.__dict__.keys():
+            #             sec_ensemble.m_set(sec_ensemble.m_get_quantity_definition(quant_name), val)
+            #         if quant_name in EnsemblePropertyValues.__dict__.keys():
+            #             sec_ensemble_vals.m_set(sec_ensemble_vals.m_get_quantity_definitions(quant_name), val)
 
-        print(ensemble_average_observables)
-        # HERE I AM -- I need to essentially strip the name again and group together the original set for possible plotting
+
+
+                # map_key = observable_type + '-' + key if key else observable_type
+                # print(map_key)
+                # print(key)
+                # val = observable.get('value', [None] * (obs_index + 1))[obs_index]
+                # print(val)
+                # # obs_name_short = key.split('-')[-1]
+                # if 'energ' in observable_type:  # TODO check for energies or energy when matching name
+                #     if key in Energy.__dict__.keys():
+                #         # setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
+                #         sec_energy.m_add_sub_section(getattr(Energy, key), EnergyEntry(value=val))
+                #     else:
+                #         # setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
+                #         sec_energy.x_h5md_energy_contributions.append(
+                #             EnergyEntry(kind=map_key, value=val))
+                # else:
+                #     if key == '':
+                #         key = observable_type
+                #     else:
+                #         key = map_key
+
+                #     if key in BaseCalculation.__dict__.keys():
+                #         # setattr(sec_scc, obs_name_short, val)
+                #         sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
+                #     else:
+                #         # setattr(sec_scc, 'x_h5md_' + key, val)
+                #         unit = None
+                #         if hasattr(val, 'units'):
+                #             unit = val.units
+                #             val = val.magnitude
+                #         sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=map_key, value=val, unit=unit))
+
+
+        # for key, obs_dict in ensemble_average_observables.items():
+        #     obs_type, obs_name = key.split('-')
+
+
+        # print(ensemble_average_observables)
+        # # HERE I AM -- I need to essentially strip the name again and group together the original set for possible plotting
+
+
+        # if key in BaseCalculation.__dict__.keys():
+        #     # setattr(sec_scc, key, val)
+        #     sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val[system_index])
+        # else:
+        #     # setattr(sec_scc, 'x_h5md_' + key, val)
+        #     unit = None
+        #     if hasattr(val, 'units'):
+        #         unit = val.units
+        #         val = val.magnitude
+        #     sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
+
+
 
         self.archive.workflow2 = workflow
 

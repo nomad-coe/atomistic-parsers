@@ -691,8 +691,9 @@ class GromacsParser(MDParser):
             return formula
 
         n_frames = self.traj_parser.get('n_frames', 0)
+        traj_sampling_rate = self.log_parser.get('input_parameters', {}).get('nstxout', 1)
         self.n_atoms = [self.traj_parser.get_n_atoms(n) for n in range(n_frames)]
-        traj_steps = [self.traj_parser.get_step(n) for n in range(n_frames)]
+        traj_steps = [n * traj_sampling_rate for n in range(n_frames)]
         self.trajectory_steps = traj_steps
 
         pbc = self.log_parser.get_pbc()

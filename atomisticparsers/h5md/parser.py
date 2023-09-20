@@ -737,24 +737,31 @@ class H5MDParser(FileParser):
 
         ensemble_average_observables = self.observable_info.get('ensemble_average')
         sec_results = workflow.results
-        workflow.results.n_steps = 2
-        print(workflow.results.n_steps)
-        print(sec_results)
-        # print(ensemble_average_observables)
         for observable_type, observable_dict in ensemble_average_observables.items():
-            print(observable_type)
-            # sec_ensemble = sec_results.m_create(EnsembleProperty)
-            # sec_ensemble.label = observable_type
-            # for key, observable in observable_dict.items():
-            #     sec_ensemble_vals = sec_ensemble.m_create(EnsemblePropertyValues)
-            #     sec_ensemble_vals.label = key
-            #     for quant_name, val in observable.items():
-            #         if quant_name in EnsembleProperty.__dict__.keys():
-            #             sec_ensemble.m_set(sec_ensemble.m_get_quantity_definition(quant_name), val)
-            #         if quant_name in EnsemblePropertyValues.__dict__.keys():
-            #             sec_ensemble_vals.m_set(sec_ensemble_vals.m_get_quantity_definitions(quant_name), val)
+            sec_ensemble = sec_results.m_create(EnsembleProperty)
+            sec_ensemble.label = observable_type
+            for key, observable in observable_dict.items():
+                sec_ensemble_vals = sec_ensemble.m_create(EnsemblePropertyValues)
+                sec_ensemble_vals.label = key
+                for quant_name, val in observable.items():
+                    if quant_name == 'val':
+                        continue
+                    if quant_name in EnsembleProperty.__dict__.keys():
+                        sec_ensemble.m_set(sec_ensemble.m_get_quantity_definition(quant_name), val)
+                    if quant_name in EnsemblePropertyValues.__dict__.keys():
+                        sec_ensemble_vals.m_set(sec_ensemble_vals.m_get_quantity_definition(quant_name), val)
 
+                val = observable.get('value')
+                if val is not None:
+                    print(val)
+                    sec_ensemble_vals.value_unit = str(val.units) if hasattr(val, 'units') else None
+                    sec_ensemble_vals.value_magnitude = val.magnitude if hasattr(val, 'units') else val
 
+                bins = observable.get('bins')
+                if bins is not None:
+                    print(val)
+                    sec_ensemble_vals.bins_unit = str(bins.units) if hasattr(bins, 'units') else None
+                    sec_ensemble_vals.bins_magnitude = bins.magnitude if hasattr(bins, 'units') else bins
 
                 # map_key = observable_type + '-' + key if key else observable_type
                 # print(map_key)

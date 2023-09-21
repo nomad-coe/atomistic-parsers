@@ -750,6 +750,7 @@ class H5MDParser(FileParser):
                         sec_ensemble.m_set(sec_ensemble.m_get_quantity_definition(quant_name), val)
                     if quant_name in EnsemblePropertyValues.__dict__.keys():
                         sec_ensemble_vals.m_set(sec_ensemble_vals.m_get_quantity_definition(quant_name), val)
+                    ## TODO Still need to add custom values here.
 
                 val = observable.get('value')
                 if val is not None:

@@ -701,7 +701,7 @@ class XTBParser(MDParser):
             self.parse_trajectory_step(dict(atoms=data))
 
         time_start, time_calc = self.out_parser.get_time(section='MD')
-        time_step = time_calc / len(self.thermodynamics_steps) if time_calc is not None else None
+        time_step = time_calc / (max(self.thermodynamics_steps) + 1) if time_calc is not None else None
 
         for n_frame, step in enumerate(self.thermodynamics_steps):
             cycle = module.get('cycle')[n_frame]
@@ -711,7 +711,7 @@ class XTBParser(MDParser):
                     value=cycle[6] * ureg.hartree)),
                 temperature=cycle[5] * ureg.kelvin)
             if time_step is not None:
-                data['time_physical'] = time_start + time_step * (n_frame + 1)
+                data['time_physical'] = time_start + time_step * (step + 1)
                 data['time_calculation'] = time_step
             self.parse_thermodynamics_step(data)
 

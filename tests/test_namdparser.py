@@ -68,6 +68,8 @@ def test_md(parser):
     # assert calc[394].x_namd_pressure_average.magnitude == approx(-98841160.0)
     # assert calc[497].x_namd_volume.magnitude == approx(9.21491463e-25)
     assert calc[105].x_namd_temperature_average.magnitude == approx(147.9220)
+    assert calc[148].time_calculation.magnitude == approx(0.215157)
+    assert calc[76].time_physical.magnitude == approx(13.9035 + 0.217019 * 17)
 
 
 def test_md_2(parser):

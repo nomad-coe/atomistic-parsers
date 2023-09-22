@@ -71,8 +71,6 @@ def test_nvt(parser):
     sec_scc = sec_run.calculation
     assert len(sec_scc) == 201
     assert sec_scc[21].energy.current.value.magnitude == approx(8.86689197e-18)
-    # uncomment after updating def
-    # assert sec_scc[180].time_physical.magnitude == 218.5357
     assert sec_scc[56].pressure.magnitude == approx(-77642135.4975)
     assert sec_scc[103].temperature.magnitude == 291.4591
     assert sec_scc[11].step == 4400
@@ -80,6 +78,8 @@ def test_nvt(parser):
     assert sec_scc[112].energy.contributions[8].kind == 'kspace long range'
     assert sec_scc[96].energy.contributions[2].value.magnitude == approx(1.19666271e-18)
     assert sec_scc[47].energy.contributions[4].value.magnitude == approx(1.42166035e-18)
+    assert sec_scc[75].time_physical.magnitude == approx(83.56332225)
+    assert sec_scc[112].time_calculation.magnitude == approx(1.2351 / 400)
 
     assert sec_run.x_lammps_section_control_parameters[0].x_lammps_inout_control_atomstyle == 'full'
 

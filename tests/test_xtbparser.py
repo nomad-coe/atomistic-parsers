@@ -47,7 +47,6 @@ def test_scf(parser):
     assert sec_method[0].x_xtb_setup['Broyden damping'] == approx(0.4)
 
     sec_model = sec_method[0].tb.model
-    print(sec_model)
     assert sec_model[0].hamiltonian[0].parameters['H0-scaling (s, p, d)'][1] == approx(2.23)
     assert sec_model[0].contributions[0].type == 'dispersion'
     assert sec_model[0].contributions[0].parameters['a1'][0] == approx(0.52)
@@ -94,6 +93,10 @@ def test_opt(parser):
     assert sec_calc[4].energy.change.magnitude == approx(-5.19400803e-25)
     assert len(sec_calc[2].scf_iteration) == 5
     assert sec_calc[3].scf_iteration[1].energy.total.value.magnitude == approx(-2.53150129e-17)
+    assert sec_calc[0].time_calculation.magnitude == approx(0.002)
+    assert sec_calc[1].time_physical.magnitude == approx(0.003)
+    assert sec_calc[4].time_calculation.magnitude == approx(0.001)
+    assert sec_calc[5].time_physical.magnitude == approx(0.007)
 
     sec_workflow = archive.workflow2
     assert sec_workflow.m_def.name == 'GeometryOptimization'
@@ -120,3 +123,6 @@ def test_md(parser):
     assert sec_calc[13].energy.total.potential.magnitude == approx(-3.19064866e-17)
     assert sec_calc[20].energy.total.kinetic.magnitude == approx(8.23991752e-20)
     assert sec_calc[27].temperature.magnitude == approx(763.)
+    assert sec_calc[0].time_calculation.magnitude == approx(0.016)
+    assert sec_calc[2].time_physical.magnitude == approx(0.16353535353535353)
+    assert sec_calc[10].time_calculation.magnitude == approx(0.000734006734006734)

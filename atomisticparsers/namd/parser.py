@@ -203,7 +203,6 @@ class NAMDParser(MDParser):
         self.trajectory_steps = [0] + saved_trajectories
         self.thermodynamics_steps = [int(step[0]) for step in steps_data]
 
-        # timings = {int(v[0]): v[1:] for v in self.mainfile_parser.get('timing', [])}
         timings = self.mainfile_parser.get('timing', [])
         timing_step = sec_method.x_namd_simulation_parameters.get('TIMING OUTPUT STEPS', 1)
         time_per_step = self.mainfile_parser.get('total_time', 0.) / len(steps_data)
@@ -250,7 +249,6 @@ class NAMDParser(MDParser):
                 # TODO forces
             # timing
             index_time = step // timing_step
-            # timing = timings.get((step // timing_step + 1) * timing_step)
             if index_time < len(timings):
                 thermo_data['time_calculation'] = timings[index_time][2]
                 thermo_data['time_physical'] = (0 if index_time == 0 else timings[index_time - 1][1]) + timings[index_time][2] * (step % timing_step + 1)

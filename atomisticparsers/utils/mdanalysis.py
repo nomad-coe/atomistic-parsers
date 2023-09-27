@@ -311,7 +311,7 @@ class MDAnalysisParser(FileParser):
         Returns the number of atoms of the frame with index frame_index.
         '''
         # MDAnalysis assumes no change in atom configuration
-        return [guess_atom_element(name) for name in self.get('atoms_info', {}).get('names', [])]
+        return [guess_atom_element(name).title() for name in self.get('atoms_info', {}).get('names', [])]
 
     def get_time(self, frame_index):
         '''

@@ -58,6 +58,9 @@ class TrajParser(FileParser):
         else:
             return '3.x.x'
 
+    def parse(self):
+        pass
+
 
 class AsapParser(MDParser):
     def __init__(self):

@@ -64,6 +64,10 @@ class OutParser(TextParser):
             val[1] = val[1].split()
             return val
 
+        def str_to_wall_time(val_in):
+            name, d, h, m, s = val_in.rsplit(' ', 4)
+            return name.strip(), 24 * 60 * 60 * float(d) + 60 * 60 * float(h) + 60 * float(m) + float(s)
+
         common_quantities = [
             Quantity(
                 'setup',
@@ -197,7 +201,7 @@ class OutParser(TextParser):
         scf_quantities = common_quantities + orbital_quantities + [
             Quantity(
                 'model',
-                r'(Reference\s*[\s\S]+?\n *\n)',
+                r'((?:G F N \d+ \- x T B.+\s+\-+\s+|Reference)\s*[\s\S]+?\n *\n)',
                 sub_parser=TextParser(quantities=[
                     Quantity('reference', r'Reference\s*(\S+)'),
                     Quantity(
@@ -383,8 +387,8 @@ class OutParser(TextParser):
                     ),
                     Quantity(
                         'wall_time',
-                        r'\* +wall-time: +(\d+) d, +(\d+) h, +(\d+) min, +([\d\.]+) sec',
-                        repeats=True
+                        r'(.+):\s+\* +wall-time: +(\d+) d, +(\d+) h, +(\d+) min, +([\d\.]+) sec',
+                        repeats=True, str_operation=str_to_wall_time
                     ),
                     Quantity(
                         'cpu_time',
@@ -394,6 +398,18 @@ class OutParser(TextParser):
                 ])
             )
         ]
+
+    def get_time(self, section=None, index=0):
+        start_time = 0
+        section_index = 0
+        for time in self.get('footer', {}).get('wall_time', []):
+            if time[0] == section or section is None:
+                if index == section_index:
+                    return start_time, time[1]
+                section_index += 1
+            if time[0] != 'total':
+                start_time += time[1]
+        return start_time, None
 
 
 class CoordParser(TextParser):
@@ -597,15 +613,24 @@ class XTBParser(MDParser):
         if source is None:
             return
 
+        total_time = None
         # determine file extension of input structure file
         coord_file = self.archive.run[-1].x_xtb_calculation_setup.get('coordinate file', 'coord')
         if section == 'final_single_point':
             extension = 'coord' if coord_file == 'coord' else coord_file.split('.')[-1]
             coord_file = f'xtbopt.{extension}'
+        else:
+            self._run_index += 1
+            start_time, total_time = self.out_parser.get_time(index=self._run_index)
 
         sec_system = self.parse_system(coord_file)
         sec_calc = self.parse_calculation(source)
         sec_calc.system_ref = sec_system
+        if total_time is not None:
+            sec_calc.time_physical = start_time + total_time
+            sec_calc.time_calculation = total_time
+
+        return sec_calc
 
     def parse_gfn(self, section):
         self.parse_method(section)
@@ -617,14 +642,24 @@ class XTBParser(MDParser):
         if module is None:
             return
 
+        self._run_index += 1
+
+        start_time, total_time = self.out_parser.get_time(section='ANC optimizer')
+        time_per_step = total_time / (len(module.get('cycle')) + 1) if total_time is not None else None
         self.traj_parser.mainfile = os.path.join(self.maindir, 'xtbopt.log')
 
         for n, cycle in enumerate(module.get('cycle', [])):
             self.parse_system(n)
-            self.parse_calculation(cycle)
+            sec_scc = self.parse_calculation(cycle)
+            if sec_scc is not None and time_per_step is not None:
+                sec_scc.time_physical = start_time + time_per_step * (n + 1)
+                sec_scc.time_calculation = time_per_step
 
         # final single point
-        self.parse_single_point(module.get('final_single_point'), 'final_single_point')
+        sec_scc = self.parse_single_point(module.get('final_single_point'), 'final_single_point')
+        if sec_scc is not None and time_per_step is not None:
+            sec_scc.time_physical = start_time + time_per_step * (len(module.get('cycle', [])) + 1)
+            sec_scc.time_calculation = time_per_step
 
         # workflow parameters
         workflow = GeometryOptimization(method=GeometryOptimizationMethod())
@@ -652,16 +687,21 @@ class XTBParser(MDParser):
 
         traj_steps = [n * int(trj_freq) for n in range(len(self.traj_parser.get('frame', [])))]
         self.n_atoms = self.archive.run[-1].x_xtb_calculation_setup.get('number of atoms', 0)
-        self.trajectory_steps = traj_steps
+        self.trajectory_steps = [-1] + traj_steps
         self.thermodynamics_steps = [int(cycle[0]) for cycle in module.get('cycle', [])]
 
         for step in self.trajectory_steps:
+            if step < 0:
+                continue
             atoms = self.traj_parser.get_atoms(traj_steps.index(step))
             data = dict(labels=atoms.get_chemical_symbols(), positions=atoms.get_positions() * ureg.angstrom)
             lattice_vectors = np.array(atoms.get_cell())
             if np.count_nonzero(lattice_vectors) > 0:
                 data['lattice_vectors'] = lattice_vectors * ureg.angstrom
             self.parse_trajectory_step(dict(atoms=data))
+
+        time_start, time_calc = self.out_parser.get_time(section='MD')
+        time_step = time_calc / (max(self.thermodynamics_steps) + 1) if time_calc is not None else None
 
         for n_frame, step in enumerate(self.thermodynamics_steps):
             cycle = module.get('cycle')[n_frame]
@@ -670,14 +710,13 @@ class XTBParser(MDParser):
                     potential=cycle[2] * ureg.hartree, kinetic=cycle[3] * ureg.hartree,
                     value=cycle[6] * ureg.hartree)),
                 temperature=cycle[5] * ureg.kelvin)
+            if time_step is not None:
+                data['time_physical'] = time_start + time_step * (step + 1)
+                data['time_calculation'] = time_step
             self.parse_thermodynamics_step(data)
 
         # workflow parameters
         self.parse_md_workflow({key: val for key, val in module.items() if key.startswith('x_xtb')})
-        # workflow = MolecularDynamics()
-        # for key, val in module.items():
-        #     if key.startswith('x_xtb_'):
-        #         setattr(workflow, key, val)
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)
@@ -686,6 +725,7 @@ class XTBParser(MDParser):
         self.logger = logger if logger is not None else logging
 
         self.init_parser()
+        self._run_index = 0
 
         # run parameters
         sec_run = self.archive.m_create(Run)

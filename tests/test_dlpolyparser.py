@@ -71,6 +71,8 @@ def test_0(parser):
     assert sec_calc[9].pressure.magnitude == approx(-696315.532)
     assert sec_calc[6].x_dl_poly_virial_configurational == approx(1.5826e+08)
     assert sec_calc[1].x_dl_poly_volume.to('angstrom ** 3').magnitude == approx(9.6388e+05)
+    assert sec_calc[2].time_physical.magnitude == approx(0.812)
+    assert sec_calc[7].time_calculation.magnitude == approx(0.609)
 
     assert archive.workflow2.method.thermodynamic_ensemble == 'NVT'
     assert archive.workflow2.method.integration_timestep.magnitude == approx(1e-15)

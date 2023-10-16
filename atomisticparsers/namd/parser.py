@@ -82,6 +82,12 @@ class MainfileParser(TextParser):
                 rf'ENERGY\: +(\d+ +{re_f}.+)', repeats=True, dtype=np.dtype(np.float64)
             ),
             Quantity(
+                'timing',
+                r'TIMING\: *(\d+) *CPU\: *[\d\.]+, +[\d\.]+/step +Wall\: *([\d\.]+), *([\d\.]+)/step',
+                repeats=True, dtype=np.dtype(np.float64)
+            ),
+            Quantity('total_time', r'WallClock: +([\d\.]+)', dtype=float),
+            Quantity(
                 'property_names',
                 r'ETITLE\: +(.+)',
                 str_operation=lambda x: x.lower().strip().split()),
@@ -194,11 +200,15 @@ class NAMDParser(MDParser):
         steps_data = self.mainfile_parser.get('step', [])
         # set up md parser
         self.n_atoms = n_atoms
-        self.trajectory_steps = saved_trajectories
+        self.trajectory_steps = [0] + saved_trajectories
         self.thermodynamics_steps = [int(step[0]) for step in steps_data]
 
+        timings = self.mainfile_parser.get('timing', [])
+        timing_step = sec_method.x_namd_simulation_parameters.get('TIMING OUTPUT STEPS', 1)
+        time_per_step = self.mainfile_parser.get('total_time', 0.) / len(steps_data)
+
         for step in self.trajectory_steps:
-            if self.traj_parser.mainfile is None:
+            if not step or self.traj_parser.mainfile is None:
                 continue
 
             index = saved_trajectories.index(step)
@@ -236,7 +246,15 @@ class NAMDParser(MDParser):
                     thermo_data[metainfo_name] = value * ureg.kelvin
                 elif 'volume' in metainfo_name:
                     thermo_data[metainfo_name] = value * ureg.angstrom ** 3
-                # forces
+                # TODO forces
+            # timing
+            index_time = step // timing_step
+            if index_time < len(timings):
+                thermo_data['time_calculation'] = timings[index_time][2]
+                thermo_data['time_physical'] = (0 if index_time == 0 else timings[index_time - 1][1]) + timings[index_time][2] * (step % timing_step + 1)
+            elif time_per_step:
+                thermo_data['time_calculation'] = time_per_step
+                thermo_data['time_physical'] = time_per_step * step
             self.parse_thermodynamics_step(thermo_data)
 
         # workflow

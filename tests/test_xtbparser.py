@@ -93,6 +93,10 @@ def test_opt(parser):
     assert sec_calc[4].energy.change.magnitude == approx(-5.19400803e-25)
     assert len(sec_calc[2].scf_iteration) == 5
     assert sec_calc[3].scf_iteration[1].energy.total.value.magnitude == approx(-2.53150129e-17)
+    assert sec_calc[0].time_calculation.magnitude == approx(0.002)
+    assert sec_calc[1].time_physical.magnitude == approx(0.003)
+    assert sec_calc[4].time_calculation.magnitude == approx(0.001)
+    assert sec_calc[5].time_physical.magnitude == approx(0.007)
 
     sec_workflow = archive.workflow2
     assert sec_workflow.m_def.name == 'GeometryOptimization'
@@ -119,3 +123,6 @@ def test_md(parser):
     assert sec_calc[13].energy.total.potential.magnitude == approx(-3.19064866e-17)
     assert sec_calc[20].energy.total.kinetic.magnitude == approx(8.23991752e-20)
     assert sec_calc[27].temperature.magnitude == approx(763.)
+    assert sec_calc[0].time_calculation.magnitude == approx(0.016)
+    assert sec_calc[2].time_physical.magnitude == approx(0.16353535353535353)
+    assert sec_calc[10].time_calculation.magnitude == approx(0.000734006734006734)

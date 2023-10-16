@@ -476,7 +476,7 @@ class MainfileParser(TextParser):
                         rf'(Time \: +[\s\S]+?)(?:\*\*|{re_n} *{re_n})',
                         repeats=True, sub_parser=TextParser(quantities=[
                             Quantity(
-                                'time_physical',
+                                'time',
                                 rf'Time \: +({re_f})', dtype=np.float64, unit=ureg.ps
                             ),
                             Quantity(
@@ -765,7 +765,7 @@ class GulpParser:
                     value=source.energy_total[1], kinetic=source.energy_kinetic[1],
                     potential=source.energy_potential[1]
                 )
-            sec_calc.time_physical = source.time_physical
+            sec_calc.time = source.time
             sec_calc.temperature = source.get('temperature', [None, None])[0]
             sec_calc.pressure = source.get('pressure', [None, None])[0]
             sec_calc.x_gulp_temperature_averaged = source.get('temperature', [None, None])[1]

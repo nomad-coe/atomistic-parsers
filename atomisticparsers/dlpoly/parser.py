@@ -565,6 +565,9 @@ class DLPolyParser(MDParser):
                     data[name] = instantaneous[n] * ureg.ps
                 elif name == 'time_physical':
                     data[name] = instantaneous[n] * ureg.s
+                    index = self.thermodynamics_steps.index(step)
+                    time_start = properties.get('instantaneous')[index - 1][n] if index > 0 else 0
+                    data['time_calculation'] = data[name] - time_start * ureg.s
                 else:
                     data[name] = instantaneous[n]
             data['energy'] = energy

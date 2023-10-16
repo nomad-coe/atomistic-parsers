@@ -675,7 +675,13 @@ class LammpsParser(MDParser):
                 elif key == 'temp':
                     step_data['temperature'] = val[data_n]
                 elif key == 'cpu':
-                    step_data['time_calculation'] = float(val[data_n])
+                    # approx time calc is dt / dstep
+                    max_step = len(self._thermodynamics_steps) - 1
+                    # calc time cannot be calculated for last iter, will be zero
+                    delta_time = float(val[min(data_n + 1, max_step)]) - float(val[data_n])
+                    delta_step = 1 if data_n == max_step else self._thermodynamics_steps[data_n + 1] - step
+                    step_data['time_calculation'] = delta_time * ureg.s / delta_step
+                    step_data['time_physical'] = float(val[data_n]) * ureg.s + step_data['time_calculation']
 
             self.parse_thermodynamics_step(step_data)
 

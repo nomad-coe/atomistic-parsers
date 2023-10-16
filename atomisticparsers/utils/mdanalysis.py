@@ -18,6 +18,7 @@
 #
 
 import numpy as np
+import os
 try:
     import MDAnalysis
     import MDAnalysis.analysis.rdf as MDA_RDF
@@ -529,3 +530,8 @@ class MDAnalysisParser(FileParser):
             nojump_positions.append(selection.positions - delta)
 
         return np.array(nojump_positions)
+
+    def clean(self):
+        for name in os.listdir(self.maindir):
+            if name.startswith('.') and (name.endswith('.lock') or name.endswith('.npz')):
+                os.remove(os.path.join(self.maindir, name))

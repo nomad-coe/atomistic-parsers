@@ -1066,3 +1066,5 @@ class GromacsParser(MDParser):
         self.parse_input()
 
         self.parse_workflow()
+
+        self.traj_parser.clean()

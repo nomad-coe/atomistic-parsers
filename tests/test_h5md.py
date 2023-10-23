@@ -155,122 +155,36 @@ def test_md(parser):
     assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.magnitude == approx(1.2e-09)
     assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.units == 'meter'
 
-
-# def test_md_edr(parser):
-#     archive = EntryArchive()
-#     parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
-
-#     assert len(archive.run[0].calculation) == 5
-
-
-# def test_md_atomsgroup(parser):
-#     archive = EntryArchive()
-#     parser.parse('tests/data/gromacs/polymer_melt/step4.0_minimization.log', archive, None)
-
-#     sec_run = archive.run[0]
-#     sec_systems = sec_run.system
-
-#     assert len(sec_systems[0].atoms_group) == 1
-#     assert len(sec_systems[0].atoms_group[0].atoms_group) == 100
-
-#     assert sec_systems[0].atoms_group[0].label == 'group_S1P1'
-#     assert sec_systems[0].atoms_group[0].type == 'molecule_group'
-#     assert sec_systems[0].atoms_group[0].index == 0
-#     assert sec_systems[0].atoms_group[0].composition_formula == 'S1P1(100)'
-#     assert sec_systems[0].atoms_group[0].n_atoms == 7200
-#     assert sec_systems[0].atoms_group[0].atom_indices[5] == 5
-#     assert sec_systems[0].atoms_group[0].is_molecule is False
-
-#     assert sec_systems[0].atoms_group[0].atoms_group[52].label == 'S1P1'
-#     assert sec_systems[0].atoms_group[0].atoms_group[52].type == 'molecule'
-#     assert sec_systems[0].atoms_group[0].atoms_group[52].index == 52
-#     assert sec_systems[0].atoms_group[0].atoms_group[52].composition_formula == 'ETHOX(10)'
-#     assert sec_systems[0].atoms_group[0].atoms_group[52].n_atoms == 72
-#     assert sec_systems[0].atoms_group[0].atoms_group[52].atom_indices[8] == 3752
-#     assert sec_systems[0].atoms_group[0].atoms_group[52].is_molecule is True
-
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].label == 'group_ETHOX'
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].type == 'monomer_group'
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].index == 0
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].composition_formula == 'ETHOX(10)'
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].n_atoms == 72
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atom_indices[5] == 5477
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].is_molecule is False
-
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].label == 'ETHOX'
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].type == 'monomer'
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].index == 7
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].composition_formula == 'C(2)H(4)O(1)'
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].n_atoms == 7
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].atom_indices[5] == 5527
-#     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].is_molecule is False
-
-
-# def test_rdf(parser):
-#     archive = EntryArchive()
-#     parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
-
-#     sec_workflow = archive.workflow2
-#     section_md = sec_workflow.results
-
-#     assert section_md.radial_distribution_functions[0].type == 'molecular'
-#     assert section_md.radial_distribution_functions[0].n_smooth == 2
-#     assert section_md.radial_distribution_functions[0].variables_name[0] == 'distance'
-
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].label == 'SOL-Protein'
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].n_bins == 198
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(7.624056451320648 * 10**(-10))
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(1.093694948374587)
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_start == 0
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_end == 2
-
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].label == 'SOL-SOL'
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(6.389391438961029 * 10**(-10))
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.8368052672121375)
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_start == 0
-#     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_end == 2
-
-
-# def test_msd(parser):
-#     archive = EntryArchive()
-#     parser.parse('tests/data/gromacs/cgwater/mdrun.log', archive, None)
-
-#     sec_workflow = archive.workflow2
-#     section_md = sec_workflow.results
-
-#     assert section_md.mean_squared_displacements[0].type == 'molecular'
-#     assert section_md.mean_squared_displacements[0].direction == 'xyz'
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].label == 'LJ'
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].magnitude == approx(95.0 * 10**(-12))
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].units == 'second'
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].magnitude == approx(250.15309179080856 * 10**(-20))
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].units == 'meter^2'
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.magnitude == approx(1.1311880364159048 * 10**(-8))
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.units == 'meter^2/second'
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
-#     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.errors == 0.9999312519176002
-
-
-# def test_geometry_optimization(parser):
-#     archive = EntryArchive()
-#     parser.parse('tests/data/gromacs/polymer_melt/step4.0_minimization.log', archive, None)
-
-#     sec_workflow = archive.workflow2
-
-#     assert sec_workflow.method.type == 'atomic'
-#     assert sec_workflow.method.method == 'steepest_descent'
-#     assert sec_workflow.method.convergence_tolerance_force_maximum.magnitude == approx(6.02214076e+38)
-#     assert sec_workflow.method.convergence_tolerance_force_maximum.units == 'newton'
-#     assert sec_workflow.results.final_force_maximum.magnitude == approx(1.303670442204273e+38)
-#     assert sec_workflow.results.final_force_maximum.units == 'newton'
-#     assert sec_workflow.results.optimization_steps == 12
-#     assert sec_workflow.method.optimization_steps_maximum == 5000
-#     assert len(sec_workflow.results.energies) == 11
-#     assert sec_workflow.results.energies[2].magnitude == approx(8.244726173423345e-17)
-#     assert sec_workflow.results.energies[2].units == 'joule'
-#     assert len(sec_workflow.results.steps) == 11
-#     assert sec_workflow.results.steps[4] == 5000
+    sec_workflow_results = sec_workflow.results
+    assert len(sec_workflow_results.ensemble_properties) == 2
+    ensemble_property_0 = sec_workflow_results.ensemble_properties[0]
+    assert ensemble_property_0.label == 'diffusion_constants'
+    assert ensemble_property_0.error_type == 'Pearson_correlation_coefficient'
+    assert len(ensemble_property_0.ensemble_property_values) == 2
+    assert ensemble_property_0.ensemble_property_values[1].label == 'MOL2'
+    assert ensemble_property_0.ensemble_property_values[1].errors == 0.95
+    assert ensemble_property_0.ensemble_property_values[1].value_magnitude == 2.
+    assert ensemble_property_0.ensemble_property_values[1].value_unit == 'angstrom ** 2 / picosecond'
+    ensemble_property_1 = sec_workflow_results.ensemble_properties[1]
+    assert ensemble_property_1.label == 'radial_distribution_functions'
+    assert ensemble_property_1.type == 'molecular'
+    assert len(ensemble_property_1.ensemble_property_values) == 3
+    assert ensemble_property_1.ensemble_property_values[1].label == 'MOL1-MOL2'
+    assert ensemble_property_1.ensemble_property_values[1].n_bins == 651
+    assert ensemble_property_1.ensemble_property_values[1].frame_start == 0
+    assert ensemble_property_1.ensemble_property_values[1].frame_end == 4
+    assert ensemble_property_1.ensemble_property_values[1].bins_magnitude[51] == approx(0.255)
+    assert ensemble_property_1.ensemble_property_values[1].bins_unit == 'angstrom'
+    assert ensemble_property_1.ensemble_property_values[1].value_magnitude[51] == approx(0.284764)
+    correlation_function_0 = sec_workflow_results.correlation_functions[0]
+    assert correlation_function_0.type == 'molecular'
+    assert correlation_function_0.label == 'mean_squared_displacements'
+    assert correlation_function_0.direction == 'xyz'
+    assert correlation_function_0.error_type == 'standard_deviation'
+    assert len(correlation_function_0.correlation_function_values) == 2
+    assert correlation_function_0.correlation_function_values[0].label == 'MOL1'
+    assert correlation_function_0.correlation_function_values[0].n_times == 51
+    assert correlation_function_0.correlation_function_values[0].times[10].magnitude == approx(2.e-11)
+    assert correlation_function_0.correlation_function_values[0].value_magnitude[10] == approx(0.679723)
+    assert correlation_function_0.correlation_function_values[0].value_unit == 'angstrom ** 2'
+    assert correlation_function_0.correlation_function_values[0].errors[10] == approx(0.0)

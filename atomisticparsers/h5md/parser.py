@@ -43,7 +43,8 @@ from nomad.datamodel.metainfo.simulation.workflow import (
     BarostatParameters, ThermostatParameters, DiffusionConstantValues,
     MeanSquaredDisplacement, MeanSquaredDisplacementValues, MolecularDynamicsResults,
     RadialDistributionFunction, RadialDistributionFunctionValues,
-    MolecularDynamics, MolecularDynamicsMethod, EnsembleProperty, EnsemblePropertyValues
+    MolecularDynamics, MolecularDynamicsMethod, EnsembleProperty, EnsemblePropertyValues,
+    CorrelationFunction, CorrelationFunctionValues
 )
 from .metainfo.h5md import ParamEntry, CalcEntry, Author
 # from nomad.atomutils import get_molecules_from_bond_list, is_same_molecule, get_composition
@@ -746,6 +747,8 @@ class H5MDParser(FileParser):
                 for quant_name, val in observable.items():
                     if quant_name == 'val':
                         continue
+                    if quant_name == 'bins':
+                        continue
                     if quant_name in EnsembleProperty.__dict__.keys():
                         sec_ensemble.m_set(sec_ensemble.m_get_quantity_definition(quant_name), val)
                     if quant_name in EnsemblePropertyValues.__dict__.keys():
@@ -754,15 +757,35 @@ class H5MDParser(FileParser):
 
                 val = observable.get('value')
                 if val is not None:
-                    print(val)
                     sec_ensemble_vals.value_unit = str(val.units) if hasattr(val, 'units') else None
                     sec_ensemble_vals.value_magnitude = val.magnitude if hasattr(val, 'units') else val
 
                 bins = observable.get('bins')
                 if bins is not None:
-                    print(val)
                     sec_ensemble_vals.bins_unit = str(bins.units) if hasattr(bins, 'units') else None
                     sec_ensemble_vals.bins_magnitude = bins.magnitude if hasattr(bins, 'units') else bins
+
+        correlation_function_observables = self.observable_info.get('correlation_function')
+        sec_results = workflow.results
+        for observable_type, observable_dict in correlation_function_observables.items():
+            sec_correlation = sec_results.m_create(CorrelationFunction)
+            sec_correlation.label = observable_type
+            for key, observable in observable_dict.items():
+                sec_correlation_vals = sec_correlation.m_create(CorrelationFunctionValues)
+                sec_correlation_vals.label = key
+                for quant_name, val in observable.items():
+                    if quant_name == 'val':
+                        continue
+                    if quant_name in CorrelationFunction.__dict__.keys():
+                        sec_correlation.m_set(sec_correlation.m_get_quantity_definition(quant_name), val)
+                    if quant_name in CorrelationFunctionValues.__dict__.keys():
+                        sec_correlation_vals.m_set(sec_correlation_vals.m_get_quantity_definition(quant_name), val)
+                    ## TODO Still need to add custom values here.
+
+                val = observable.get('value')
+                if val is not None:
+                    sec_correlation_vals.value_unit = str(val.units) if hasattr(val, 'units') else None
+                    sec_correlation_vals.value_magnitude = val.magnitude if hasattr(val, 'units') else val
 
                 # map_key = observable_type + '-' + key if key else observable_type
                 # print(map_key)

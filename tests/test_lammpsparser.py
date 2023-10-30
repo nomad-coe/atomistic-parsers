@@ -67,6 +67,7 @@ def test_nvt(parser):
     assert sec_system[5].atoms.lattice_vectors[1][1].magnitude == approx(2.24235e-09)
     assert False not in sec_system[0].atoms.periodic
     assert sec_system[80].atoms.labels[91:96] == ['H', 'H', 'H', 'C', 'C']
+    assert sec_system[0].atoms.bond_list[200][0] == 194
 
     sec_scc = sec_run.calculation
     assert len(sec_scc) == 201

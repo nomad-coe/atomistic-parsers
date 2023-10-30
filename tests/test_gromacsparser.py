@@ -99,6 +99,7 @@ def test_md_verbose(parser):
     assert sec_systems[1].atoms.positions[800][1].magnitude == approx(2.4740036e-09)
     assert sec_systems[0].atoms.velocities[500][0].magnitude == approx(869.4773)
     assert sec_systems[1].atoms.lattice_vectors[2][2].magnitude == approx(2.469158e-09)
+    assert sec_systems[0].atoms.bond_list[200][0] == 289
 
     sec_method = sec_run.method
     assert len(sec_method) == 1

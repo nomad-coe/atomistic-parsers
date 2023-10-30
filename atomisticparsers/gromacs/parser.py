@@ -42,13 +42,8 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.workflow import (
     GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
 )
-<<<<<<< HEAD
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser, MDParser
-=======
-from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files, CalcEntry
-from atomisticparsers.utils import MDAnalysisParser
->>>>>>> aaf4eaa (reorganized interactions in lammps parse_method into groups, created bond list in system 0 atoms section, and moved the bond list creation to atomutils)
 from nomad.atomutils import get_bond_list_from_model_contributions
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'

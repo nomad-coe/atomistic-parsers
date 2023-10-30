@@ -55,19 +55,19 @@ def test_md(parser):
     assert sec_method.integration_timestep.units == 'second'
     assert sec_method.n_steps == 20000000
     assert sec_method.coordinate_save_frequency == 10000
-    assert sec_method.thermostat_parameters.x_h5md_thermostat_type == 'langevin_leap_frog'
-    assert sec_method.thermostat_parameters.reference_temperature.magnitude == 300.0
-    assert sec_method.thermostat_parameters.reference_temperature.units == 'kelvin'
-    assert sec_method.thermostat_parameters.coupling_constant.magnitude == 1e-12
-    assert sec_method.thermostat_parameters.coupling_constant.units == 'second'
-    assert sec_method.barostat_parameters.barostat_type == 'berendsen'
-    assert sec_method.barostat_parameters.coupling_type == 'isotropic'
-    assert np.all(sec_method.barostat_parameters.reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
-    assert sec_method.barostat_parameters.reference_pressure.units == 'pascal'
-    assert np.all(sec_method.barostat_parameters.coupling_constant.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
-    assert sec_method.barostat_parameters.coupling_constant.units == 'second'
-    assert np.all(sec_method.barostat_parameters.compressibility.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
-    assert sec_method.barostat_parameters.compressibility.units == '1 / pascal'
+    assert sec_method.thermostat_parameters[0].x_h5md_thermostat_type == 'langevin_leap_frog'
+    assert sec_method.thermostat_parameters[0].reference_temperature.magnitude == 300.0
+    assert sec_method.thermostat_parameters[0].reference_temperature.units == 'kelvin'
+    assert sec_method.thermostat_parameters[0].coupling_constant.magnitude == 1e-12
+    assert sec_method.thermostat_parameters[0].coupling_constant.units == 'second'
+    assert sec_method.barostat_parameters[0].barostat_type == 'berendsen'
+    assert sec_method.barostat_parameters[0].coupling_type == 'isotropic'
+    assert np.all(sec_method.barostat_parameters[0].reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
+    assert sec_method.barostat_parameters[0].reference_pressure.units == 'pascal'
+    assert np.all(sec_method.barostat_parameters[0].coupling_constant.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
+    assert sec_method.barostat_parameters[0].coupling_constant.units == 'second'
+    assert np.all(sec_method.barostat_parameters[0].compressibility.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
+    assert sec_method.barostat_parameters[0].compressibility.units == '1 / pascal'
 
     sec_calc = sec_run.calculation
     assert len(sec_calc) == 5

@@ -44,6 +44,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
 )
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser, MDParser
+from nomad.atomutils import get_bond_list_from_model_contributions
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
 re_n = r'[\n\r]'
@@ -704,6 +705,10 @@ class GromacsParser(MDParser):
             if positions is None:
                 continue
 
+            bond_list = []
+            if n == 0:  # TODO add references to the bond list for other steps
+                bond_list = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
+
             self.parse_trajectory_step({
                 'atoms': {
                     'n_atoms': self.traj_parser.get_n_atoms(n),
@@ -711,7 +716,8 @@ class GromacsParser(MDParser):
                     'lattice_vectors': self.traj_parser.get_lattice_vectors(n),
                     'labels': self.traj_parser.get_atom_labels(n),
                     'positions': positions,
-                    'velocities': self.traj_parser.get_velocities(n)
+                    'velocities': self.traj_parser.get_velocities(n),
+                    'bond_list': bond_list
                 }
             })
 

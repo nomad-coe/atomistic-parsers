@@ -36,6 +36,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
 )
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
 from atomisticparsers.utils import MDAnalysisParser, MDParser
+from nomad.atomutils import get_bond_list_from_model_contributions
 
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
@@ -958,6 +959,9 @@ class LammpsParser(MDParser):
             velocities = self.traj_parsers.eval('get_velocities', traj_n)
             if velocities is not None:
                 velocities = apply_unit(velocities, 'velocity')
+            bond_list = []
+            if traj_n == 0:  # TODO add references to the bond list for other steps
+                bond_list = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
             self.parse_trajectory_step({
                 'atoms': {
                     'n_atoms': self.traj_parsers.eval('get_n_atoms', traj_n),
@@ -965,7 +969,8 @@ class LammpsParser(MDParser):
                     'periodic': self.traj_parsers.eval('get_pbc', traj_n),
                     'positions': apply_unit(self.traj_parsers.eval('get_positions', traj_n), 'distance'),
                     'labels': self.traj_parsers.eval('get_atom_labels', traj_n),
-                    'velocities': velocities
+                    'velocities': velocities,
+                    'bond_list': bond_list
                 }
             })
 

@@ -202,12 +202,12 @@ class MDParser(AtomisticParser):
         self.parse_section(data, sec_workflow)
         self.archive.workflow2 = sec_workflow
 
-    def parse_interactions(self, interactions: Dict[str, Any], sec_model: MSection) -> None:
+    def parse_interactions(self, interactions: List[Dict], sec_model: MSection) -> None:
 
-        interaction_key_list = Interaction.__dict__.keys()
+        interaction_key_list = [
+            'type', 'name', 'n_inter', 'n_atoms', 'atom_labels', 'atom_indices',
+            'functional_form', 'n_parameters', 'parameters']
         interaction_dict = {}
-        interaction_keys_remove = ['__module__', '__doc__', 'm_def']
-        interaction_key_list = [key for key in interaction_key_list if key not in interaction_keys_remove]
         for interaction_key in interaction_key_list:
             interaction_dict[interaction_key] = np.array([interaction.get(interaction_key) for interaction in interactions], dtype=object)
         interaction_dict = {key: val for key, val in interaction_dict.items()}
@@ -230,12 +230,8 @@ class MDParser(AtomisticParser):
                     interaction_vals = interaction_vals.tolist()
                 elif key == 'n_atoms':
                     interaction_vals = interaction_vals[0]
-                try:
-                    setattr(sec_interaction, key, interaction_vals)
-                except Exception:
-                    self.logger.warning(
-                        'Some issue trying to store ' + key + 'in Interactions section.'
-                        ' Possibly a data type problem. Ignoring these values.')
+                if hasattr(sec_interaction, key):
+                    sec_interaction.m_set(sec_interaction.m_get_quantity_definition(key), interaction_vals)
 
-            if not sec_interaction.get('n_atoms'):
+            if not sec_interaction.n_atoms:
                 sec_interaction.n_atoms = len(sec_interaction.get('atom_indices')[0]) if sec_interaction.get('atom_indices') is not None else None

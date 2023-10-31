@@ -19,11 +19,12 @@
 
 from typing import Any, Dict, List
 import numpy as np
+import inspect
 from collections.abc import Iterable
 
 from nomad.utils import get_logger
 from nomad.datamodel import EntryArchive
-from nomad.metainfo import MSection, SubSection
+from nomad.metainfo import MSection, SubSection, Quantity
 from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
@@ -204,9 +205,7 @@ class MDParser(AtomisticParser):
 
     def parse_interactions(self, interactions: List[Dict], sec_model: MSection) -> None:
 
-        interaction_key_list = [
-            'type', 'name', 'n_inter', 'n_atoms', 'atom_labels', 'atom_indices',
-            'functional_form', 'n_parameters', 'parameters']
+        interaction_key_list = [n for n, q in inspect.getmembers(Interaction) if isinstance(q, Quantity)]
         interaction_dict = {}
         for interaction_key in interaction_key_list:
             interaction_dict[interaction_key] = np.array([interaction.get(interaction_key) for interaction in interactions], dtype=object)

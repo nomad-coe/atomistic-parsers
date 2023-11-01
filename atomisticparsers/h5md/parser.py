@@ -20,10 +20,11 @@ import os
 import numpy as np
 import logging
 import h5py
+from abc import abstractmethod
 
 # from nomad.units import ureg
 from nomad.parsing.file_parser import FileParser
-from nomad.datamodel.metainfo.simulation.run import Run, Program  #, TimeRun
+from nomad.datamodel.metainfo.simulation.run import Run, Program  # TimeRun
 from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, Interaction, AtomParameters, ForceCalculations, NeighborSearching
 )
@@ -46,6 +47,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
     MolecularDynamics, MolecularDynamicsMethod, EnsembleProperty, EnsemblePropertyValues,
     CorrelationFunction, CorrelationFunctionValues
 )
+from atomisticparsers.utils import MDAnalysisParser, MDParser
 from .metainfo.h5md import ParamEntry, CalcEntry, Author
 # from nomad.atomutils import get_molecules_from_bond_list, is_same_molecule, get_composition
 from nomad.units import ureg
@@ -53,35 +55,9 @@ from nomad.units import ureg
 MOL = 6.022140857e+23
 
 
-class H5MDParser(FileParser):
+class HDF5Parser(FileParser):
     def __init__(self):
-        self._n_frames = None
-        self._n_atoms = None
-        self._frame_rate = None
-        self._atom_parameters = None
-        self._system_info = None
-        self._observable_info = None
-        self._parameter_info = None
-        self._hdf5_particle_group_all = None
-        self._hdf5_positions_all = None
-        # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 2500000
-
-        self._nomad_to_particles_group_map = {
-            'positions': 'position',
-            'velocities': 'velocity',
-            'forces': 'force',
-            'labels': 'species_label',
-            'label': 'force_field_label',
-            'mass': 'mass',
-            'charge': 'charge',
-        }
-
-        self._nomad_to_box_group_map = {
-            'lattice_vectors': 'edges',
-            'periodic': 'boundary',
-            'dimension': 'dimension'
-        }
+        super().__init__(None)
 
     @property
     def filehdf5(self):
@@ -89,25 +65,9 @@ class H5MDParser(FileParser):
             try:
                 self._file_handler = h5py.File(self.mainfile, 'r')
             except Exception:
-                self.logger.error('Error reading hdf5(h5MD) file.')
+                self.logger.error('Error reading hdf5 file.')
 
         return self._file_handler
-
-    @property
-    def hdf5_particle_group_all(self):
-        if self._hdf5_particle_group_all is None:
-            if not self.filehdf5:
-                return
-            self._hdf5_particle_group_all = self.hdf5_getter(self.filehdf5, 'particles.all')
-        return self._hdf5_particle_group_all
-
-    @property
-    def hdf5_positions_all(self):
-        if self._hdf5_positions_all is None:
-            if self.hdf5_particle_group_all is None:
-                return
-            self._hdf5_positions_all = self.hdf5_getter(self.hdf5_particle_group_all, 'position.value')
-        return self._hdf5_positions_all
 
     def apply_unit(self, quantity, unit, unit_factor):
 
@@ -173,10 +133,62 @@ class H5MDParser(FileParser):
 
         return self.decode_hdf5_bytes(source, default)
 
+    def parse(self, quantity_key: str = None, **kwargs):
+        pass
+
+
+class H5MDParser(MDParser):
+    def __init__(self):
+        super().__init__()
+        self._data_parser = HDF5Parser()
+        self._n_frames = None
+        self._n_atoms = None
+        self._frame_rate = None
+        self._atom_parameters = None
+        self._system_info = None
+        self._observable_info = None
+        self._parameter_info = None
+        self._hdf5_particle_group_all = None
+        self._hdf5_positions_all = None
+        # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
+        self._cum_max_atoms = 2500000
+
+        self._nomad_to_particles_group_map = {
+            'positions': 'position',
+            'velocities': 'velocity',
+            'forces': 'force',
+            'labels': 'species_label',
+            'label': 'force_field_label',
+            'mass': 'mass',
+            'charge': 'charge',
+        }
+
+        self._nomad_to_box_group_map = {
+            'lattice_vectors': 'edges',
+            'periodic': 'boundary',
+            'dimension': 'dimension'
+        }
+
+    @property
+    def hdf5_particle_group_all(self):
+        if self._hdf5_particle_group_all is None:
+            if not self._data_parser.filehdf5:
+                return
+            self._hdf5_particle_group_all = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'particles.all')
+        return self._hdf5_particle_group_all
+
+    @property
+    def hdf5_positions_all(self):
+        if self._hdf5_positions_all is None:
+            if self.hdf5_particle_group_all is None:
+                return
+            self._hdf5_positions_all = self._data_parser.hdf5_getter(self.hdf5_particle_group_all, 'position.value')
+        return self._hdf5_positions_all
+
     @property
     def n_frames(self):
         if self._n_frames is None:
-            if not self.filehdf5:
+            if not self._data_parser.filehdf5:
                 return
             self._n_frames = len(self.hdf5_positions_all) if self.hdf5_positions_all is not None else None
         return self._n_frames
@@ -184,7 +196,7 @@ class H5MDParser(FileParser):
     @property
     def n_atoms(self):
         if self._n_atoms is None:
-            if not self.filehdf5:
+            if not self._data_parser.filehdf5:
                 return
             self._n_atoms = [len(pos) for pos in self.hdf5_positions_all] if self.hdf5_positions_all is not None else None
         return self._n_atoms
@@ -202,17 +214,17 @@ class H5MDParser(FileParser):
     @property
     def atom_parameters(self):
         if self._atom_parameters is None:
-            if not self.filehdf5:
+            if not self._data_parser.filehdf5:
                 return
             self._atom_parameters = {}
             n_atoms = self.n_atoms[0]  # TODO Extend to non-static n_atoms
             if n_atoms is None:
                 return
-            particles = self.hdf5_getter(self.filehdf5, 'particles.all')  # TODO Extend to arbitrary particle groups
+            particles = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'particles.all')  # TODO Extend to arbitrary particle groups
 
             atom_parameter_keys = ['label', 'mass', 'charge']
             for key in atom_parameter_keys:
-                value = self.hdf5_getter(particles, self._nomad_to_particles_group_map[key])
+                value = self._data_parser.hdf5_getter(particles, self._nomad_to_particles_group_map[key])
                 if value is not None:
                     self._atom_parameters[key] = value
                 else:
@@ -228,7 +240,7 @@ class H5MDParser(FileParser):
     @property
     def system_info(self):
         if self._system_info is None:
-            if not self.filehdf5:
+            if not self._data_parser.filehdf5:
                 return
             self._system_info = {'system': {}, 'calculation': {}}
             particles = self.hdf5_particle_group_all
@@ -241,20 +253,20 @@ class H5MDParser(FileParser):
             self._system_info['system']['positions'] = positions
             self._system_info['system']['n_atoms'] = self.n_atoms
             # get the times and steps based on the positions
-            self._system_info['system']['steps'] = self.hdf5_getter(particles, 'position.step')
-            self._system_info['system']['times'] = self.hdf5_getter(particles, 'position.time')
+            self._system_info['system']['steps'] = self._data_parser.hdf5_getter(particles, 'position.step')
+            self._system_info['system']['times'] = self._data_parser.hdf5_getter(particles, 'position.time')
 
             # get the remaining system particle quantities
             system_keys = {'labels': 'system', 'velocities': 'system', 'forces': 'calculation'}
             for key, sec_key in system_keys.items():
-                value = self.hdf5_getter(particles, self._nomad_to_particles_group_map[key])
+                value = self._data_parser.hdf5_getter(particles, self._nomad_to_particles_group_map[key])
                 if value is not None:
                     self._system_info[sec_key][key] = value
                 else:
                     continue
 
                 if type(self._system_info[sec_key][key]) == h5py.Group:
-                    self._system_info[sec_key][key] = self.hdf5_getter(self._system_info[sec_key][key], 'value')
+                    self._system_info[sec_key][key] = self._data_parser.hdf5_getter(self._system_info[sec_key][key], 'value')
                     if self._system_info[sec_key][key] is None:
                         continue
                     elif len(self._system_info[sec_key][key]) != n_frames:  # TODO Should really check that the stored times for these quantities are exact, not just the same length
@@ -266,26 +278,26 @@ class H5MDParser(FileParser):
             # TODO Should we extend this to pick up additional attributes in the particles group? Or require that we follow the H5MD schema strictly?
 
             # get the system box quantities
-            box = self.hdf5_getter(self.filehdf5, 'particles.all.box')
+            box = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'particles.all.box')
             if box is None:
                 return
 
             box_attributes = {'dimension': 'system', 'periodic': 'system'}
             for box_key, sec_key in box_attributes.items():
-                value = self.hdf5_attr_getter(particles, 'box', self._nomad_to_box_group_map[box_key])
+                value = self._data_parser.hdf5_attr_getter(particles, 'box', self._nomad_to_box_group_map[box_key])
                 if value is not None:
                     self._system_info[sec_key][box_key] = [value] * n_frames
 
             box_keys = {'lattice_vectors': 'system'}
             for box_key, sec_key in box_keys.items():
-                value = self.hdf5_getter(box, self._nomad_to_box_group_map[box_key])
+                value = self._data_parser.hdf5_getter(box, self._nomad_to_box_group_map[box_key])
                 if value is not None:
                     self._system_info[sec_key][box_key] = value
                 else:
                     continue
 
                 if type(self._system_info[sec_key][box_key]) == h5py.Group:
-                    self._system_info[sec_key][box_key] = self.hdf5_getter(self._system_info[sec_key][box_key], 'value')
+                    self._system_info[sec_key][box_key] = self._data_parser.hdf5_getter(self._system_info[sec_key][box_key], 'value')
                     if self._system_info[sec_key][box_key] is None:
                         continue
                     elif len(self._system_info[sec_key][box_key]) != n_frames:  # TODO Should really check that the stored times for these quantities are exact, not just the same length
@@ -344,8 +356,8 @@ class H5MDParser(FileParser):
             def get_observable_paths(observable_group, current_path, paths):
                 for obs_key in observable_group.keys():
                     path = obs_key + '.'
-                    observable = self.hdf5_getter(observable_group, obs_key)
-                    observable_type = self.hdf5_getter(observable_group, obs_key).attrs.get('type')
+                    observable = self._data_parser.hdf5_getter(observable_group, obs_key)
+                    observable_type = self._data_parser.hdf5_getter(observable_group, obs_key).attrs.get('type')
                     if not observable_type:
                         paths = get_observable_paths(observable, current_path + path, paths)
                     else:
@@ -353,19 +365,19 @@ class H5MDParser(FileParser):
 
                 return paths
 
-            observable_group = self.hdf5_getter(self.filehdf5, 'observables')  # TODO Extend to arbitrary particle groups
+            observable_group = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'observables')  # TODO Extend to arbitrary particle groups
             observable_paths = get_observable_paths(observable_group, current_path='', paths=[])
 
             for path in observable_paths:
-                observable = self.hdf5_getter(observable_group, path)
-                observable_type = self.hdf5_getter(observable_group, path).attrs.get('type')
+                observable = self._data_parser.hdf5_getter(observable_group, path)
+                observable_type = self._data_parser.hdf5_getter(observable_group, path).attrs.get('type')
                 observable_name = path.split('.')[0]
                 observable_label = '-'.join(path.split('.')[1:]) if len(path.split('.')) > 1 else ''
                 if observable_name not in self._observable_info[observable_type].keys():
                     self._observable_info[observable_type][observable_name] = {}
                 self._observable_info[observable_type][observable_name][observable_label] = {}
                 for key in observable.keys():
-                    observable_attribute = self.hdf5_getter(observable, key)
+                    observable_attribute = self._data_parser.hdf5_getter(observable, key)
                     if type(observable_attribute) == h5py.Group:
                         self.logger.warning('Group structures within individual observables not supported. ' + key + ' values will not be stored.')
                         continue
@@ -374,7 +386,7 @@ class H5MDParser(FileParser):
 
     def get_atomsgroup_fromh5md(self, nomad_sec, h5md_sec_particlesgroup):
         for i_key, key in enumerate(h5md_sec_particlesgroup.keys()):
-            particles_group = {group_key: self.hdf5_getter(h5md_sec_particlesgroup[key], group_key) for group_key in h5md_sec_particlesgroup[key].keys()}
+            particles_group = {group_key: self._data_parser.hdf5_getter(h5md_sec_particlesgroup[key], group_key) for group_key in h5md_sec_particlesgroup[key].keys()}
             sec_atomsgroup = nomad_sec.m_create(AtomsGroup)
             sec_atomsgroup.type = particles_group.pop('type', None)
             sec_atomsgroup.index = i_key
@@ -428,7 +440,7 @@ class H5MDParser(FileParser):
                     if type(val) == h5py.Group:
                         param_dict[key] = get_parameters_recursive(val)
                     else:
-                        param_dict[key] = self.hdf5_getter(parameter_group, key)
+                        param_dict[key] = self._data_parser.hdf5_getter(parameter_group, key)
                         if type(param_dict[key]) == str:
                             param_dict[key] = param_dict[key].lower()
                         elif 'int' in type(param_dict[key]).__name__:
@@ -436,11 +448,11 @@ class H5MDParser(FileParser):
 
                 return param_dict
 
-            parameter_group = self.hdf5_getter(self.filehdf5, 'parameters')
-            force_calculations_group = self.hdf5_getter(parameter_group, 'force_calculations')
+            parameter_group = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'parameters')
+            force_calculations_group = self._data_parser.hdf5_getter(parameter_group, 'force_calculations')
             if force_calculations_group is not None:
                 self._parameter_info['force_calculations'] = get_parameters_recursive(force_calculations_group)
-            workflow_group = self.hdf5_getter(parameter_group, 'workflow')
+            workflow_group = self._data_parser.hdf5_getter(parameter_group, 'workflow')
             if workflow_group is not None:
                 self._parameter_info['workflow'] = get_parameters_recursive(workflow_group)
 
@@ -643,11 +655,11 @@ class H5MDParser(FileParser):
                     setattr(sec_atoms, key, system_info.get(key, [None] * (frame + 1))[frame])
 
             if frame == 0:  # TODO extend to time-dependent topologies
-                connectivity = self.hdf5_getter(self.filehdf5, 'connectivity', None)
-                bond_list = self.hdf5_getter(connectivity, 'bonds')
+                connectivity = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'connectivity', None)
+                bond_list = self._data_parser.hdf5_getter(connectivity, 'bonds')
                 if bond_list is not None:
                     setattr(sec_atoms, 'bond_list', bond_list)
-                topology = self.hdf5_getter(connectivity, 'particles_group', None)
+                topology = self._data_parser.hdf5_getter(connectivity, 'particles_group', None)
                 if topology:
                     self.get_atomsgroup_fromh5md(sec_system, topology)
 
@@ -665,14 +677,14 @@ class H5MDParser(FileParser):
                 setattr(sec_atom, key, self.atom_parameters[key][n])
 
         # Get the interactions
-        connectivity = self.hdf5_getter(self.filehdf5, 'connectivity', None)
+        connectivity = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'connectivity', None)
         if not connectivity:
             return
 
         atom_labels = self.atom_parameters.get('label')
         interaction_keys = ['bonds', 'angles', 'dihedrals', 'impropers']
         for interaction_key in interaction_keys:
-            interaction_list = self.hdf5_getter(connectivity, interaction_key)
+            interaction_list = self._data_parser.hdf5_getter(connectivity, interaction_key)
             if interaction_list is None:
                 continue
             elif type(interaction_list) == h5py.Group:
@@ -753,7 +765,7 @@ class H5MDParser(FileParser):
                         sec_ensemble.m_set(sec_ensemble.m_get_quantity_definition(quant_name), val)
                     if quant_name in EnsemblePropertyValues.__dict__.keys():
                         sec_ensemble_vals.m_set(sec_ensemble_vals.m_get_quantity_definition(quant_name), val)
-                    ## TODO Still need to add custom values here.
+                    # TODO Still need to add custom values here.
 
                 val = observable.get('value')
                 if val is not None:
@@ -780,7 +792,7 @@ class H5MDParser(FileParser):
                         sec_correlation.m_set(sec_correlation.m_get_quantity_definition(quant_name), val)
                     if quant_name in CorrelationFunctionValues.__dict__.keys():
                         sec_correlation_vals.m_set(sec_correlation_vals.m_get_quantity_definition(quant_name), val)
-                    ## TODO Still need to add custom values here.
+                    # TODO Still need to add custom values here.
 
                 val = observable.get('value')
                 if val is not None:
@@ -844,7 +856,7 @@ class H5MDParser(FileParser):
 
     def init_parser(self):
 
-        self.mainfile = self.filepath
+        self._data_parser.mainfile = self.filepath
 
     def parse(self, filepath, archive, logger):
 
@@ -852,27 +864,27 @@ class H5MDParser(FileParser):
         self.archive = archive
         self.logger = logging.getLogger(__name__) if logger is None else logger
         self._maindir = os.path.dirname(self.filepath)
-        self._hoomdblue_files = os.listdir(self._maindir)
+        self._h5md_files = os.listdir(self._maindir)
         self._basename = os.path.basename(filepath).rsplit('.', 1)[0]
 
         self.init_parser()
 
-        if self.filehdf5 is None:
+        if self._data_parser.filehdf5 is None:
             return
 
         sec_run = self.archive.m_create(Run)
 
-        program_name = self.hdf5_attr_getter(self.filehdf5, 'h5md.program', 'name', None)
-        program_version = self.hdf5_attr_getter(self.filehdf5, 'h5md.program', 'version', None)
+        program_name = self._data_parser.hdf5_attr_getter(self._data_parser.filehdf5, 'h5md.program', 'name', None)
+        program_version = self._data_parser.hdf5_attr_getter(self._data_parser.filehdf5, 'h5md.program', 'version', None)
         sec_run.program = Program(name=program_name, version=program_version)
-        h5md_version = self.hdf5_attr_getter(self.filehdf5, 'h5md', 'version', None)
+        h5md_version = self._data_parser.hdf5_attr_getter(self._data_parser.filehdf5, 'h5md', 'version', None)
         # h5md_version = '.'.join([str(i) for i in h5md_version]) if h5md_version is not None else None
         sec_run.x_h5md_version = h5md_version
-        h5md_author_name = self.hdf5_attr_getter(self.filehdf5, 'h5md.author', 'name', None)
-        h5md_author_email = self.hdf5_attr_getter(self.filehdf5, 'h5md.author', 'email', None)
+        h5md_author_name = self._data_parser.hdf5_attr_getter(self._data_parser.filehdf5, 'h5md.author', 'name', None)
+        h5md_author_email = self._data_parser.hdf5_attr_getter(self._data_parser.filehdf5, 'h5md.author', 'email', None)
         sec_run.x_h5md_author = Author(name=h5md_author_name, email=h5md_author_email)
-        h5md_creator_name = self.hdf5_attr_getter(self.filehdf5, 'h5md.creator', 'name', None)
-        h5md_creator_version = self.hdf5_attr_getter(self.filehdf5, 'h5md.creator', 'version', None)
+        h5md_creator_name = self._data_parser.hdf5_attr_getter(self._data_parser.filehdf5, 'h5md.creator', 'name', None)
+        h5md_creator_version = self._data_parser.hdf5_attr_getter(self._data_parser.filehdf5, 'h5md.creator', 'version', None)
         sec_run.x_h5md_creator = Program(name=h5md_creator_name, version=h5md_creator_version)
 
         self.parse_method()

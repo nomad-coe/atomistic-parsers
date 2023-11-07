@@ -50,7 +50,7 @@ def test_0(parser):
     assert sec_atom_parameters[0].x_dl_poly_nrept == 500
     sec_model = sec_method.force_field.model[0]
     assert len(sec_model.contributions) == 3
-    assert sec_model.contributions[0].atom_labels == ['Na+', 'Na+']
+    assert (sec_model.contributions[0].atom_labels == ['Na+', 'Na+']).all()
     assert sec_model.contributions[1].functional_form == 'Born-Huggins-Meyer'
     assert sec_model.contributions[2].parameters[1] == approx(3.1545)
 
@@ -91,7 +91,7 @@ def test_1(parser):
 
     sec_model = archive.run[0].method[0].force_field.model[0]
     assert len(sec_model.contributions) == 1
-    assert sec_model.contributions[0].atom_labels == ['Al', 'Al']
+    assert (sec_model.contributions[0].atom_labels == ['Al', 'Al']).all()
     assert sec_model.contributions[0].functional_form == 'Sutton-Chen'
     assert sec_model.contributions[0].parameters[4] == approx(16.399)
 

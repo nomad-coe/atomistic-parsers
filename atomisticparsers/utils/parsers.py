@@ -215,7 +215,7 @@ class MDParser(AtomisticParser):
             sec_interaction = sec_model.m_create(Interaction)
             interaction_indices = np.where(interaction_dict['type'] == interaction_type)[0]
             sec_interaction.type = interaction_type
-            sec_interaction.n_inter = len(interaction_indices)
+            sec_interaction.n_interactions = len(interaction_indices)
             sec_interaction.n_atoms
             for key, val in interaction_dict.items():
                 if key == 'type':

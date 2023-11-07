@@ -34,7 +34,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program, TimeRun
 from nomad.datamodel.metainfo.simulation.method import (
-    NeighborSearching, ForceCalculations, Method, ForceField, Model, Interaction, AtomParameters
+    NeighborSearching, ForceCalculations, Method, ForceField, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup
@@ -44,6 +44,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
 )
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
 from atomisticparsers.utils import MDAnalysisParser, MDParser
+from nomad.atomutils import get_bond_list_from_model_contributions
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
 re_n = r'[\n\r]'
@@ -704,6 +705,10 @@ class GromacsParser(MDParser):
             if positions is None:
                 continue
 
+            bond_list = []
+            if n == 0:  # TODO add references to the bond list for other steps
+                bond_list = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
+
             self.parse_trajectory_step({
                 'atoms': {
                     'n_atoms': self.traj_parser.get_n_atoms(n),
@@ -711,7 +716,8 @@ class GromacsParser(MDParser):
                     'lattice_vectors': self.traj_parser.get_lattice_vectors(n),
                     'labels': self.traj_parser.get_atom_labels(n),
                     'positions': positions,
-                    'velocities': self.traj_parser.get_velocities(n)
+                    'velocities': self.traj_parser.get_velocities(n),
+                    'bond_list': bond_list
                 }
             })
 
@@ -827,10 +833,7 @@ class GromacsParser(MDParser):
             self.logger.error('Error parsing interactions.')
 
         interactions = self.traj_parser.get_interactions()
-        for interaction in interactions:
-            sec_interaction = sec_model.m_create(Interaction)
-            for key, val in interaction.items():
-                setattr(sec_interaction, key, val)
+        self.parse_interactions(interactions, sec_model)
 
         input_parameters = self.log_parser.get('input_parameters', {})
         sec_force_calculations = sec_force_field.m_create(ForceCalculations)

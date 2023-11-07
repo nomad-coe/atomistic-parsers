@@ -26,7 +26,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import Quantity, TextParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
-    NeighborSearching, ForceCalculations, ForceField, Method, Interaction, Model, AtomParameters
+    NeighborSearching, ForceCalculations, ForceField, Method, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup
@@ -36,6 +36,7 @@ from nomad.datamodel.metainfo.simulation.workflow import (
 )
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters
 from atomisticparsers.utils import MDAnalysisParser, MDParser
+from nomad.atomutils import get_bond_list_from_model_contributions
 
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
@@ -958,6 +959,9 @@ class LammpsParser(MDParser):
             velocities = self.traj_parsers.eval('get_velocities', traj_n)
             if velocities is not None:
                 velocities = apply_unit(velocities, 'velocity')
+            bond_list = []
+            if traj_n == 0:  # TODO add references to the bond list for other steps
+                bond_list = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
             self.parse_trajectory_step({
                 'atoms': {
                     'n_atoms': self.traj_parsers.eval('get_n_atoms', traj_n),
@@ -965,7 +969,8 @@ class LammpsParser(MDParser):
                     'periodic': self.traj_parsers.eval('get_pbc', traj_n),
                     'positions': apply_unit(self.traj_parsers.eval('get_positions', traj_n), 'distance'),
                     'labels': self.traj_parsers.eval('get_atom_labels', traj_n),
-                    'velocities': velocities
+                    'velocities': velocities,
+                    'bond_list': bond_list
                 }
             })
 
@@ -1080,18 +1085,6 @@ class LammpsParser(MDParser):
         # Can you add the implementation here, and then we can make the MDA implementation below as a backup?
         # Can you also get the charges somehow?
 
-        # This is storing the input parameters/command for the interaction at the moment, which is already stored in the "force_calculations" section
-        # interactions = self.log_parser.get_interactions()
-        # if not interactions:
-        #     interactions = self.data_parser.get_interactions()
-
-        # for interaction in interactions:
-        #     if not interaction[0] or interaction[1] is None or np.size(interaction[1]) == 0:
-        #         continue
-        #     sec_interaction = sec_model.m_create(Interaction)
-        #     sec_interaction.type = str(interaction[0])
-        #     sec_interaction.parameters = [[float(ai) for ai in a] for a in interaction[1]]
-
         # parse method with MDAnalysis (should be a backup for the charges and masses...but the interactions are most easily read from the MDA universe right now)
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
         if n_atoms is not None:
@@ -1101,12 +1094,9 @@ class LammpsParser(MDParser):
                 sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
                 sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
 
+        # TODO address case types are numbered instead of giving atom labels (fix tests accordingly)
         interactions = self._mdanalysistraj_parser.get_interactions()
-        interactions = interactions if interactions is not None else []
-        for interaction in interactions:
-            sec_interaction = sec_model.m_create(Interaction)
-            for key, val in interaction.items():
-                setattr(sec_interaction, key, val)
+        self.parse_interactions(interactions, sec_model)
 
         # Force Calculation Parameters
         sec_force_calculations = sec_force_field.m_create(ForceCalculations)

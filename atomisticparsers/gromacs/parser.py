@@ -839,15 +839,11 @@ class GromacsParser(MDParser):
             self.logger.error('Error parsing interactions.')
 
         interactions = self.traj_parser.get_interactions()
-<<<<<<< HEAD
-<<<<<<< HEAD
         self.parse_interactions(interactions, sec_model)
-=======
-=======
+
         #  TODO The section below is duplicated in the lammps and gromacs parsers. We should really move them
         #       to the MDAnalysis parser, but you must be careful because there are other contributions to interactions
         #       from other (sub)parsers
->>>>>>> aaf4eaa (reorganized interactions in lammps parse_method into groups, created bond list in system 0 atoms section, and moved the bond list creation to atomutils)
         interaction_key_list = Interaction.__dict__.keys()
         interaction_dict = {}
         interaction_keys_remove = ['__module__', '__doc__', 'm_def']
@@ -884,15 +880,6 @@ class GromacsParser(MDParser):
 
             if not sec_interaction.get('n_atoms'):
                 sec_interaction.n_atoms = len(sec_interaction.get('atom_indices')[0]) if sec_interaction.get('atom_indices') is not None else None
-
-        # OLD VERSION WITHOUT GROUPINGS
-        # for interaction in interactions:
-        #     sec_interaction = sec_model.m_create(Interaction)
-        #     for key, val in interaction.items():
-        #         print(key)
-        #         print(val)
-        #         setattr(sec_interaction, key, val)
->>>>>>> 0d6bf49 (adjusted gromacs tests for interaction groupings)
 
         input_parameters = self.log_parser.get('input_parameters', {})
         sec_force_calculations = sec_force_field.m_create(ForceCalculations)

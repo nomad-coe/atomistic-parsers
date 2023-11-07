@@ -1101,9 +1101,8 @@ class LammpsParser(MDParser):
 
         # TODO address case types are numbered instead of giving atom labels (fix tests accordingly)
         interactions = self._mdanalysistraj_parser.get_interactions()
-<<<<<<< HEAD
         self.parse_interactions(interactions, sec_model)
-=======
+
         #  TODO The section below is duplicated in the lammps and gromacs parsers. We should really move them
         #       to the MDAnalysis parser, but you must be careful because there are other contributions to interactions
         #       from other (sub)parsers
@@ -1143,14 +1142,6 @@ class LammpsParser(MDParser):
 
             if not sec_interaction.get('n_atoms'):
                 sec_interaction.n_atoms = len(sec_interaction.get('atom_indices')[0]) if sec_interaction.get('atom_indices') is not None else None
-
-        # OLD VERSION WITHOUT GROUPINGS
-        # interactions = interactions if interactions is not None else []
-        # for interaction in interactions:
-        #     sec_interaction = sec_model.m_create(Interaction)
-        #     for key, val in interaction.items():
-        #         setattr(sec_interaction, key, val)
->>>>>>> aa724bd (corrected new metadata names in Interactions)
 
         # Force Calculation Parameters
         sec_force_calculations = sec_force_field.m_create(ForceCalculations)

@@ -34,7 +34,7 @@ from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program, TimeRun
 from nomad.datamodel.metainfo.simulation.method import (
-    NeighborSearching, ForceCalculations, Method, ForceField, Model, Interaction, AtomParameters
+    NeighborSearching, ForceCalculations, Method, ForceField, Model, AtomParameters
 )
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup

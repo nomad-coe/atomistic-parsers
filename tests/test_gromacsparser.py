@@ -103,12 +103,9 @@ def test_md_verbose(parser):
 
     sec_method = sec_run.method
     assert len(sec_method) == 1
-    # assert len(sec_method[0].force_field.model[0].contributions) == 1127
-    # assert sec_method[0].force_field.model[0].contributions[0].type == 'angle'
-    # assert sec_method[0].force_field.model[0].contributions[1120].parameters[1] == 575.0
     assert len(sec_method[0].force_field.model[0].contributions) == 8
     assert sec_method[0].force_field.model[0].contributions[6].type == 'bond'
-    assert sec_method[0].force_field.model[0].contributions[6].n_inter == 1017
+    assert sec_method[0].force_field.model[0].contributions[6].n_interactions == 1017
     assert sec_method[0].force_field.model[0].contributions[6].n_atoms == 2
     assert sec_method[0].force_field.model[0].contributions[6].atom_labels[10][0] == 'C'
     assert sec_method[0].force_field.model[0].contributions[6].atom_indices[100][1] == 141

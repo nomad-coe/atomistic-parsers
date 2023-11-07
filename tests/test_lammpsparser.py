@@ -55,12 +55,9 @@ def test_nvt(parser):
     assert sec_workflow.method.thermostat_parameters[0].coupling_constant.units == 'second'
 
     sec_method = sec_run.method[0]
-    # assert len(sec_method.force_field.model[0].contributions) == 3744
-    # assert sec_method.force_field.model[0].contributions[2].type == 'angle'
-    # assert sec_method.force_field.model[0].contributions[5].parameters == approx(109.51999892662283)
     assert len(sec_method.force_field.model[0].contributions) == 3
     assert sec_method.force_field.model[0].contributions[1].type == 'bond'
-    assert sec_method.force_field.model[0].contributions[1].n_inter == 666
+    assert sec_method.force_field.model[0].contributions[1].n_interactions == 666
     assert sec_method.force_field.model[0].contributions[1].n_atoms == 2
     assert sec_method.force_field.model[0].contributions[1].atom_indices[100][1] == 103
     assert sec_method.force_field.model[0].contributions[1].parameters[200] == approx(1.1147454117684314)

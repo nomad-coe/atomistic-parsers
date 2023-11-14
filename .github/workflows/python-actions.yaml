@@ -4,7 +4,6 @@ on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -21,17 +20,16 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install .[tests]
+        pip install .[dev]
         pip install ./nomad[parsing,infrastructure]
-    - name: pycodestyle
-      run: |
-        python -m pycodestyle --ignore=E501,E701,E731 *parsers tests
-    - name: pylint
-      run: |
-        python -m pylint *parsers tests
     - name: mypy
       run: |
         python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional *parsers tests
     - name: Test with pytest
       run: |
         python -m pytest -sv tests
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: chartboost/ruff-action@v1

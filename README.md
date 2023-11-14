@@ -90,6 +90,6 @@ Clone the atomistic parsers project and install it in development mode:
 
 ```
 git clone https://github.com/nomad-coe/atomistic-parsers.git atomistic-parsers
-pip install -e atomistic-parsers
+pip install -e "atomistic-parsers[dev]"
 ```
 

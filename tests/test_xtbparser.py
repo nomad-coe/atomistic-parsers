@@ -43,16 +43,17 @@ def test_scf(parser):
     assert sec_run.time_run.date_end > 0
 
     sec_method = sec_run.method
-    assert sec_method[0].x_xtb_setup['# basis functions'] == 6
-    assert sec_method[0].x_xtb_setup['Broyden damping'] == approx(0.4)
+    assert sec_method[0].tb.name == 'xTB'
+    assert sec_method[0].tb.x_xtb_setup['# basis functions'] == 6
+    assert sec_method[0].tb.x_xtb_setup['Broyden damping'] == approx(0.4)
 
-    sec_model = sec_method[0].tb.model
-    assert sec_model[0].hamiltonian[0].parameters['H0-scaling (s, p, d)'][1] == approx(2.23)
-    assert sec_model[0].contributions[0].type == 'dispersion'
-    assert sec_model[0].contributions[0].parameters['a1'][0] == approx(0.52)
-    assert sec_model[0].repulsion[0].parameters['rExp'][0] == approx(1.0)
-    assert sec_model[0].coulomb[0].parameters['third order'][0] == 'shell-resolved'
-    assert sec_model[0].coulomb[0].parameters['cn-shift'][0] == approx(1.2)
+    sec_model = sec_method[0].tb.xtb
+    assert sec_model.hamiltonian[0].parameters['H0-scaling (s, p, d)'][1] == approx(2.23)
+    assert sec_model.contributions[0].type == 'dispersion'
+    assert sec_model.contributions[0].parameters['a1'][0] == approx(0.52)
+    assert sec_model.repulsion[0].parameters['rExp'][0] == approx(1.0)
+    assert sec_model.coulomb[0].parameters['third order'][0] == 'shell-resolved'
+    assert sec_model.coulomb[0].parameters['cn-shift'][0] == approx(1.2)
 
     sec_system = sec_run.system
     assert len(sec_system) == 1

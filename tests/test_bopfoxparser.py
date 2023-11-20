@@ -17,6 +17,7 @@
 #
 
 import pytest
+import numpy as np
 
 from nomad.datamodel import EntryArchive
 from atomisticparsers.bopfox import BOPfoxParser
@@ -44,14 +45,14 @@ def test_energy(parser):
     sec_model = sec_method.tb.xtb
     assert sec_model.name == 'test'
     assert sec_model.hamiltonian[0].name == 'ddsigma'
-    assert sec_model.hamiltonian[1].atom_labels == ['W', 'W']
+    assert (sec_model.hamiltonian[1].atom_labels == ['W', 'W']).all()
     assert sec_model.hamiltonian[2].functional_form == 'screenedpowerlaw'
     assert sec_model.hamiltonian[3].x_bopfox_cutoff == approx(4.4)
     assert sec_model.hamiltonian[4].x_bopfox_dcutoff == approx(1.3)
     assert sec_model.hamiltonian[5].x_bopfox_valence == ['d', 'd']
-    assert sec_model.hamiltonian[6].atom_labels == ['W', 'Mo']
+    assert (sec_model.hamiltonian[6].atom_labels == ['W', 'Mo']).all()
     assert sec_model.hamiltonian[7].parameters[0] == approx(0.8359765)
-    assert sec_model.repulsion[2].atom_labels == ['Mo', 'Mo']
+    assert (sec_model.repulsion[2].atom_labels == ['Mo', 'Mo']).all()
     assert sec_model.repulsion[0].x_bopfox_cutoff == approx(5.0)
     assert sec_model.repulsion[1].parameters[2] == approx(-2.909290858)
     assert sec_model.repulsion[2].functional_form == 'env_Yukawa'

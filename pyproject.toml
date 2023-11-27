@@ -10,7 +10,7 @@ readme = "README.md"
 authors = [{ name = "The NOMAD Authors" }]
 license = { file = "LICENSE" }
 dependencies = [
-    # "nomad-lab[infrastrucutre]",
+    'nomad-lab[infrastructure]@git+https://github.com/nomad-coe/nomad.git#egg=develop',
     'lxml==4.7.1',
     'MDAnalysis',
     'panedr==0.2',

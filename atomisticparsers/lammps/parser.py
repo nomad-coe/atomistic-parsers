@@ -31,7 +31,7 @@ from nomad.datamodel.metainfo.simulation.method import (
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup
 )
-from nomad.datamodel.metainfo.simulation.workflow import (
+from simulationworkflowschema import (
     GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
 )
 from .metainfo.lammps import x_lammps_section_input_output_files, x_lammps_section_control_parameters

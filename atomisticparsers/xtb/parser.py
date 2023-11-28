@@ -31,7 +31,7 @@ from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, ScfIteration, Energy, EnergyEntry, BandEnergies, Multipoles, MultipolesEntry
 )
-from nomad.datamodel.metainfo.simulation.workflow import (
+from simulationworkflowschema import (
     SinglePoint, GeometryOptimization, GeometryOptimizationMethod
 )
 from atomisticparsers.utils import MDParser

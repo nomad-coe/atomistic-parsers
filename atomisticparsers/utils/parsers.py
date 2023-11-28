@@ -28,7 +28,7 @@ from nomad.metainfo import MSection, SubSection, Quantity
 from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
-from nomad.datamodel.metainfo.simulation.workflow import MolecularDynamics
+from simulationworkflowschema import MolecularDynamics
 from nomad.datamodel.metainfo.simulation.method import Interaction
 
 

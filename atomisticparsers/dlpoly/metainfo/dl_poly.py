@@ -23,6 +23,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, JSON
 )
 from nomad.datamodel.metainfo import simulation
+import simulationworkflowschema
 
 
 m_package = Package()
@@ -69,7 +70,7 @@ class x_dl_poly_section_md_topology(MSection):
         repeats=True)
 
 
-class MolecularDynamics(simulation.workflow.MolecularDynamics):
+class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
 
     m_def = Section(validate=False, extends_base_section=True)
 

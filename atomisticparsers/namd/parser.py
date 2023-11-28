@@ -27,7 +27,7 @@ from nomad.datamodel import EntryArchive
 from nomad.parsing.file_parser import TextParser, Quantity
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import Method
-from nomad.datamodel.metainfo.simulation.workflow import MolecularDynamics
+from simulationworkflowschema import MolecularDynamics
 from atomisticparsers.utils import MDAnalysisParser, MDParser
 from .metainfo import m_env  # pylint: disable=unused-import
 

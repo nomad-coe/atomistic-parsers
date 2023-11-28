@@ -27,8 +27,8 @@ from nomad.parsing.file_parser import FileParser
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model)
-from nomad.datamodel.metainfo.simulation.workflow import (
-    GeometryOptimization, GeometryOptimizationMethod,
+from simulationworkflowschema import (
+    GeometryOptimization, GeometryOptimizationMethod
 )
 from atomisticparsers.utils import MDParser
 from .metainfo.asap import MolecularDynamics  # pylint: disable=unused-import

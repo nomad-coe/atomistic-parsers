@@ -141,7 +141,7 @@ class H5MDParser(MDParser):
     def __init__(self):
         super().__init__()
         self._data_parser = HDF5Parser()
-        self._n_frames = None
+        self._n_frames = None  # TODO use trajectory_steps from MDParser?
         self._n_atoms = None
         self._frame_rate = None
         self._atom_parameters = None
@@ -150,8 +150,6 @@ class H5MDParser(MDParser):
         self._parameter_info = None
         self._hdf5_particle_group_all = None
         self._hdf5_positions_all = None
-        # max cumulative number of atoms for all parsed trajectories to calculate sampling rate
-        self._cum_max_atoms = 2500000
 
         self._nomad_to_particles_group_map = {
             'positions': 'position',
@@ -536,63 +534,36 @@ class H5MDParser(MDParser):
                     self.logger.error('system_map_key not assigned correctly.')
 
         for frame in sorted(system_map):
-            sec_scc = sec_run.m_create(Calculation)
-            sec_scc.method_ref = sec_run.method[-1] if sec_run.method else None
+            data = {
+                'method_ref': sec_run.method[-1] if sec_run.method else None,
+                'energy': {}
+                'x_h5md_custom_calculations': []
+            }
             if system_map_key == 'time':
-                sec_scc.time = frame
+                data[time] = frame
                 if time_step:
-                    sec_scc.step = int((frame / time_step).magnitude)
+                    data[step] = int((frame / time_step).magnitude)
             elif system_map_key == 'step':
-                sec_scc.step = frame
+                data[step] = frame
                 if time_step:
-                    sec_scc.time = sec_scc.step * time_step
+                    data[time] = data[step] * time_step
 
             system_index = system_map[frame]['system']
             if system_index is not None:
                 for key, val in system_info.items():
                     if key == 'forces':
-                        sec_scc.forces = Forces(total=ForcesEntry(value=val[system_index]))
+                        data[key] = Forces(total=ForcesEntry(value=val[system_index]))
                     else:
                         if key in BaseCalculation.__dict__.keys():
-                            # setattr(sec_scc, key, val)
-                            sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val[system_index])
+                            data[key] = val[system_index]
+                            # sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val[system_index])
                         else:
-                            # setattr(sec_scc, 'x_h5md_' + key, val)
                             unit = None
                             if hasattr(val, 'units'):
                                 unit = val.units
                                 val = val.magnitude
-                            sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
+                            data['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
 
-                sec_scc.system_ref = sec_system[system_index]
-
-            # sec_energy = sec_scc.m_create(Energy)
-            # for key, observable in calculation_info.items():
-            #     obs_index = system_map[frame].get(key)
-            #     if obs_index:
-            #         val = observable.get('value', [None] * (obs_index + 1))[obs_index]
-            #         obs_name_short = key.split('-')[-1]
-            #         if 'energ' in key:  # TODO check for energies or energy when matching name
-            #             if obs_name_short in Energy.__dict__.keys():
-            #                 # setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
-            #                 sec_energy.m_add_sub_section(getattr(Energy, obs_name_short), EnergyEntry(value=val))
-            #             else:
-            #                 # setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
-            #                 sec_energy.x_h5md_energy_contributions.append(
-            #                     EnergyEntry(kind=key, value=val))
-            #         else:
-            #             if obs_name_short in BaseCalculation.__dict__.keys():
-            #                 # setattr(sec_scc, obs_name_short, val)
-            #                 sec_scc.m_set(sec_scc.m_get_quantity_definition(obs_name_short), val)
-            #             else:
-            #                 # setattr(sec_scc, 'x_h5md_' + key, val)
-            #                 unit = None
-            #                 if hasattr(val, 'units'):
-            #                     unit = val.units
-            #                     val = val.magnitude
-            #                 sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
-
-            sec_energy = sec_scc.m_create(Energy)
             for observable_type, observable_dict in calculation_info.items():
                 for key, observable in observable_dict.items():
                     map_key = observable_type + '-' + key if key else observable_type
@@ -602,12 +573,13 @@ class H5MDParser(MDParser):
                         # obs_name_short = key.split('-')[-1]
                         if 'energ' in observable_type:  # TODO check for energies or energy when matching name
                             if key in Energy.__dict__.keys():
-                                # setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
-                                sec_energy.m_add_sub_section(getattr(Energy, key), EnergyEntry(value=val))
+                                data['energy'][key] = dict(value=val)
+                                # data['energy'].m_add_sub_section(getattr(Energy, key), EnergyEntry(value=val))
                             else:
-                                # setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
-                                sec_energy.x_h5md_energy_contributions.append(
-                                    EnergyEntry(kind=map_key, value=val))
+                                data.setdefault('x_h5md_energy_contributions', [])
+                                data['x_h5md_energy_contributions'].append(dict(kind=map_key, value=val))
+                                # sec_energy.x_h5md_energy_contributions.append(
+                                #     EnergyEntry(kind=map_key, value=val))
                         else:
                             if key == '':
                                 key = observable_type
@@ -615,15 +587,16 @@ class H5MDParser(MDParser):
                                 key = map_key
 
                             if key in BaseCalculation.__dict__.keys():
-                                # setattr(sec_scc, obs_name_short, val)
-                                sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
+                                data[key] = val
+                                # sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
                             else:
-                                # setattr(sec_scc, 'x_h5md_' + key, val)
                                 unit = None
                                 if hasattr(val, 'units'):
                                     unit = val.units
                                     val = val.magnitude
-                                sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=map_key, value=val, unit=unit))
+                                data['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
+            self.parse_thermodynamics_step(data)
+            # TODO I am HERE, working on implementing MDParser functions, have not yet test above for parse_thermo...
 
     def parse_system(self):
         sec_run = self.archive.run[-1]

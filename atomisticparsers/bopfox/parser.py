@@ -31,7 +31,7 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Stress, StressEntry, Charges,
     ChargesValue
 )
-from nomad.datamodel.metainfo.simulation.workflow import (
+from simulationworkflowschema import (
     GeometryOptimization, GeometryOptimizationMethod, SinglePoint
 )
 from atomisticparsers.utils import MDParser

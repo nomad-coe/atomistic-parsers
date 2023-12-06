@@ -34,7 +34,7 @@ from nomad.datamodel.metainfo.simulation.method import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, VibrationalFrequencies
 )
-from nomad.datamodel.metainfo.simulation.workflow import (
+from simulationworkflowschema import (
     GeometryOptimization, GeometryOptimizationMethod
 )
 from atomisticparsers.utils import MDAnalysisParser, MDParser

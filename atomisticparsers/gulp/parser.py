@@ -35,7 +35,7 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry
 )
-from nomad.datamodel.metainfo.simulation.workflow import (
+from simulationworkflowschema import (
     Elastic, ElasticMethod, ElasticResults, MolecularDynamics, MolecularDynamicsMethod
 )
 from atomisticparsers.gulp.metainfo.gulp import x_gulp_bulk_optimisation, x_gulp_bulk_optimisation_cycle

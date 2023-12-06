@@ -39,7 +39,7 @@ from nomad.datamodel.metainfo.simulation.method import (
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup
 )
-from nomad.datamodel.metainfo.simulation.workflow import (
+from simulationworkflowschema import (
     GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
 )
 from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files

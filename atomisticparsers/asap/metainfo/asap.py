@@ -22,13 +22,13 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference
 )
-from nomad.datamodel.metainfo.simulation import workflow
+import simulationworkflowschema
 
 
 m_package = Package()
 
 
-class MolecularDynamics(workflow.MolecularDynamics):
+class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -54,7 +54,7 @@ class MolecularDynamics(workflow.MolecularDynamics):
         ''')
 
 
-class GeometryOptimization(workflow.GeometryOptimization):
+class GeometryOptimization(simulationworkflowschema.GeometryOptimization):
 
     m_def = Section(validate=False, extends_base_section=True)
 

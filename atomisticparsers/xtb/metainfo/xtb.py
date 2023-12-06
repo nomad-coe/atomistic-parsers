@@ -22,6 +22,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Package, Quantity, Section, SubSection, JSON
 )
 from nomad.datamodel.metainfo import simulation
+import simulationworkflowschema
 
 
 m_package = Package()
@@ -87,7 +88,7 @@ class MultipolesEntry(simulation.calculation.MultipolesEntry):
         ''')
 
 
-class GeometryOptimization(simulation.workflow.GeometryOptimization):
+class GeometryOptimization(simulationworkflowschema.GeometryOptimization):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -146,7 +147,7 @@ class GeometryOptimization(simulation.workflow.GeometryOptimization):
         ''')
 
 
-class MolecularDynamics(simulation.workflow.MolecularDynamics):
+class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
 
     m_def = Section(validate=False, extends_base_section=True)
 

@@ -25,11 +25,11 @@ from collections.abc import Iterable
 from nomad.utils import get_logger
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import MSection, SubSection, Quantity
-from nomad.datamodel.metainfo.simulation.run import Run
-from nomad.datamodel.metainfo.simulation.system import System
-from nomad.datamodel.metainfo.simulation.calculation import Calculation
+from runschema.run import Run
+from runschema.system import System
+from runschema.calculation import Calculation
+from runschema.method import Interaction
 from simulationworkflowschema import MolecularDynamics
-from nomad.datamodel.metainfo.simulation.method import Interaction
 
 
 # TODO put this in nomad.parsing

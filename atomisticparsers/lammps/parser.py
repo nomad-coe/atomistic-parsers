@@ -25,8 +25,8 @@ import re
 from nomad.units import ureg
 
 from nomad.parsing.file_parser import Quantity, TextParser
-from nomad.datamodel.metainfo.simulation.run import Run, Program
-from nomad.datamodel.metainfo.simulation.method import (
+from runschema.run import Run, Program
+from runschema.method import (
     NeighborSearching,
     ForceCalculations,
     ForceField,
@@ -34,6 +34,7 @@ from nomad.datamodel.metainfo.simulation.method import (
     Model,
     AtomParameters,
 )
+from runschema.system import AtomsGroup
 from nomad.datamodel.metainfo.simulation.system import AtomsGroup
 from simulationworkflowschema import (
     GeometryOptimization,
@@ -1424,7 +1425,8 @@ class LammpsParser(MDParser):
             moltypes = np.unique(atoms_moltypes)
             for i_moltype, moltype in enumerate(moltypes):
                 # Only add atomsgroup for initial system for now
-                sec_molecule_group = sec_run.system[0].m_create(AtomsGroup)
+                sec_molecule_group = AtomsGroup()
+                sec_run.system[0].atoms_group.append(sec_molecule_group)
                 sec_molecule_group.label = f"group_{moltype}"
                 sec_molecule_group.type = "molecule_group"
                 sec_molecule_group.index = i_moltype
@@ -1440,7 +1442,8 @@ class LammpsParser(MDParser):
                 for i_molecule, molecule in enumerate(
                     np.unique(molecules[sec_molecule_group.atom_indices])
                 ):
-                    sec_molecule = sec_molecule_group.m_create(AtomsGroup)
+                    sec_molecule = AtomsGroup()
+                    sec_molecule_group.atoms_group.append(sec_molecule)
                     sec_molecule.index = i_molecule
                     sec_molecule.atom_indices = np.where(molecules == molecule)[0]
                     sec_molecule.n_atoms = len(sec_molecule.atom_indices)
@@ -1461,7 +1464,8 @@ class LammpsParser(MDParser):
                         mol_resnames = atoms_resnames[sec_molecule.atom_indices]
                         restypes = np.unique(mol_resnames)
                         for i_restype, restype in enumerate(restypes):
-                            sec_monomer_group = sec_molecule.m_create(AtomsGroup)
+                            sec_monomer_group = AtomsGroup()
+                            sec_molecule.atoms_group.append(sec_monomer_group)
                             restype_indices = np.where(atoms_resnames == restype)[0]
                             sec_monomer_group.label = f"group_{restype}"
                             sec_monomer_group.type = "monomer_group"
@@ -1482,7 +1486,8 @@ class LammpsParser(MDParser):
                                 f"{restype}({restype_count})"
                             )
                             for i_res, res_id in enumerate(restype_resids):
-                                sec_residue = sec_monomer_group.m_create(AtomsGroup)
+                                sec_residue = AtomsGroup()
+                                sec_monomer_group.atoms_group.append(sec_residue)
                                 sec_residue.index = i_res
                                 atom_indices = np.where(atoms_resids == res_id)[0]
                                 sec_residue.atom_indices = np.intersect1d(
@@ -1519,9 +1524,12 @@ class LammpsParser(MDParser):
         if self.traj_parsers.eval("n_frames") is None:
             return
 
-        sec_method = sec_run.m_create(Method)
-        sec_force_field = sec_method.m_create(ForceField)
-        sec_model = sec_force_field.m_create(Model)
+        sec_method = Method()
+        sec_run.method.append(sec_method)
+        sec_force_field = ForceField()
+        sec_method.force_field = sec_force_field
+        sec_model = Model()
+        sec_force_field.model.append(sec_model)
 
         # Old parsing of method with text parser
         masses = self.data_parser.get("Masses", None)
@@ -1535,7 +1543,8 @@ class LammpsParser(MDParser):
         if n_atoms is not None:
             atoms_info = self._mdanalysistraj_parser.get("atoms_info", None)
             for n in range(n_atoms):
-                sec_atom = sec_method.m_create(AtomParameters)
+                sec_atom = AtomParameters()
+                sec_method.atom_parameters.append(sec_atom)
                 sec_atom.charge = atoms_info.get("charges", [None] * (n + 1))[n]
                 sec_atom.mass = atoms_info.get("masses", [None] * (n + 1))[n]
 
@@ -1544,7 +1553,8 @@ class LammpsParser(MDParser):
         self.parse_interactions(interactions, sec_model)
 
         # Force Calculation Parameters
-        sec_force_calculations = sec_force_field.m_create(ForceCalculations)
+        sec_force_calculations = ForceCalculations()
+        sec_force_field.force_calculations = sec_force_calculations
         for pairstyle in self.log_parser.get("pair_style", []):
             pairstyle_args = pairstyle[1:]
             pairstyle = pairstyle[0].lower()
@@ -1572,7 +1582,8 @@ class LammpsParser(MDParser):
                 elif "msm" in kspacestyle:
                     sec_force_calculations.coulomb_type = "multilevel_summation"
 
-        sec_neighbor_searching = sec_force_calculations.m_create(NeighborSearching)
+        sec_neighbor_searching = NeighborSearching()
+        sec_force_calculations.neighbor_searching = sec_neighbor_searching
         val = self.log_parser.get("neighbor", None)
         if val is not None:
             neighbor = val[0][0]  # just use the first instance for now
@@ -1594,7 +1605,8 @@ class LammpsParser(MDParser):
 
     def parse_input(self):
         sec_run = self.archive.run[-1]
-        sec_input_output_files = sec_run.m_create(x_lammps_section_input_output_files)
+        sec_input_output_files = x_lammps_section_input_output_files()
+        sec_run.x_lammps_section_input_output_files.append(sec_input_output_files)
 
         if self.data_parser.mainfile is not None:
             sec_input_output_files.x_lammps_inout_file_data = os.path.basename(
@@ -1606,7 +1618,8 @@ class LammpsParser(MDParser):
                 self.traj_parsers[0].mainfile
             )
 
-        sec_control_parameters = sec_run.m_create(x_lammps_section_control_parameters)
+        sec_control_parameters = x_lammps_section_control_parameters()
+        sec_run.x_lammps_section_control_parameters.append(sec_control_parameters)
         keys = self.log_parser._commands
         for key in keys:
             val = self.log_parser.get(key, None)
@@ -1641,7 +1654,8 @@ class LammpsParser(MDParser):
 
         self.init_parser()
 
-        sec_run = self.archive.m_create(Run)
+        sec_run = Run()
+        self.archive.run.append(sec_run)
 
         # parse basic
         sec_run.program = Program(

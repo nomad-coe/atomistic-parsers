@@ -24,9 +24,10 @@ from ase.io.trajectory import Trajectory
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import FileParser
-from nomad.datamodel.metainfo.simulation.run import Run, Program
-from nomad.datamodel.metainfo.simulation.method import (
-    Method, ForceField, Model)
+from runschema.run import Run, Program
+from runschema.method import (
+    Method, ForceField, Model
+)
 from simulationworkflowschema import (
     GeometryOptimization, GeometryOptimizationMethod
 )
@@ -73,7 +74,8 @@ class AsapParser(MDParser):
 
     def parse_method(self):
         traj = self.traj_parser.traj
-        sec_method = self.archive.run[0].m_create(Method)
+        sec_method = Method()
+        self.archive.run[0].method.append(sec_method)
 
         if traj[0].calc is not None:
             sec_method.force_field = ForceField(model=[Model(name=traj[0].calc.name)])
@@ -117,7 +119,8 @@ class AsapParser(MDParser):
         if self.traj_parser.traj is None:
             return
 
-        sec_run = self.archive.m_create(Run)
+        sec_run = Run()
+        self.archive.run.append(sec_run)
         sec_run. program = Program(name='ASAP', version=self.traj_parser.get_version())
 
         # TODO do we build the topology and method for each frame

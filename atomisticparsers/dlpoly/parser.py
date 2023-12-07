@@ -23,8 +23,8 @@ import numpy as np
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity
-from nomad.datamodel.metainfo.simulation.run import Run, Program
-from nomad.datamodel.metainfo.simulation.method import (
+from runschema.run import Run, Program
+from runschema.method import (
     Method, ForceField, Model, Interaction, AtomParameters, MoleculeParameters
 )
 from atomisticparsers.utils import MDParser
@@ -439,7 +439,8 @@ class DLPolyParser(MDParser):
 
         self.init_parser()
 
-        sec_run = archive.m_create(Run)
+        sec_run = Run()
+        archive.run.append(sec_run)
         version_date = self.mainfile_parser.get('program_version_date', [None, None])
         sec_run.program = Program(name=self.mainfile_parser.program_name, version=version_date[0])
         sec_run.x_dl_poly_program_version_date = str(version_date[1])
@@ -462,27 +463,33 @@ class DLPolyParser(MDParser):
         self.parse_trajectory_step(get_system_data(0))
 
         # method
-        sec_method = sec_run.m_create(Method)
+        sec_method = Method()
+        sec_run.method.append(sec_method)
         control_parameters = self.mainfile_parser.get_control_parameters()
         sec_method.x_dl_poly_control_parameters = control_parameters
-        sec_force_field = sec_method.m_create(ForceField)
-        sec_model = sec_force_field.m_create(Model)
+        sec_force_field = ForceField()
+        sec_method.force_field = sec_force_field
+        sec_model = Model()
+        sec_force_field.model.append(sec_model)
         # get interactions from FIELD file
         self.field_parser.mainfile = os.path.join(self.maindir, 'FIELD')
         units = {'mass': ureg.amu, 'charge': ureg.elementary_charge}
         for molecule in self.field_parser.get('molecule', []):
             # atom parameters
-            sec_molecule_parameters = sec_method.m_create(MoleculeParameters)
+            sec_molecule_parameters = MoleculeParameters()
+            sec_method.molecule_parameters.append(sec_molecule_parameters)
             sec_molecule_parameters.label = molecule.get('label_nummols', [None, None])[0]
             for atom in molecule.get('atoms', []):
-                sec_atom_parameters = sec_molecule_parameters.m_create(AtomParameters)
+                sec_atom_parameters = AtomParameters()
+                sec_molecule_parameters.atom_parameters.append(sec_atom_parameters)
                 for key, val in atom.items():
                     val = val * units.get(key, 1)
                     setattr(sec_atom_parameters, key, val)
             # interactions
             for interaction_type in ['bonds', 'angles', 'dihedrals', 'inversions', 'teth']:
                 for interaction in molecule.get(interaction_type, []):
-                    sec_interaction = sec_model.m_create(Interaction)
+                    sec_interaction = Interaction()
+                    sec_model.contributions.append(sec_interaction)
                     for key, val in interaction.items():
                         setattr(sec_interaction, key, val)
             # add constraints to initial system
@@ -501,7 +508,8 @@ class DLPolyParser(MDParser):
         # non-bonded
         for interaction_type in ['vdw', 'tbp', 'fbp', 'metal']:
             for interaction in self.field_parser.get(interaction_type, []):
-                sec_interaction = sec_model.m_create(Interaction)
+                sec_interaction = Interaction()
+                sec_model.contributions.append(sec_interaction)
                 for key, val in interaction.items():
                     setattr(sec_interaction, key, val)
 

@@ -22,12 +22,12 @@ import numpy as np
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, DataTextParser
-from nomad.datamodel.metainfo.simulation.run import Run, Program
-from nomad.datamodel.metainfo.simulation.method import (
+from runschema.run import Run, Program
+from runschema.method import (
     Method, TB, xTB, ForceField, Model, Interaction
 )
-from nomad.datamodel.metainfo.simulation.system import System, Atoms
-from nomad.datamodel.metainfo.simulation.calculation import (
+from runschema.system import System, Atoms
+from runschema.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Stress, StressEntry, Charges,
     ChargesValue
 )
@@ -344,10 +344,12 @@ class BOPfoxParser(MDParser):
 
         self.init_parser()
 
-        sec_run = archive.m_create(Run)
+        sec_run = Run()
+        archive.run.append(sec_run)
         sec_run.program = Program(name='BOPfox', version=self.mainfile_parser.get('program_version'))
 
-        sec_method = sec_run.m_create(Method)
+        sec_method = Method()
+        sec_run.method.append(sec_method)
         parameters = self.mainfile_parser.get_simulation_parameters()
         sec_method.x_bopfox_simulation_parameters = parameters
         # force field parameters
@@ -358,9 +360,11 @@ class BOPfoxParser(MDParser):
                 # bop uses a tight-binding model
                 tb = model.parameters.get('version', 'bop').lower() in ['bop', 'tight-binding']
                 if tb:
-                    sec_model = sec_method.m_create(TB).m_create(xTB)
+                    sec_model = xTB()
+                    sec_method.tb = TB(xtb=sec_model)
                 else:
-                    sec_model = sec_method.m_create(ForceField).m_create(Model)
+                    sec_model = Model()
+                    sec_method.force_field = ForceField(model=[sec_model])
 
                 sec_model.name = model.name
                 sec_model.x_bopfox_parameters = model.parameters
@@ -419,7 +423,8 @@ class BOPfoxParser(MDParser):
             if positions is None:
                 return
 
-            sec_system = sec_run.m_create(System) if target is None else target
+            sec_system = System()
+            sec_run.system.append(sec_system) if target is None else target
             sec_system.atoms = Atoms(labels=labels, positions=positions * ureg.angstrom)
             if lattice_vectors is not None:
                 sec_system.atoms.lattice_vectors = lattice_vectors * ureg.angstrom
@@ -427,12 +432,14 @@ class BOPfoxParser(MDParser):
             return sec_system
 
         def parse_calculation(source, target=None):
-            sec_calc = sec_run.m_create(Calculation) if target is None else target
+            sec_calc = Calculation()
+            sec_run.calculation.append(sec_calc) if target is None else target
 
             # energy
             n_atoms = self.mainfile_parser.get('n_atoms', [1, 1])[0]
             if source.get('energy') is not None:
-                sec_energy = sec_calc.m_create(Energy)
+                sec_energy = Energy()
+                sec_calc.energy = sec_energy
                 for contribution in source.energy.get('contribution', []):
                     name = self._metainfo_map.get(contribution.type)
                     energy_entry = EnergyEntry(
@@ -449,7 +456,8 @@ class BOPfoxParser(MDParser):
 
             # forces
             if source.get('forces') is not None:
-                sec_forces = sec_calc.m_create(Forces)
+                sec_forces = Forces()
+                sec_calc.forces = sec_forces
                 for contribution in source.forces.get('contribution', []):
                     name = self._metainfo_map.get(contribution.type)
                     forces_entry = ForcesEntry(value=contribution.atomic * ureg.eV / ureg.angstrom)
@@ -471,7 +479,8 @@ class BOPfoxParser(MDParser):
 
             # stress
             if source.get('stress') is not None:
-                sec_stress = sec_calc.m_create(Stress)
+                sec_stress = Stress()
+                sec_calc.stress = sec_stress
                 for contribution in source.stress.get('contribution', []):
                     name = self._metainfo_map.get(contribution.type)
                     stress_entry = StressEntry(values_per_atom=[symmetrize(
@@ -486,7 +495,8 @@ class BOPfoxParser(MDParser):
 
             # charges
             if source.get('charges') is not None:
-                sec_charges = sec_calc.m_create(Charges)
+                sec_charges = Charges()
+                sec_calc.charges.append(sec_charges)
                 sec_charges.n_electrons = source.charges.n_electrons
                 sec_charges.value = source.charges.charge * ureg.elementary_charge
                 # magnetic moments
@@ -498,7 +508,8 @@ class BOPfoxParser(MDParser):
 
             # onsite levels
             if source.get('onsite_levels') is not None:
-                sec_onsite = sec_calc.m_create(x_bopfox_onsite_levels)
+                sec_onsite = x_bopfox_onsite_levels()
+                sec_calc.x_bopfox_onsite_levels.append(sec_onsite)
                 for onsite in source.onsite_levels.get('energy', []):
                     sec_onsite.orbital_projected.append(x_bopfox_onsite_levels_value(
                         orbital=onsite[0], atom_index=onsite[1] - 1, value=onsite[2]

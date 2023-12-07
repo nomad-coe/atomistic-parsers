@@ -25,14 +25,14 @@ from ase.spacegroup import crystal as ase_crystal
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity
-from nomad.datamodel.metainfo.simulation.run import Run, Program, TimeRun
-from nomad.datamodel.metainfo.simulation.method import (
+from runschema.run import Run, Program, TimeRun
+from runschema.method import (
     Method, ForceField, Model, Interaction, AtomParameters
 )
-from nomad.datamodel.metainfo.simulation.system import (
+from runschema.system import (
     System, Atoms
 )
-from nomad.datamodel.metainfo.simulation.calculation import (
+from runschema.calculation import (
     Calculation, Energy, EnergyEntry
 )
 from simulationworkflowschema import (
@@ -619,7 +619,8 @@ class GulpParser:
 
         self.init_parser()
 
-        sec_run = self.archive.m_create(Run)
+        sec_run = Run()
+        self.archive.run.append(sec_run)
         # general run parameters
         header = self.mainfile_parser.get('header', {})
         sec_run.program = Program(version=header.get('program_version'))
@@ -635,14 +636,17 @@ class GulpParser:
                     self.mainfile_parser.date_end, '%H:%M.%S %d %B %Y').timestamp()
 
         input_info = self.mainfile_parser.get('input_information', {})
-        sec_method = sec_run.m_create(Method)
+        sec_method = Method()
+        sec_run.method.append(sec_method)
         # add force field interaction models
-        force_field = sec_method.m_create(ForceField)
+        force_field = ForceField()
+        sec_method.force_field = force_field
         # for the new format, all potentials are in potentials while in old, needs to add
         # pair, three- and four-body interactions
         for potential_type in ['interatomic_potential', 'pair_potential', 'three_body_potential', 'four_body_potential']:
             for potential in input_info.get(potential_type, []):
-                sec_model = force_field.m_create(Model)
+                sec_model = Model()
+                force_field.model.append(sec_model)
                 for interaction in potential.get('interaction', []):
                     sec_model.contributions.append(Interaction(
                         functional_form=interaction.functional_form,
@@ -652,14 +656,16 @@ class GulpParser:
                     ))
 
         if (pgfnff := input_info.get('pgfnff')) is not None:
-            sec_model = force_field.m_create(Model)
+            sec_model = Model()
+            force_field.model.append(sec_model)
             sec_model.name = 'pGFNFF'
             sec_model.contributions.append(Interaction(
                 parameters={key: float(val) for key, val in pgfnff.get('key_parameter', [])}
             ))
         # atom parameters
         for n in range(len(input_info.get('species', {}).get('label', []))):
-            sec_atom_parameter = sec_method.m_create(AtomParameters)
+            sec_atom_parameter = AtomParameters()
+            sec_method.atom_parameters.append(sec_atom_parameter)
             for key, val in input_info.species.items():
                 setattr(sec_atom_parameter, key, val[n])
 
@@ -671,7 +677,8 @@ class GulpParser:
             if source.coordinates is None:
                 return
 
-            sec_system = sec_run.m_create(System)
+            sec_system = System()
+            sec_run.system.append(sec_system)
             positions = []
             labels = []
             for atom in source.coordinates.get('atom', []):
@@ -711,10 +718,12 @@ class GulpParser:
                 setattr(target, f'{name}_{type_n}', values[n])
 
         def parse_calculation(source):
-            sec_calc = sec_run.m_create(Calculation)
+            sec_calc = Calculation()
+            sec_run.calculation.append(sec_calc)
 
             if source.energy_components is not None:
-                sec_energy = sec_calc.m_create(Energy)
+                sec_energy = Energy()
+                sec_calc.energy = sec_energy
                 for key, val in source.energy_components.get('key_val', []):
                     name = self._metainfo_map.get(key)
                     if name is None:
@@ -725,7 +734,8 @@ class GulpParser:
                 sec_energy.total = EnergyEntry(value=sec_energy.x_gulp_primitive_unit_cell)
 
             if source.bulk_optimisation is not None:
-                sec_opt = sec_calc.m_create(x_gulp_bulk_optimisation)
+                sec_opt = x_gulp_bulk_optimisation()
+                sec_calc.x_gulp_bulk_optimisation = sec_opt
                 for cycle in source.bulk_optimisation.get('cycle', []):
                     sec_opt.x_gulp_bulk_optimisation_cycle.append(x_gulp_bulk_optimisation_cycle(
                         x_gulp_energy=cycle[0] * ureg.eV, x_gulp_gnorm=cycle[1],

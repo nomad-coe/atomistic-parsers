@@ -132,28 +132,28 @@ def test_md(parser):
     assert sec_calc[1].energy.x_h5md_energy_contributions[0].kind == 'energy-custom'
     assert sec_calc[1].energy.x_h5md_energy_contributions[0].value.magnitude == 3000.0
 
-    # sec_workflow = archive.workflow2
-    # assert sec_workflow.m_def.name == 'MolecularDynamics'
-    # sec_method = sec_workflow.method
-    # assert sec_method.thermodynamic_ensemble == 'NPT'
-    # assert sec_method.x_h5md_integrator_type == 'langevin_leap_frog'
-    # assert sec_method.integration_timestep.magnitude == 2e-27
-    # assert sec_method.integration_timestep.units == 'second'
-    # assert sec_method.n_steps == 20000000
-    # assert sec_method.coordinate_save_frequency == 10000
-    # assert sec_method.thermostat_parameters[0].x_h5md_thermostat_type == 'langevin_leap_frog'
-    # assert sec_method.thermostat_parameters[0].reference_temperature.magnitude == 300.0
-    # assert sec_method.thermostat_parameters[0].reference_temperature.units == 'kelvin'
-    # assert sec_method.thermostat_parameters[0].coupling_constant.magnitude == 1e-12
-    # assert sec_method.thermostat_parameters[0].coupling_constant.units == 'second'
-    # assert sec_method.barostat_parameters[0].barostat_type == 'berendsen'
-    # assert sec_method.barostat_parameters[0].coupling_type == 'isotropic'
-    # assert np.all(sec_method.barostat_parameters[0].reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
-    # assert sec_method.barostat_parameters[0].reference_pressure.units == 'pascal'
-    # assert np.all(sec_method.barostat_parameters[0].coupling_constant.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
-    # assert sec_method.barostat_parameters[0].coupling_constant.units == 'second'
-    # assert np.all(sec_method.barostat_parameters[0].compressibility.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
-    # assert sec_method.barostat_parameters[0].compressibility.units == '1 / pascal'
+    sec_workflow = archive.workflow2
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
+    sec_method = sec_workflow.method
+    assert sec_method.thermodynamic_ensemble == 'NPT'
+    assert sec_method.integrator_type == 'langevin_leap_frog'
+    assert sec_method.integration_timestep.magnitude == 2e-27
+    assert sec_method.integration_timestep.units == 'second'
+    assert sec_method.n_steps == 20000000
+    assert sec_method.coordinate_save_frequency == 10000
+    assert sec_method.thermostat_parameters[0].thermostat_type == 'langevin_leap_frog'
+    assert sec_method.thermostat_parameters[0].reference_temperature.magnitude == 300.0
+    assert sec_method.thermostat_parameters[0].reference_temperature.units == 'kelvin'
+    assert sec_method.thermostat_parameters[0].coupling_constant.magnitude == 1e-12
+    assert sec_method.thermostat_parameters[0].coupling_constant.units == 'second'
+    assert sec_method.barostat_parameters[0].barostat_type == 'berendsen'
+    assert sec_method.barostat_parameters[0].coupling_type == 'isotropic'
+    assert np.all(sec_method.barostat_parameters[0].reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
+    assert sec_method.barostat_parameters[0].reference_pressure.units == 'pascal'
+    assert np.all(sec_method.barostat_parameters[0].coupling_constant.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
+    assert sec_method.barostat_parameters[0].coupling_constant.units == 'second'
+    assert np.all(sec_method.barostat_parameters[0].compressibility.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
+    assert sec_method.barostat_parameters[0].compressibility.units == '1 / pascal'
 
     # sec_workflow_results = sec_workflow.results
     # assert len(sec_workflow_results.ensemble_properties) == 2

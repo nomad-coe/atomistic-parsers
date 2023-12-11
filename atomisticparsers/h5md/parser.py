@@ -440,7 +440,10 @@ class H5MDParser(MDParser):
                     else:
                         param_dict[key] = self._data_parser.hdf5_getter(parameter_group, key)
                         if type(param_dict[key]) == str:
-                            param_dict[key] = param_dict[key].lower()
+                            if key == 'thermodynamic_ensemble':
+                                param_dict[key] = param_dict[key].upper()  # TODO change enums to lower case and adjust Gromacs and Lammps code accordingly
+                            else:
+                                param_dict[key] = param_dict[key].lower()
                         elif 'int' in type(param_dict[key]).__name__:
                             param_dict[key] = param_dict[key].item()
 
@@ -746,137 +749,143 @@ class H5MDParser(MDParser):
     def parse_workflow(self):
 
         workflow_parameters = self.parameter_info.get('workflow').get('molecular_dynamics')
+        # TODO should store parameters that do not match the enum vals as x_h5MD params, not sure how with MDParser??
         if workflow_parameters is None:
             return
 
-        workflow = MolecularDynamics(
-            method=MolecularDynamicsMethod(
-                thermostat_parameters=ThermostatParameters(),
-                barostat_parameters=BarostatParameters()
-            ), results=MolecularDynamicsResults()
-        )
+        # HERE I AM: Need to add results now
+        # self.parse_section(workflow_parameters, self.archive.workflow2)
+        self.parse_md_workflow(dict(method=workflow_parameters, results={}))
+        # print(workflow_parameters)
 
-        for key, val in workflow_parameters.items():
-            if type(val) is not dict:
-                if key == 'thermodynamic_ensemble':
-                    val = val.upper()
-                key = self.check_metainfo_for_key_and_Enum(MolecularDynamicsMethod, key, val)
-                setattr(workflow.method, key, val)
-            else:
-                if key == 'thermostat_parameters':
-                    for thermo_key, thermo_val in val.items():
-                        thermo_key = self.check_metainfo_for_key_and_Enum(ThermostatParameters, thermo_key, thermo_val)
-                        setattr(workflow.method.thermostat_parameters, thermo_key, thermo_val)
-                elif key == 'barostat_parameters':
-                    for baro_key, baro_val in val.items():
-                        baro_key = self.check_metainfo_for_key_and_Enum(BarostatParameters, baro_key, baro_val)
-                        setattr(workflow.method.barostat_parameters, baro_key, baro_val)
-                else:
-                    self.logger.warning(key + 'is not a valid molecular dynamics workflow section. Corresponding parameters will not be stored.')
+        # workflow = MolecularDynamics(
+        #     method=MolecularDynamicsMethod(
+        #         thermostat_parameters=[ThermostatParameters()],
+        #         barostat_parameters=[BarostatParameters()]
+        #     ), results=MolecularDynamicsResults()
+        # )
 
-        ensemble_average_observables = self.observable_info.get('ensemble_average')
-        sec_results = workflow.results
-        for observable_type, observable_dict in ensemble_average_observables.items():
-            sec_ensemble = sec_results.m_create(EnsembleProperty)
-            sec_ensemble.label = observable_type
-            for key, observable in observable_dict.items():
-                sec_ensemble_vals = sec_ensemble.m_create(EnsemblePropertyValues)
-                sec_ensemble_vals.label = key
-                for quant_name, val in observable.items():
-                    if quant_name == 'val':
-                        continue
-                    if quant_name == 'bins':
-                        continue
-                    if quant_name in EnsembleProperty.__dict__.keys():
-                        sec_ensemble.m_set(sec_ensemble.m_get_quantity_definition(quant_name), val)
-                    if quant_name in EnsemblePropertyValues.__dict__.keys():
-                        sec_ensemble_vals.m_set(sec_ensemble_vals.m_get_quantity_definition(quant_name), val)
-                    # TODO Still need to add custom values here.
+        # for key, val in workflow_parameters.items():
+        #     if type(val) is not dict:
+        #         if key == 'thermodynamic_ensemble':
+        #             val = val.upper()
+        #         key = self.check_metainfo_for_key_and_Enum(MolecularDynamicsMethod, key, val)
+        #         setattr(workflow.method, key, val)
+        #     else:
+        #         if key == 'thermostat_parameters':
+        #             for thermo_key, thermo_val in val.items():
+        #                 thermo_key = self.check_metainfo_for_key_and_Enum(ThermostatParameters, thermo_key, thermo_val)
+        #                 setattr(workflow.method.thermostat_parameters, thermo_key, thermo_val)
+        #         elif key == 'barostat_parameters':
+        #             for baro_key, baro_val in val.items():
+        #                 baro_key = self.check_metainfo_for_key_and_Enum(BarostatParameters, baro_key, baro_val)
+        #                 setattr(workflow.method.barostat_parameters, baro_key, baro_val)
+        #         else:
+        #             self.logger.warning(key + 'is not a valid molecular dynamics workflow section. Corresponding parameters will not be stored.')
 
-                val = observable.get('value')
-                if val is not None:
-                    sec_ensemble_vals.value_unit = str(val.units) if hasattr(val, 'units') else None
-                    sec_ensemble_vals.value_magnitude = val.magnitude if hasattr(val, 'units') else val
+        # ensemble_average_observables = self.observable_info.get('ensemble_average')
+        # sec_results = workflow.results
+        # for observable_type, observable_dict in ensemble_average_observables.items():
+        #     sec_ensemble = sec_results.m_create(EnsembleProperty)
+        #     sec_ensemble.label = observable_type
+        #     for key, observable in observable_dict.items():
+        #         sec_ensemble_vals = sec_ensemble.m_create(EnsemblePropertyValues)
+        #         sec_ensemble_vals.label = key
+        #         for quant_name, val in observable.items():
+        #             if quant_name == 'val':
+        #                 continue
+        #             if quant_name == 'bins':
+        #                 continue
+        #             if quant_name in EnsembleProperty.__dict__.keys():
+        #                 sec_ensemble.m_set(sec_ensemble.m_get_quantity_definition(quant_name), val)
+        #             if quant_name in EnsemblePropertyValues.__dict__.keys():
+        #                 sec_ensemble_vals.m_set(sec_ensemble_vals.m_get_quantity_definition(quant_name), val)
+        #             # TODO Still need to add custom values here.
 
-                bins = observable.get('bins')
-                if bins is not None:
-                    sec_ensemble_vals.bins_unit = str(bins.units) if hasattr(bins, 'units') else None
-                    sec_ensemble_vals.bins_magnitude = bins.magnitude if hasattr(bins, 'units') else bins
+        #         val = observable.get('value')
+        #         if val is not None:
+        #             sec_ensemble_vals.value_unit = str(val.units) if hasattr(val, 'units') else None
+        #             sec_ensemble_vals.value_magnitude = val.magnitude if hasattr(val, 'units') else val
 
-        correlation_function_observables = self.observable_info.get('correlation_function')
-        sec_results = workflow.results
-        for observable_type, observable_dict in correlation_function_observables.items():
-            sec_correlation = sec_results.m_create(CorrelationFunction)
-            sec_correlation.label = observable_type
-            for key, observable in observable_dict.items():
-                sec_correlation_vals = sec_correlation.m_create(CorrelationFunctionValues)
-                sec_correlation_vals.label = key
-                for quant_name, val in observable.items():
-                    if quant_name == 'val':
-                        continue
-                    if quant_name in CorrelationFunction.__dict__.keys():
-                        sec_correlation.m_set(sec_correlation.m_get_quantity_definition(quant_name), val)
-                    if quant_name in CorrelationFunctionValues.__dict__.keys():
-                        sec_correlation_vals.m_set(sec_correlation_vals.m_get_quantity_definition(quant_name), val)
-                    # TODO Still need to add custom values here.
+        #         bins = observable.get('bins')
+        #         if bins is not None:
+        #             sec_ensemble_vals.bins_unit = str(bins.units) if hasattr(bins, 'units') else None
+        #             sec_ensemble_vals.bins_magnitude = bins.magnitude if hasattr(bins, 'units') else bins
 
-                val = observable.get('value')
-                if val is not None:
-                    sec_correlation_vals.value_unit = str(val.units) if hasattr(val, 'units') else None
-                    sec_correlation_vals.value_magnitude = val.magnitude if hasattr(val, 'units') else val
+        # correlation_function_observables = self.observable_info.get('correlation_function')
+        # sec_results = workflow.results
+        # for observable_type, observable_dict in correlation_function_observables.items():
+        #     sec_correlation = sec_results.m_create(CorrelationFunction)
+        #     sec_correlation.label = observable_type
+        #     for key, observable in observable_dict.items():
+        #         sec_correlation_vals = sec_correlation.m_create(CorrelationFunctionValues)
+        #         sec_correlation_vals.label = key
+        #         for quant_name, val in observable.items():
+        #             if quant_name == 'val':
+        #                 continue
+        #             if quant_name in CorrelationFunction.__dict__.keys():
+        #                 sec_correlation.m_set(sec_correlation.m_get_quantity_definition(quant_name), val)
+        #             if quant_name in CorrelationFunctionValues.__dict__.keys():
+        #                 sec_correlation_vals.m_set(sec_correlation_vals.m_get_quantity_definition(quant_name), val)
+        #             # TODO Still need to add custom values here.
 
-                # map_key = observable_type + '-' + key if key else observable_type
-                # print(map_key)
-                # print(key)
-                # val = observable.get('value', [None] * (obs_index + 1))[obs_index]
-                # print(val)
-                # # obs_name_short = key.split('-')[-1]
-                # if 'energ' in observable_type:  # TODO check for energies or energy when matching name
-                #     if key in Energy.__dict__.keys():
-                #         # setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
-                #         sec_energy.m_add_sub_section(getattr(Energy, key), EnergyEntry(value=val))
-                #     else:
-                #         # setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
-                #         sec_energy.x_h5md_energy_contributions.append(
-                #             EnergyEntry(kind=map_key, value=val))
-                # else:
-                #     if key == '':
-                #         key = observable_type
-                #     else:
-                #         key = map_key
+        #         val = observable.get('value')
+        #         if val is not None:
+        #             sec_correlation_vals.value_unit = str(val.units) if hasattr(val, 'units') else None
+        #             sec_correlation_vals.value_magnitude = val.magnitude if hasattr(val, 'units') else val
 
-                #     if key in BaseCalculation.__dict__.keys():
-                #         # setattr(sec_scc, obs_name_short, val)
-                #         sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
-                #     else:
-                #         # setattr(sec_scc, 'x_h5md_' + key, val)
-                #         unit = None
-                #         if hasattr(val, 'units'):
-                #             unit = val.units
-                #             val = val.magnitude
-                #         sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=map_key, value=val, unit=unit))
+        #         # map_key = observable_type + '-' + key if key else observable_type
+        #         # print(map_key)
+        #         # print(key)
+        #         # val = observable.get('value', [None] * (obs_index + 1))[obs_index]
+        #         # print(val)
+        #         # # obs_name_short = key.split('-')[-1]
+        #         # if 'energ' in observable_type:  # TODO check for energies or energy when matching name
+        #         #     if key in Energy.__dict__.keys():
+        #         #         # setattr(sec_energy, obs_name_short, EnergyEntry(value=val))
+        #         #         sec_energy.m_add_sub_section(getattr(Energy, key), EnergyEntry(value=val))
+        #         #     else:
+        #         #         # setattr(sec_energy, 'x_h5md_' + key, EnergyEntry(value=val))
+        #         #         sec_energy.x_h5md_energy_contributions.append(
+        #         #             EnergyEntry(kind=map_key, value=val))
+        #         # else:
+        #         #     if key == '':
+        #         #         key = observable_type
+        #         #     else:
+        #         #         key = map_key
 
-
-        # for key, obs_dict in ensemble_average_observables.items():
-        #     obs_type, obs_name = key.split('-')
-
-
-        # print(ensemble_average_observables)
-        # # HERE I AM -- I need to essentially strip the name again and group together the original set for possible plotting
+        #         #     if key in BaseCalculation.__dict__.keys():
+        #         #         # setattr(sec_scc, obs_name_short, val)
+        #         #         sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
+        #         #     else:
+        #         #         # setattr(sec_scc, 'x_h5md_' + key, val)
+        #         #         unit = None
+        #         #         if hasattr(val, 'units'):
+        #         #             unit = val.units
+        #         #             val = val.magnitude
+        #         #         sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=map_key, value=val, unit=unit))
 
 
-        # if key in BaseCalculation.__dict__.keys():
-        #     # setattr(sec_scc, key, val)
-        #     sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val[system_index])
-        # else:
-        #     # setattr(sec_scc, 'x_h5md_' + key, val)
-        #     unit = None
-        #     if hasattr(val, 'units'):
-        #         unit = val.units
-        #         val = val.magnitude
-        #     sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
+        # # for key, obs_dict in ensemble_average_observables.items():
+        # #     obs_type, obs_name = key.split('-')
 
-        self.archive.workflow2 = workflow
+
+        # # print(ensemble_average_observables)
+        # # # HERE I AM -- I need to essentially strip the name again and group together the original set for possible plotting
+
+
+        # # if key in BaseCalculation.__dict__.keys():
+        # #     # setattr(sec_scc, key, val)
+        # #     sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val[system_index])
+        # # else:
+        # #     # setattr(sec_scc, 'x_h5md_' + key, val)
+        # #     unit = None
+        # #     if hasattr(val, 'units'):
+        # #         unit = val.units
+        # #         val = val.magnitude
+        # #     sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
+
+        # self.archive.workflow2 = workflow
 
     def init_parser(self):
 
@@ -917,4 +926,4 @@ class H5MDParser(MDParser):
 
         self.parse_calculation()
 
-        # self.parse_workflow()
+        self.parse_workflow()

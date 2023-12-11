@@ -536,33 +536,34 @@ class H5MDParser(MDParser):
         for frame in sorted(system_map):
             data = {
                 'method_ref': sec_run.method[-1] if sec_run.method else None,
-                'energy': {}
+                'energy': {},
                 'x_h5md_custom_calculations': []
             }
             if system_map_key == 'time':
-                data[time] = frame
+                data['time'] = frame
                 if time_step:
-                    data[step] = int((frame / time_step).magnitude)
+                    data['step'] = int((frame / time_step).magnitude)
             elif system_map_key == 'step':
-                data[step] = frame
+                data['step'] = frame
                 if time_step:
-                    data[time] = data[step] * time_step
+                    data['time'] = data['step'] * time_step
 
             system_index = system_map[frame]['system']
             if system_index is not None:
                 for key, val in system_info.items():
                     if key == 'forces':
-                        data[key] = Forces(total=ForcesEntry(value=val[system_index]))
+                        # data[key] = Forces(total=ForcesEntry(value=val[system_index]))
+                        data[key] = dict(total=dict(value=val[system_index]))
                     else:
                         if key in BaseCalculation.__dict__.keys():
                             data[key] = val[system_index]
                             # sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val[system_index])
-                        else:
-                            unit = None
-                            if hasattr(val, 'units'):
-                                unit = val.units
-                                val = val.magnitude
-                            data['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
+                        # else:
+                        #     unit = None
+                        #     if hasattr(val, 'units'):
+                        #         unit = val.units
+                        #         val = val.magnitude
+                        #     data['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
 
             for observable_type, observable_dict in calculation_info.items():
                 for key, observable in observable_dict.items():
@@ -589,12 +590,13 @@ class H5MDParser(MDParser):
                             if key in BaseCalculation.__dict__.keys():
                                 data[key] = val
                                 # sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
-                            else:
-                                unit = None
-                                if hasattr(val, 'units'):
-                                    unit = val.units
-                                    val = val.magnitude
-                                data['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
+                            # else:
+                            #     unit = None
+                            #     if hasattr(val, 'units'):
+                            #         unit = val.units
+                            #         val = val.magnitude
+                            #     data['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
+            print(data)
             self.parse_thermodynamics_step(data)
             # TODO I am HERE, working on implementing MDParser functions, have not yet test above for parse_thermo...
 
@@ -649,6 +651,27 @@ class H5MDParser(MDParser):
             for key in self.atom_parameters.keys():
                 setattr(sec_atom, key, self.atom_parameters[key][n])
 
+        # # Get the interactions
+        # connectivity = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'connectivity', None)
+        # if not connectivity:
+        #     return
+
+        # atom_labels = self.atom_parameters.get('label')
+        # interaction_keys = ['bonds', 'angles', 'dihedrals', 'impropers']
+        # for interaction_key in interaction_keys:
+        #     interaction_list = self._data_parser.hdf5_getter(connectivity, interaction_key)
+        #     if interaction_list is None:
+        #         continue
+        #     elif type(interaction_list) == h5py.Group:
+        #         self.logger.warning('Time-dependent ' + key + ' currently not supported. ' + key + ' list will not be stored')
+        #         continue
+        #     sec_interaction = sec_model.m_create(Interaction)
+        #     sec_interaction.type = interaction_key
+        #     sec_interaction.n_inter = len(interaction_list)
+        #     sec_interaction.n_atoms = len(interaction_list[0])
+        #     sec_interaction.atom_indices = interaction_list
+        #     sec_interaction.atom_labels = np.array(atom_labels)[interaction_list] if atom_labels is not None else None
+
         # Get the interactions
         connectivity = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'connectivity', None)
         if not connectivity:
@@ -656,6 +679,7 @@ class H5MDParser(MDParser):
 
         atom_labels = self.atom_parameters.get('label')
         interaction_keys = ['bonds', 'angles', 'dihedrals', 'impropers']
+        interactions = []
         for interaction_key in interaction_keys:
             interaction_list = self._data_parser.hdf5_getter(connectivity, interaction_key)
             if interaction_list is None:
@@ -663,12 +687,16 @@ class H5MDParser(MDParser):
             elif type(interaction_list) == h5py.Group:
                 self.logger.warning('Time-dependent ' + key + ' currently not supported. ' + key + ' list will not be stored')
                 continue
-            sec_interaction = sec_model.m_create(Interaction)
-            sec_interaction.type = interaction_key
-            sec_interaction.n_inter = len(interaction_list)
-            sec_interaction.n_atoms = len(interaction_list[0])
-            sec_interaction.atom_indices = interaction_list
-            sec_interaction.atom_labels = np.array(atom_labels)[interaction_list] if atom_labels is not None else None
+            interaction = {
+                'type': interaction_key,
+                'n_inter': len(interaction_list),
+                'n_atoms': len(interaction_list[0]),
+                'atom_indices': interaction_list,
+                'atom_labels': np.array(atom_labels)[interaction_list] if atom_labels is not None else None
+            }
+            interactions.append(interaction)
+        print(interactions)
+        self.parse_interactions(interactions, sec_model)
 
         # Get the force calculation parameters
         force_calculation_parameters = self.parameter_info.get('force_calculations')
@@ -862,8 +890,8 @@ class H5MDParser(MDParser):
 
         self.parse_method()
 
-        self.parse_system()
+        # self.parse_system()
 
-        self.parse_calculation()
+        # self.parse_calculation()
 
-        self.parse_workflow()
+        # self.parse_workflow()

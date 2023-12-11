@@ -234,3 +234,6 @@ class MDParser(AtomisticParser):
 
             if not sec_interaction.n_atoms:
                 sec_interaction.n_atoms = len(sec_interaction.get('atom_indices')[0]) if sec_interaction.get('atom_indices') is not None else None
+
+
+

@@ -458,12 +458,15 @@ class H5MDParser(MDParser):
 
     def parse_calculation(self):
         sec_run = self.archive.run[-1]
-        sec_system = sec_run.system
+        # sec_system = sec_run.system
         calculation_info = self.observable_info.get('configurational')
         system_info = self._system_info.get('calculation')  # note: it is currently ensured in parse_system() that these have the same length as the system_map
         if not calculation_info:  # TODO should still create entries for system time link in this case
             return
         time_step = None  # TODO GET TIME STEP FROM PARAMS SECTION
+        time_unit = ureg.picosecond
+        def format_times(times):
+            return np.around(times.magnitude * ureg.convert(1.0, times.units, time_unit), 5)
 
         system_map = {}
         system_map_key = ''
@@ -511,7 +514,8 @@ class H5MDParser(MDParser):
                 if system_map_key == 'time':
                     times = observable.get('time')
                     if times is not None:
-                        times = np.around(times.magnitude * ureg.convert(1.0, times.units, ureg.picosecond), 5)  # TODO What happens if no units are given?
+                        times = format_times(times)  # TODO What happens if no units are given?
+                        # times = np.around(times.magnitude * ureg.convert(1.0, times.units, time_unit), 5)
                         for i_time, time in enumerate(times):
                             map_entry = system_map.get(time)
                             if map_entry:
@@ -537,10 +541,13 @@ class H5MDParser(MDParser):
             data = {
                 'method_ref': sec_run.method[-1] if sec_run.method else None,
                 'energy': {},
-                'x_h5md_custom_calculations': []
+            }
+            data_h5md = {
+                'x_h5md_custom_calculations': [],
+                'x_h5md_energy_contributions': []
             }
             if system_map_key == 'time':
-                data['time'] = frame
+                data['time'] = frame * time_unit
                 if time_step:
                     data['step'] = int((frame / time_step).magnitude)
             elif system_map_key == 'step':
@@ -558,12 +565,12 @@ class H5MDParser(MDParser):
                         if key in BaseCalculation.__dict__.keys():
                             data[key] = val[system_index]
                             # sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val[system_index])
-                        # else:
-                        #     unit = None
-                        #     if hasattr(val, 'units'):
-                        #         unit = val.units
-                        #         val = val.magnitude
-                        #     data['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
+                        else:
+                            unit = None
+                            if hasattr(val, 'units'):
+                                unit = val.units
+                                val = val.magnitude
+                            data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
 
             for observable_type, observable_dict in calculation_info.items():
                 for key, observable in observable_dict.items():
@@ -577,8 +584,8 @@ class H5MDParser(MDParser):
                                 data['energy'][key] = dict(value=val)
                                 # data['energy'].m_add_sub_section(getattr(Energy, key), EnergyEntry(value=val))
                             else:
-                                data.setdefault('x_h5md_energy_contributions', [])
-                                data['x_h5md_energy_contributions'].append(dict(kind=map_key, value=val))
+                                # data.setdefault('x_h5md_energy_contributions', [])
+                                data_h5md['x_h5md_energy_contributions'].append(EnergyEntry(kind=map_key, value=val))
                                 # sec_energy.x_h5md_energy_contributions.append(
                                 #     EnergyEntry(kind=map_key, value=val))
                         else:
@@ -590,15 +597,25 @@ class H5MDParser(MDParser):
                             if key in BaseCalculation.__dict__.keys():
                                 data[key] = val
                                 # sec_scc.m_set(sec_scc.m_get_quantity_definition(key), val)
-                            # else:
-                            #     unit = None
-                            #     if hasattr(val, 'units'):
-                            #         unit = val.units
-                            #         val = val.magnitude
-                            #     data['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
-            print(data)
+                            else:
+                                unit = None
+                                if hasattr(val, 'units'):
+                                    unit = val.units
+                                    val = val.magnitude
+                                data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
+
             self.parse_thermodynamics_step(data)
-            # TODO I am HERE, working on implementing MDParser functions, have not yet test above for parse_thermo...
+            sec_calc = sec_run.calculation[-1]
+            if format_times(sec_calc.time) != frame:  # TODO check this comparison
+                sec_calc = sec_run.m_create(Calculation)
+                sec_calc.time = frame * time_unit
+            for calc_entry in data_h5md['x_h5md_custom_calculations']:
+                sec_calc.x_h5md_custom_calculations.append(calc_entry)
+            sec_energy = sec_calc.energy
+            if not sec_energy:
+                sec_energy = sec_calc.m_create(Energy)
+            for energy_entry in data_h5md['x_h5md_energy_contributions']:
+                sec_energy.x_h5md_energy_contributions.append(energy_entry)
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
@@ -613,9 +630,10 @@ class H5MDParser(MDParser):
         for frame in range(n_frames):
             # if (n % self.frame_rate) > 0:
             #     continue
-            sec_system = sec_run.m_create(System)
-            sec_atoms = sec_system.m_create(Atoms)
+            # sec_system = sec_run.m_create(System)
+            # sec_atoms = sec_system.m_create(Atoms)
 
+            atoms_dict = {}
             for key in system_info.keys():
                 if key == 'times':
                     time = system_info.get('times', [None] * (frame + 1))[frame]
@@ -627,16 +645,23 @@ class H5MDParser(MDParser):
                     if step is not None:
                         self._system_step_map[round(step)] = len(self._system_step_map)
                 else:
-                    setattr(sec_atoms, key, system_info.get(key, [None] * (frame + 1))[frame])
+                    atoms_dict[key] = system_info.get(key, [None] * (frame + 1))[frame]
+                #     setattr(sec_atoms, key, system_info.get(key, [None] * (frame + 1))[frame])
+
+            if frame == 0:  # TODO extend to time-dependent bond lists
+                connectivity = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'connectivity', None)
+                atoms_dict['bond_list'] = self._data_parser.hdf5_getter(connectivity, 'bonds')
+                # if bond_list is not None:
+                #     setattr(sec_atoms, 'bond_list', bond_list)
+
+            self.parse_trajectory_step({
+                'atoms': atoms_dict
+            })
 
             if frame == 0:  # TODO extend to time-dependent topologies
-                connectivity = self._data_parser.hdf5_getter(self._data_parser.filehdf5, 'connectivity', None)
-                bond_list = self._data_parser.hdf5_getter(connectivity, 'bonds')
-                if bond_list is not None:
-                    setattr(sec_atoms, 'bond_list', bond_list)
                 topology = self._data_parser.hdf5_getter(connectivity, 'particles_group', None)
                 if topology:
-                    self.get_atomsgroup_fromh5md(sec_system, topology)
+                    self.get_atomsgroup_fromh5md(sec_run.system[frame], topology)
 
     def parse_method(self):
 
@@ -679,7 +704,7 @@ class H5MDParser(MDParser):
 
         atom_labels = self.atom_parameters.get('label')
         interaction_keys = ['bonds', 'angles', 'dihedrals', 'impropers']
-        interactions = []
+        interactions_by_type = []
         for interaction_key in interaction_keys:
             interaction_list = self._data_parser.hdf5_getter(connectivity, interaction_key)
             if interaction_list is None:
@@ -687,16 +712,16 @@ class H5MDParser(MDParser):
             elif type(interaction_list) == h5py.Group:
                 self.logger.warning('Time-dependent ' + key + ' currently not supported. ' + key + ' list will not be stored')
                 continue
-            interaction = {
+
+            interaction_type_dict = {
                 'type': interaction_key,
-                'n_inter': len(interaction_list),
+                'n_interactions': len(interaction_list),
                 'n_atoms': len(interaction_list[0]),
                 'atom_indices': interaction_list,
                 'atom_labels': np.array(atom_labels)[interaction_list] if atom_labels is not None else None
             }
-            interactions.append(interaction)
-        print(interactions)
-        self.parse_interactions(interactions, sec_model)
+            interactions_by_type.append(interaction_type_dict)
+        self.parse_interactions_by_type(interactions_by_type, sec_model)
 
         # Get the force calculation parameters
         force_calculation_parameters = self.parameter_info.get('force_calculations')
@@ -851,8 +876,6 @@ class H5MDParser(MDParser):
         #         val = val.magnitude
         #     sec_scc.x_h5md_custom_calculations.append(CalcEntry(kind=key, value=val, unit=unit))
 
-
-
         self.archive.workflow2 = workflow
 
     def init_parser(self):
@@ -890,8 +913,8 @@ class H5MDParser(MDParser):
 
         self.parse_method()
 
-        # self.parse_system()
+        self.parse_system()
 
-        # self.parse_calculation()
+        self.parse_calculation()
 
         # self.parse_workflow()

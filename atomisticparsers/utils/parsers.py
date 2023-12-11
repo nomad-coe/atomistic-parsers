@@ -236,4 +236,11 @@ class MDParser(AtomisticParser):
                 sec_interaction.n_atoms = len(sec_interaction.get('atom_indices')[0]) if sec_interaction.get('atom_indices') is not None else None
 
 
+    def parse_interactions_by_type(self, interactions_by_type: List[Dict], sec_model: MSection) -> None:
+
+        for interaction_type_dict in interactions_by_type:
+            self.parse_section(interaction_type_dict, sec_model.m_create(Interaction))
+        # TODO Shift Gromacs and Lammps parsers to use this function as well if possible
+
+
 

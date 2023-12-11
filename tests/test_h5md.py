@@ -46,6 +46,92 @@ def test_md(parser):
     assert sec_run.x_h5md_creator.name == 'h5py'
     assert sec_run.x_h5md_creator.version == '3.6.0'
 
+    sec_method = sec_run.method
+    sec_atom_params = sec_method[0].atom_parameters
+    assert len(sec_atom_params) == 31583
+    assert sec_atom_params[164].label == 'O'
+    assert sec_atom_params[164].mass.magnitude == approx(2.656767806475139e-26)
+    assert sec_atom_params[164].charge.magnitude == approx(-8.01088317e-20)
+
+    assert len(sec_method[0].force_field.model[0].contributions) == 3
+    assert sec_method[0].force_field.model[0].contributions[1].type == 'angles'
+    assert sec_method[0].force_field.model[0].contributions[1].n_interactions == 762
+    assert sec_method[0].force_field.model[0].contributions[1].n_atoms == 3
+    assert sec_method[0].force_field.model[0].contributions[1].atom_labels[10][0] == 'O'
+    assert sec_method[0].force_field.model[0].contributions[1].atom_indices[100][1] == 51
+
+    assert sec_method[0].force_field.force_calculations.vdw_cutoff.magnitude == approx(1.2e-09)
+    assert sec_method[0].force_field.force_calculations.vdw_cutoff.units == 'meter'
+    assert sec_method[0].force_field.force_calculations.coulomb_type == 'particle_mesh_ewald'
+    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.magnitude == approx(1.2e-09)
+    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.units == 'meter'
+    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_frequency == 1
+    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.magnitude == approx(1.2e-09)
+    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.units == 'meter'
+
+    sec_systems = sec_run.system
+    assert len(sec_systems) == 5
+    assert np.shape(sec_systems[0].atoms.positions) == (31583, 3)
+    assert np.shape(sec_systems[0].atoms.velocities) == (31583, 3)
+    assert sec_systems[0].atoms.n_atoms == 31583
+    assert sec_systems[0].atoms.labels[100] == 'H'
+
+    assert sec_systems[2].atoms.positions[800][1].magnitude == approx(2.686057472229004e-09)
+    assert sec_systems[2].atoms.velocities[1200][2].magnitude == approx(40000.0)
+    assert sec_systems[3].atoms.lattice_vectors[2][2].magnitude == approx(6.822318267822266e-09)
+    assert sec_systems[0].atoms.bond_list[200][0] == 198
+
+    sec_atoms_group = sec_systems[0].atoms_group
+    assert len(sec_atoms_group) == 4
+    assert sec_atoms_group[0].label == 'group_1ZNF'
+    assert sec_atoms_group[0].type == 'molecule_group'
+    assert sec_atoms_group[0].composition_formula == '1ZNF(1)'
+    assert sec_atoms_group[0].n_atoms == 423
+    assert sec_atoms_group[0].atom_indices[159] == 159
+    assert sec_atoms_group[0].is_molecule is False
+    sec_proteins = sec_atoms_group[0].atoms_group
+    assert len(sec_proteins) == 1
+    assert sec_proteins[0].label == '1ZNF'
+    assert sec_proteins[0].type == 'molecule'
+    assert sec_proteins[0].composition_formula == 'ACE(1)TYR(1)LYS(1)CYS(1)GLY(1)LEU(1)CYS(1)GLU(1)ARG(1)SER(1)PHE(1)VAL(1)GLU(1)LYS(1)SER(1)ALA(1)LEU(1)SER(1)ARG(1)HIS(1)GLN(1)ARG(1)VAL(1)HIS(1)LYS(1)ASN(1)NH2(1)'
+    assert sec_proteins[0].n_atoms == 423
+    assert sec_proteins[0].atom_indices[400] == 400
+    assert sec_proteins[0].is_molecule is True
+    sec_res_group = sec_proteins[0].atoms_group
+    assert len(sec_res_group) == 27
+    assert sec_res_group[14].label == 'group_ARG'
+    assert sec_res_group[14].type == 'monomer_group'
+    assert sec_res_group[14].composition_formula == 'ARG(1)'
+    assert sec_res_group[14].n_atoms == 24
+    assert sec_res_group[14].atom_indices[2] == 329
+    assert sec_res_group[14].is_molecule is False
+    sec_res = sec_res_group[14].atoms_group
+    assert len(sec_res) == 1
+    assert sec_res[0].label == 'ARG'
+    assert sec_res[0].type == 'monomer'
+    assert sec_res[0].composition_formula == 'C(1)CA(1)CB(1)CD(1)CG(1)CZ(1)H(1)HA(1)HB2(1)HB3(1)HD2(1)HD3(1)HE(1)HG2(1)HG3(1)HH11(1)HH12(1)HH21(1)HH22(1)N(1)NE(1)NH1(1)NH2(1)O(1)'
+    assert sec_res[0].n_atoms == 24
+    assert sec_res[0].atom_indices[10] == 337
+    assert sec_res[0].is_molecule is False
+    assert sec_res[0].x_h5md_parameters[0].kind == 'hydrophobicity'
+    assert sec_res[0].x_h5md_parameters[0].value == '0.81'
+    assert sec_res[0].x_h5md_parameters[0].unit is None
+
+    sec_calc = sec_run.calculation
+    assert len(sec_calc) == 5
+    assert np.shape(sec_calc[1].forces.total.value) == (31583, 3)
+    assert sec_calc[1].forces.total.value[2100][2].magnitude == 500.0
+    assert sec_calc[2].temperature.magnitude == 300.0
+    assert len(sec_calc[1].x_h5md_custom_calculations) == 1
+    assert sec_calc[1].x_h5md_custom_calculations[0].kind == 'custom_thermo'
+    assert sec_calc[1].x_h5md_custom_calculations[0].value == 100.0
+    assert sec_calc[1].x_h5md_custom_calculations[0].unit == 'newton / angstrom ** 2'
+    assert sec_calc[2].time.magnitude == 2e-12
+    assert sec_calc[2].energy.kinetic.value.magnitude == approx(2000)
+    assert sec_calc[2].energy.potential.value.magnitude == approx(1000)
+    assert sec_calc[1].energy.x_h5md_energy_contributions[0].kind == 'energy-custom'
+    assert sec_calc[1].energy.x_h5md_energy_contributions[0].value.magnitude == 3000.0
+
     # sec_workflow = archive.workflow2
     # assert sec_workflow.m_def.name == 'MolecularDynamics'
     # sec_method = sec_workflow.method
@@ -68,92 +154,6 @@ def test_md(parser):
     # assert sec_method.barostat_parameters[0].coupling_constant.units == 'second'
     # assert np.all(sec_method.barostat_parameters[0].compressibility.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
     # assert sec_method.barostat_parameters[0].compressibility.units == '1 / pascal'
-
-    # sec_calc = sec_run.calculation
-    # assert len(sec_calc) == 5
-    # assert np.shape(sec_calc[1].forces.total.value) == (31583, 3)
-    # assert sec_calc[1].forces.total.value[2100][2].magnitude == 500.0
-    # assert sec_calc[2].temperature.magnitude == 300.0
-    # assert len(sec_calc[1].x_h5md_custom_calculations) == 1
-    # assert sec_calc[1].x_h5md_custom_calculations[0].kind == 'custom_thermo'
-    # assert sec_calc[1].x_h5md_custom_calculations[0].value == 100.0
-    # assert sec_calc[1].x_h5md_custom_calculations[0].unit == 'newton / angstrom ** 2'
-    # assert sec_calc[2].time.magnitude == 2.0
-    # assert sec_calc[2].energy.kinetic.value.magnitude == approx(2000)
-    # assert sec_calc[2].energy.potential.value.magnitude == approx(1000)
-    # assert sec_calc[1].energy.x_h5md_energy_contributions[0].kind == 'energy-custom'
-    # assert sec_calc[1].energy.x_h5md_energy_contributions[0].value.magnitude == 3000.0
-
-    # sec_systems = sec_run.system
-    # assert len(sec_systems) == 5
-    # assert np.shape(sec_systems[0].atoms.positions) == (31583, 3)
-    # assert np.shape(sec_systems[0].atoms.velocities) == (31583, 3)
-    # assert sec_systems[0].atoms.n_atoms == 31583
-    # assert sec_systems[0].atoms.labels[100] == 'H'
-
-    # assert sec_systems[2].atoms.positions[800][1].magnitude == approx(2.686057472229004e-09)
-    # assert sec_systems[2].atoms.velocities[1200][2].magnitude == approx(40000.0)
-    # assert sec_systems[3].atoms.lattice_vectors[2][2].magnitude == approx(6.822318267822266e-09)
-    # assert sec_systems[0].atoms.bond_list[200][0] == 198
-
-    # sec_atoms_group = sec_systems[0].atoms_group
-    # assert len(sec_atoms_group) == 4
-    # assert sec_atoms_group[0].label == 'group_1ZNF'
-    # assert sec_atoms_group[0].type == 'molecule_group'
-    # assert sec_atoms_group[0].composition_formula == '1ZNF(1)'
-    # assert sec_atoms_group[0].n_atoms == 423
-    # assert sec_atoms_group[0].atom_indices[159] == 159
-    # assert sec_atoms_group[0].is_molecule is False
-    # sec_proteins = sec_atoms_group[0].atoms_group
-    # assert len(sec_proteins) == 1
-    # assert sec_proteins[0].label == '1ZNF'
-    # assert sec_proteins[0].type == 'molecule'
-    # assert sec_proteins[0].composition_formula == 'ACE(1)TYR(1)LYS(1)CYS(1)GLY(1)LEU(1)CYS(1)GLU(1)ARG(1)SER(1)PHE(1)VAL(1)GLU(1)LYS(1)SER(1)ALA(1)LEU(1)SER(1)ARG(1)HIS(1)GLN(1)ARG(1)VAL(1)HIS(1)LYS(1)ASN(1)NH2(1)'
-    # assert sec_proteins[0].n_atoms == 423
-    # assert sec_proteins[0].atom_indices[400] == 400
-    # assert sec_proteins[0].is_molecule is True
-    # sec_res_group = sec_proteins[0].atoms_group
-    # assert len(sec_res_group) == 27
-    # assert sec_res_group[14].label == 'group_ARG'
-    # assert sec_res_group[14].type == 'monomer_group'
-    # assert sec_res_group[14].composition_formula == 'ARG(1)'
-    # assert sec_res_group[14].n_atoms == 24
-    # assert sec_res_group[14].atom_indices[2] == 329
-    # assert sec_res_group[14].is_molecule is False
-    # sec_res = sec_res_group[14].atoms_group
-    # assert len(sec_res) == 1
-    # assert sec_res[0].label == 'ARG'
-    # assert sec_res[0].type == 'monomer'
-    # assert sec_res[0].composition_formula == 'C(1)CA(1)CB(1)CD(1)CG(1)CZ(1)H(1)HA(1)HB2(1)HB3(1)HD2(1)HD3(1)HE(1)HG2(1)HG3(1)HH11(1)HH12(1)HH21(1)HH22(1)N(1)NE(1)NH1(1)NH2(1)O(1)'
-    # assert sec_res[0].n_atoms == 24
-    # assert sec_res[0].atom_indices[10] == 337
-    # assert sec_res[0].is_molecule is False
-    # assert sec_res[0].x_h5md_parameters[0].kind == 'hydrophobicity'
-    # assert sec_res[0].x_h5md_parameters[0].value == '0.81'
-    # assert sec_res[0].x_h5md_parameters[0].unit is None
-
-    sec_method = sec_run.method
-    sec_atom_params = sec_method[0].atom_parameters
-    assert len(sec_atom_params) == 31583
-    assert sec_atom_params[164].label == 'O'
-    assert sec_atom_params[164].mass.magnitude == approx(2.656767806475139e-26)
-    assert sec_atom_params[164].charge.magnitude == approx(-8.01088317e-20)
-
-    assert len(sec_method[0].force_field.model[0].contributions) == 3
-    assert sec_method[0].force_field.model[0].contributions[1].type == 'angles'
-    assert sec_method[0].force_field.model[0].contributions[1].n_inter == 762
-    assert sec_method[0].force_field.model[0].contributions[1].n_atoms == 3
-    assert sec_method[0].force_field.model[0].contributions[1].atom_labels[10][0] == 'O'
-    assert sec_method[0].force_field.model[0].contributions[1].atom_indices[100][1] == 51
-
-    assert sec_method[0].force_field.force_calculations.vdw_cutoff.magnitude == approx(1.2e-09)
-    assert sec_method[0].force_field.force_calculations.vdw_cutoff.units == 'meter'
-    assert sec_method[0].force_field.force_calculations.coulomb_type == 'particle_mesh_ewald'
-    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.magnitude == approx(1.2e-09)
-    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.units == 'meter'
-    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_frequency == 1
-    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.magnitude == approx(1.2e-09)
-    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.units == 'meter'
 
     # sec_workflow_results = sec_workflow.results
     # assert len(sec_workflow_results.ensemble_properties) == 2

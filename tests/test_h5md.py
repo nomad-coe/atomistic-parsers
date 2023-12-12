@@ -155,36 +155,36 @@ def test_md(parser):
     assert np.all(sec_method.barostat_parameters[0].compressibility.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
     assert sec_method.barostat_parameters[0].compressibility.units == '1 / pascal'
 
-    # sec_workflow_results = sec_workflow.results
-    # assert len(sec_workflow_results.ensemble_properties) == 2
-    # ensemble_property_0 = sec_workflow_results.ensemble_properties[0]
-    # assert ensemble_property_0.label == 'diffusion_constants'
-    # assert ensemble_property_0.error_type == 'Pearson_correlation_coefficient'
-    # assert len(ensemble_property_0.ensemble_property_values) == 2
-    # assert ensemble_property_0.ensemble_property_values[1].label == 'MOL2'
-    # assert ensemble_property_0.ensemble_property_values[1].errors == 0.95
-    # assert ensemble_property_0.ensemble_property_values[1].value_magnitude == 2.
-    # assert ensemble_property_0.ensemble_property_values[1].value_unit == 'angstrom ** 2 / picosecond'
-    # ensemble_property_1 = sec_workflow_results.ensemble_properties[1]
-    # assert ensemble_property_1.label == 'radial_distribution_functions'
-    # assert ensemble_property_1.type == 'molecular'
-    # assert len(ensemble_property_1.ensemble_property_values) == 3
-    # assert ensemble_property_1.ensemble_property_values[1].label == 'MOL1-MOL2'
-    # assert ensemble_property_1.ensemble_property_values[1].n_bins == 651
-    # assert ensemble_property_1.ensemble_property_values[1].frame_start == 0
-    # assert ensemble_property_1.ensemble_property_values[1].frame_end == 4
-    # assert ensemble_property_1.ensemble_property_values[1].bins_magnitude[51] == approx(0.255)
-    # assert ensemble_property_1.ensemble_property_values[1].bins_unit == 'angstrom'
-    # assert ensemble_property_1.ensemble_property_values[1].value_magnitude[51] == approx(0.284764)
-    # correlation_function_0 = sec_workflow_results.correlation_functions[0]
-    # assert correlation_function_0.type == 'molecular'
-    # assert correlation_function_0.label == 'mean_squared_displacements'
-    # assert correlation_function_0.direction == 'xyz'
-    # assert correlation_function_0.error_type == 'standard_deviation'
-    # assert len(correlation_function_0.correlation_function_values) == 2
-    # assert correlation_function_0.correlation_function_values[0].label == 'MOL1'
-    # assert correlation_function_0.correlation_function_values[0].n_times == 51
-    # assert correlation_function_0.correlation_function_values[0].times[10].magnitude == approx(2.e-11)
-    # assert correlation_function_0.correlation_function_values[0].value_magnitude[10] == approx(0.679723)
-    # assert correlation_function_0.correlation_function_values[0].value_unit == 'angstrom ** 2'
-    # assert correlation_function_0.correlation_function_values[0].errors[10] == approx(0.0)
+    sec_workflow_results = sec_workflow.results
+    assert len(sec_workflow_results.ensemble_properties) == 1
+    ensemble_property_0 = sec_workflow_results.ensemble_properties[0]
+    assert ensemble_property_0.label == 'diffusion_constants'
+    assert ensemble_property_0.error_type == 'Pearson_correlation_coefficient'
+    assert len(ensemble_property_0.ensemble_property_values) == 2
+    assert ensemble_property_0.ensemble_property_values[1].label == 'MOL2'
+    assert ensemble_property_0.ensemble_property_values[1].errors == 0.95
+    assert ensemble_property_0.ensemble_property_values[1].value_magnitude == 2.
+    assert ensemble_property_0.ensemble_property_values[1].value_unit == 'angstrom ** 2 / picosecond'
+    ensemble_property_1 = sec_workflow_results.radial_distribution_functions[0]
+    assert ensemble_property_1.label == 'radial_distribution_functions'
+    assert ensemble_property_1.type == 'molecular'
+    assert len(ensemble_property_1.radial_distribution_function_values) == 3
+    assert ensemble_property_1.radial_distribution_function_values[1].label == 'MOL1-MOL2'
+    assert ensemble_property_1.radial_distribution_function_values[1].n_bins == 651
+    assert ensemble_property_1.radial_distribution_function_values[1].frame_start == 0
+    assert ensemble_property_1.radial_distribution_function_values[1].frame_end == 4
+    assert ensemble_property_1.radial_distribution_function_values[1].bins[51].magnitude == approx(2.55e-11)
+ #   assert ensemble_property_1.radial_distribution_function_values[1].bins_unit == 'angstrom'
+    assert ensemble_property_1.radial_distribution_function_values[1].value[51] == approx(0.284764)
+    correlation_function_0 = sec_workflow_results.mean_squared_displacements[0]
+    assert correlation_function_0.type == 'molecular'
+    assert correlation_function_0.label == 'mean_squared_displacements'
+    assert correlation_function_0.direction == 'xyz'
+    assert correlation_function_0.error_type == 'standard_deviation'
+    assert len(correlation_function_0.mean_squared_displacement_values) == 2
+    assert correlation_function_0.mean_squared_displacement_values[0].label == 'MOL1'
+    assert correlation_function_0.mean_squared_displacement_values[0].n_times == 51
+    assert correlation_function_0.mean_squared_displacement_values[0].times[10].magnitude == approx(2.e-11)
+    assert correlation_function_0.mean_squared_displacement_values[0].value[10].magnitude == approx(6.79723e-21)
+#    assert correlation_function_0.mean_squared_displacement_values[0].value[10].units == 'angstrom ** 2'
+    assert correlation_function_0.mean_squared_displacement_values[0].errors[10] == approx(0.0)

@@ -246,17 +246,17 @@ class H5MDParser(MDParser):
     @property
     def system_info(self):
         if self._system_info is None:
+            self._system_info = {'system': {}, 'calculation': {}}
             particles_group = self.h5md_particle_group_all
             positions_group = self.h5md_positions_group_all
             positions_value = self.h5md_positions_value_all
             if not particles_group:
-                return
-            self._system_info = {'system': {}, 'calculation': {}}
-            n_frames = self.n_frames
+                return self._system_info
 
+            n_frames = self.n_frames
             if positions_value is None:  # For now we require that positions are present in the H5MD file to store other particle attributes
                 self.logger.warning('No positions available in H5MD file. Other particle attributes will not be stored')
-                return
+                return self._system_info
             self._system_info['system']['positions'] = positions_value
             self._system_info['system']['n_atoms'] = self.n_atoms
             # get the times and steps based on the positions
@@ -317,15 +317,14 @@ class H5MDParser(MDParser):
     @property
     def observable_info(self):
         if self._observable_info is None:
-            observables_group = self.h5md_groups.get('observables')
-            if observables_group is None:
-                return
-
             self._observable_info = {
                 'configurational': {},
                 'ensemble_average': {},
                 'correlation_function': {}
             }
+            observables_group = self.h5md_groups.get('observables')
+            if observables_group is None:
+                return self._observable_info
 
             def get_observable_paths(observable_group, current_path, paths):
                 for obs_key in observable_group.keys():
@@ -390,13 +389,13 @@ class H5MDParser(MDParser):
     @property
     def parameter_info(self):
         if self._parameter_info is None:
-            parameters_group = self.h5md_groups.get('parameters')
-            if parameters_group is None:
-                return
             self._parameter_info = {
                 'force_calculations': {},
                 'workflow': {}
             }
+            parameters_group = self.h5md_groups.get('parameters')
+            if parameters_group is None:
+                return self._parameter_info
 
             def get_parameters(parameter_group):
                 param_dict = {}

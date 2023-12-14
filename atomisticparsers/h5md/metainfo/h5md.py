@@ -56,6 +56,8 @@ class ParamEntry(MSection):
         Unit of the parameter as a string.
         ''')
 
+    # TODO add description quantity
+
 
 class CalcEntry(MSection):
     '''
@@ -85,6 +87,29 @@ class CalcEntry(MSection):
         Unit of the parameter as a string.
         ''')
 
+    # TODO add description quantity
+
+class ForceCalculations(simulation.method.ForceCalculations):
+
+    m_def = Section(validate=False, extends_base_section=True,)
+
+    x_h5md_parameters = SubSection(
+        sub_section=ParamEntry.m_def,
+        description='''
+        Contains non-normalized force calculation parameters.
+        ''',
+        repeats=True)
+
+class NeighborSearching(simulation.method.NeighborSearching):
+
+    m_def = Section(validate=False, extends_base_section=True,)
+
+    x_h5md_parameters = SubSection(
+        sub_section=ParamEntry.m_def,
+        description='''
+        Contains non-normalized neighbor searching parameters.
+        ''',
+        repeats=True)
 
 class AtomsGroup(simulation.system.AtomsGroup):
     '''

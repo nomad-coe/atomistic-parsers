@@ -156,6 +156,11 @@ class H5MDParser(MDParser):
         self._h5md_positions_group_all = None
         self._h5md_positions_value_all = None
         self._time_unit = ureg.picosecond
+        self._h5md_group = None
+        self._particles_group = None
+        self._observables_group = None
+        self._connectivity_group = None
+        self._parameters_group = None
 
         self._nomad_to_particles_group_map = {
             'positions': 'position',
@@ -177,21 +182,11 @@ class H5MDParser(MDParser):
         return np.around(times.magnitude * ureg.convert(1.0, times.units, self._time_unit), 5)
 
     @property
-    def h5md_groups(self):
-        if self._h5md_groups is None:
-            if not self._data_parser.filehdf5:
-                return {}
-            groups = ['h5md', 'particles', 'observables', 'connectivity', 'parameters']
-            self._h5md_groups = {group: self._data_parser.get_value(self._data_parser.filehdf5, group) for group in groups}
-        return self._h5md_groups
-
-    @property
     def h5md_particle_group_all(self):
         if self._h5md_particle_group_all is None:
-            group_particles = self.h5md_groups.get('particles')
-            if not group_particles:
+            if not self._particles_group:
                 return
-            self._h5md_particle_group_all = self._data_parser.get_value(group_particles, 'all')
+            self._h5md_particle_group_all = self._data_parser.get_value(self._particles_group, 'all')
         return self._h5md_particle_group_all
 
     @property
@@ -341,8 +336,7 @@ class H5MDParser(MDParser):
                 'ensemble_average': {},
                 'correlation_function': {}
             }
-            observables_group = self.h5md_groups.get('observables')
-            if observables_group is None:
+            if self._observables_group is None:
                 return self._observable_info
 
             def get_observable_paths(observable_group: Dict, current_path: str) -> List:
@@ -358,11 +352,11 @@ class H5MDParser(MDParser):
 
                 return paths
 
-            observable_paths = get_observable_paths(observables_group, current_path='')
+            observable_paths = get_observable_paths(self._observables_group, current_path='')
 
             for path in observable_paths:
-                observable = self._data_parser.get_value(observables_group, path)
-                observable_type = self._data_parser.get_value(observables_group, path).attrs.get('type')
+                observable = self._data_parser.get_value(self._observables_group, path)
+                observable_type = self._data_parser.get_value(self._observables_group, path).attrs.get('type')
                 observable_name = path.split('.')[0]
                 observable_label = '-'.join(path.split('.')[1:])
                 if observable_name not in self._observable_info[observable_type].keys():
@@ -431,8 +425,7 @@ class H5MDParser(MDParser):
                 'force_calculations': {},
                 'workflow': {}
             }
-            parameters_group = self.h5md_groups.get('parameters')
-            if parameters_group is None:
+            if self._parameters_group is None:
                 return self._parameter_info
 
             def get_parameters(parameter_group: Group) -> Dict:
@@ -452,10 +445,10 @@ class H5MDParser(MDParser):
 
                 return param_dict
 
-            force_calculations_group = self._data_parser.get_value(parameters_group, 'force_calculations')
+            force_calculations_group = self._data_parser.get_value(self._parameters_group, 'force_calculations')
             if force_calculations_group is not None:
                 self._parameter_info['force_calculations'] = get_parameters(force_calculations_group)
-            workflow_group = self._data_parser.get_value(parameters_group, 'workflow')
+            workflow_group = self._data_parser.get_value(self._parameters_group, 'workflow')
             if workflow_group is not None:
                 self._parameter_info['workflow'] = get_parameters(workflow_group)
 
@@ -544,127 +537,127 @@ class H5MDParser(MDParser):
             for energy_entry in data_h5md['x_h5md_energy_contributions']:
                 sec_energy.x_h5md_energy_contributions.append(energy_entry)
 
-    def parse_calculation_OLD(self):
-        sec_run = self.archive.run[-1]
-        calculation_info = self.observable_info.get('configurational')
-        system_info = self._system_info.get('calculation')  # note: it is currently ensured in parse_system() that these have the same length as the system_map
-        if not calculation_info:  # TODO should still create entries for system time link in this case
-            return
-        time_step = None  # TODO GET TIME STEP FROM PARAMS SECTION
+    # def parse_calculation_OLD(self):
+    #     sec_run = self.archive.run[-1]
+    #     calculation_info = self.observable_info.get('configurational')
+    #     system_info = self._system_info.get('calculation')  # note: it is currently ensured in parse_system() that these have the same length as the system_map
+    #     if not calculation_info:  # TODO should still create entries for system time link in this case
+    #         return
+    #     time_step = None  # TODO GET TIME STEP FROM PARAMS SECTION
 
-        system_map = {}
-        system_map_key = ''
-        if self._system_time_map:
-            system_map_key = 'time'
-            for time, i_sys in self._system_time_map.items():
-                system_map[time] = {'system': i_sys}
-        elif self._system_step_map:
-            system_map_key = 'step'
-            for step, i_sys in self._system_step_map.items():
-                system_map[step] = {'system': i_sys}
-        else:
-            self.logger.warning('No step or time available for system data. Cannot make calculation to system references.')
-            system_map_key = 'time'
+    #     system_map = {}
+    #     system_map_key = ''
+    #     if self._system_time_map:
+    #         system_map_key = 'time'
+    #         for time, i_sys in self._system_time_map.items():
+    #             system_map[time] = {'system': i_sys}
+    #     elif self._system_step_map:
+    #         system_map_key = 'step'
+    #         for step, i_sys in self._system_step_map.items():
+    #             system_map[step] = {'system': i_sys}
+    #     else:
+    #         self.logger.warning('No step or time available for system data. Cannot make calculation to system references.')
+    #         system_map_key = 'time'
 
-        for observable_type, observable_dict in calculation_info.items():
-            for key, observable in observable_dict.items():
-                map_key = observable_type + '-' + key if key else observable_type
-                if system_map_key == 'time':
-                    times = observable.get('time')
-                    if times is not None:
-                        times = self.format_times(times)  # TODO What happens if no units are given?
-                        for i_time, time in enumerate(times):
-                            map_entry = system_map.get(time)
-                            if map_entry:
-                                map_entry[map_key] = i_time
-                            else:
-                                system_map[time] = {map_key: i_time}
-                    else:
-                        self.logger.warning('No time information available for some observables. Cannot store these values.')
-                elif system_map_key == 'step':
-                    steps = observable.get('step')
-                    if steps:
-                        steps = np.around(steps)
-                        for i_step, step in enumerate(steps):
-                            map_entry = system_map.get(step)
-                            if map_entry:
-                                map_entry[map_key] = i_step
-                            else:
-                                system_map[time] = {map_key: i_step}
-                else:
-                    self.logger.error('system_map_key not assigned correctly.')
+    #     for observable_type, observable_dict in calculation_info.items():
+    #         for key, observable in observable_dict.items():
+    #             map_key = observable_type + '-' + key if key else observable_type
+    #             if system_map_key == 'time':
+    #                 times = observable.get('time')
+    #                 if times is not None:
+    #                     times = self.format_times(times)  # TODO What happens if no units are given?
+    #                     for i_time, time in enumerate(times):
+    #                         map_entry = system_map.get(time)
+    #                         if map_entry:
+    #                             map_entry[map_key] = i_time
+    #                         else:
+    #                             system_map[time] = {map_key: i_time}
+    #                 else:
+    #                     self.logger.warning('No time information available for some observables. Cannot store these values.')
+    #             elif system_map_key == 'step':
+    #                 steps = observable.get('step')
+    #                 if steps:
+    #                     steps = np.around(steps)
+    #                     for i_step, step in enumerate(steps):
+    #                         map_entry = system_map.get(step)
+    #                         if map_entry:
+    #                             map_entry[map_key] = i_step
+    #                         else:
+    #                             system_map[time] = {map_key: i_step}
+    #             else:
+    #                 self.logger.error('system_map_key not assigned correctly.')
 
-        for frame in sorted(system_map):
-            data = {
-                'method_ref': sec_run.method[-1] if sec_run.method else None,
-                'energy': {},
-            }
-            data_h5md = {
-                'x_h5md_custom_calculations': [],
-                'x_h5md_energy_contributions': []
-            }
-            if system_map_key == 'time':
-                data['time'] = frame * self._time_unit
-                if time_step:
-                    data['step'] = int((frame / time_step).magnitude)
-            elif system_map_key == 'step':
-                data['step'] = frame
-                if time_step:
-                    data['time'] = data['step'] * time_step
+    #     for frame in sorted(system_map):
+    #         data = {
+    #             'method_ref': sec_run.method[-1] if sec_run.method else None,
+    #             'energy': {},
+    #         }
+    #         data_h5md = {
+    #             'x_h5md_custom_calculations': [],
+    #             'x_h5md_energy_contributions': []
+    #         }
+    #         if system_map_key == 'time':
+    #             data['time'] = frame * self._time_unit
+    #             if time_step:
+    #                 data['step'] = int((frame / time_step).magnitude)
+    #         elif system_map_key == 'step':
+    #             data['step'] = frame
+    #             if time_step:
+    #                 data['time'] = data['step'] * time_step
 
-            system_index = system_map[frame]['system']
-            if system_index is not None:
-                for key, val in system_info.items():
-                    if key == 'forces':
-                        data[key] = dict(total=dict(value=val[system_index]))
-                    else:
-                        if hasattr(BaseCalculation, key):
-                            data[key] = val[system_index]
-                        else:
-                            unit = None
-                            if hasattr(val, 'units'):
-                                unit = val.units
-                                val = val.magnitude
-                            data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
+    #         system_index = system_map[frame]['system']
+    #         if system_index is not None:
+    #             for key, val in system_info.items():
+    #                 if key == 'forces':
+    #                     data[key] = dict(total=dict(value=val[system_index]))
+    #                 else:
+    #                     if hasattr(BaseCalculation, key):
+    #                         data[key] = val[system_index]
+    #                     else:
+    #                         unit = None
+    #                         if hasattr(val, 'units'):
+    #                             unit = val.units
+    #                             val = val.magnitude
+    #                         data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
 
-            for observable_type, observable_dict in calculation_info.items():
-                for key, observable in observable_dict.items():
-                    map_key = observable_type + '-' + key if key else observable_type
-                    obs_index = system_map[frame].get(map_key)
-                    if obs_index:
-                        val = observable.get('value', [None] * (obs_index + 1))[obs_index]
-                        if 'energ' in observable_type:  # TODO check for energies or energy when matching name
-                            if hasattr(Energy, key):
-                                data['energy'][key] = dict(value=val)
-                            else:
-                                data_h5md['x_h5md_energy_contributions'].append(EnergyEntry(kind=map_key, value=val))
-                        else:
-                            if key == '':
-                                key = observable_type
-                            else:
-                                key = map_key
+    #         for observable_type, observable_dict in calculation_info.items():
+    #             for key, observable in observable_dict.items():
+    #                 map_key = observable_type + '-' + key if key else observable_type
+    #                 obs_index = system_map[frame].get(map_key)
+    #                 if obs_index:
+    #                     val = observable.get('value', [None] * (obs_index + 1))[obs_index]
+    #                     if 'energ' in observable_type:  # TODO check for energies or energy when matching name
+    #                         if hasattr(Energy, key):
+    #                             data['energy'][key] = dict(value=val)
+    #                         else:
+    #                             data_h5md['x_h5md_energy_contributions'].append(EnergyEntry(kind=map_key, value=val))
+    #                     else:
+    #                         if key == '':
+    #                             key = observable_type
+    #                         else:
+    #                             key = map_key
 
-                            if hasattr(BaseCalculation, key):
-                                data[key] = val
-                            else:
-                                unit = None
-                                if hasattr(val, 'units'):
-                                    unit = val.units
-                                    val = val.magnitude
-                                data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
+    #                         if hasattr(BaseCalculation, key):
+    #                             data[key] = val
+    #                         else:
+    #                             unit = None
+    #                             if hasattr(val, 'units'):
+    #                                 unit = val.units
+    #                                 val = val.magnitude
+    #                             data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
 
-            self.parse_thermodynamics_step(data)
-            sec_calc = sec_run.calculation[-1]
-            if self.format_times(sec_calc.time) != frame:  # TODO check this comparison
-                sec_calc = sec_run.m_create(Calculation)
-                sec_calc.time = frame * self._time_unit
-            for calc_entry in data_h5md['x_h5md_custom_calculations']:
-                sec_calc.x_h5md_custom_calculations.append(calc_entry)
-            sec_energy = sec_calc.energy
-            if not sec_energy:
-                sec_energy = sec_calc.m_create(Energy)
-            for energy_entry in data_h5md['x_h5md_energy_contributions']:
-                sec_energy.x_h5md_energy_contributions.append(energy_entry)
+    #         self.parse_thermodynamics_step(data)
+    #         sec_calc = sec_run.calculation[-1]
+    #         if self.format_times(sec_calc.time) != frame:  # TODO check this comparison
+    #             sec_calc = sec_run.m_create(Calculation)
+    #             sec_calc.time = frame * self._time_unit
+    #         for calc_entry in data_h5md['x_h5md_custom_calculations']:
+    #             sec_calc.x_h5md_custom_calculations.append(calc_entry)
+    #         sec_energy = sec_calc.energy
+    #         if not sec_energy:
+    #             sec_energy = sec_calc.m_create(Energy)
+    #         for energy_entry in data_h5md['x_h5md_energy_contributions']:
+    #             sec_energy.x_h5md_energy_contributions.append(energy_entry)
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
@@ -687,8 +680,7 @@ class H5MDParser(MDParser):
                 if key == 'times':
                     time = system_info.get('times', [None] * (frame + 1))[frame]
                     if time is not None:
-                        self._system_time_map[round(ureg.convert(
-                            time.magnitude, time.units, ureg.picosecond), 5)] = len(self._system_time_map)
+                        self._system_time_map[self.format_times(time)] = len(self._system_time_map)
                 elif key == 'steps':
                     step = system_info.get('steps', [None] * (frame + 1))[frame]
                     if step is not None:
@@ -696,18 +688,17 @@ class H5MDParser(MDParser):
                 else:
                     atoms_dict[key] = system_info.get(key, [None] * (frame + 1))[frame]
 
-            if frame == 0:  # TODO extend to time-dependent bond lists
-                connectivity = self.h5md_groups['connectivity']
-                atoms_dict['bond_list'] = self._data_parser.get_value(connectivity, 'bonds')
+            topology = None
+            if frame == 0 and self._connectivity_group: # TODO extend to time-dependent bond lists and topologies
+                atoms_dict['bond_list'] = self._data_parser.get_value(self._connectivity_group, 'bonds')
+                topology = self._data_parser.get_value(self._connectivity_group, 'particles_group', None)
 
             self.parse_trajectory_step({
                 'atoms': atoms_dict
             })
 
-            if frame == 0:  # TODO extend to time-dependent topologies
-                topology = self._data_parser.get_value(connectivity, 'particles_group', None)
-                if topology:
-                    self.parse_atomsgroup(sec_run.system[frame], topology)
+            if topology:
+                self.parse_atomsgroup(sec_run.system[frame], topology)
 
     def parse_method(self):
 
@@ -727,13 +718,12 @@ class H5MDParser(MDParser):
                 sec_atom.m_set(sec_atom.m_get_quantity_definition(key), self.atom_parameters[key][n])
 
         # Get the interactions
-        connectivity = self.h5md_groups.get('connectivity')
-        if connectivity:
+        if self._connectivity_group:
             atom_labels = self.atom_parameters.get('label')
             interaction_keys = ['bonds', 'angles', 'dihedrals', 'impropers']
             interactions_by_type = []
             for interaction_key in interaction_keys:
-                interaction_list = self._data_parser.get_value(connectivity, interaction_key)
+                interaction_list = self._data_parser.get_value(self._connectivity_group, interaction_key)
                 if interaction_list is None:
                     continue
                 elif isinstance(interaction_list, h5py.Group):
@@ -878,10 +868,17 @@ class H5MDParser(MDParser):
             self.logger.warning('hdf5 file missing in H5MD Parser.')
             return
 
+        # Get the overarching H5MD groups
+        self._h5md_group = self._data_parser.get_value(self._data_parser.filehdf5, 'h5md')
+        self._particles_group = self._data_parser.get_value(self._data_parser.filehdf5, 'particles')
+        self._observables_group = self._data_parser.get_value(self._data_parser.filehdf5, 'observables')
+        self._connectivity_group = self._data_parser.get_value(self._data_parser.filehdf5, 'connectivity')
+        self._parameters_group = self._data_parser.get_value(self._data_parser.filehdf5, 'parameters')
+
         sec_run = Run()
         self.archive.run.append(sec_run)
 
-        group_h5md = self.h5md_groups.get('h5md')
+        group_h5md = self._h5md_group
         if group_h5md:
             program_name = self._data_parser.get_attribute(group_h5md, 'name', path='program')
             program_version = self._data_parser.get_attribute(group_h5md, 'version', path='program')

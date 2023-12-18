@@ -155,6 +155,7 @@ class H5MDParser(MDParser):
         self._h5md_particle_group_all = None
         self._h5md_positions_group_all = None
         self._h5md_positions_value_all = None
+        self._time_unit = ureg.picosecond
 
         self._nomad_to_particles_group_map = {
             'positions': 'position',
@@ -171,6 +172,9 @@ class H5MDParser(MDParser):
             'periodic': 'boundary',
             'dimension': 'dimension'
         }
+
+    def format_times(self, times):
+        return np.around(times.magnitude * ureg.convert(1.0, times.units, self._time_unit), 5)
 
     @property
     def h5md_groups(self):
@@ -372,6 +376,23 @@ class H5MDParser(MDParser):
                     self._observable_info[observable_type][observable_name][observable_label][key] = observable_attribute
         return self._observable_info
 
+    def get_configurational_info_by_time(self):
+        # reorganize the configurational observables by time step
+        observable_dict = self.observable_info.get('configurational')
+        configurational_dict_reorg = {}
+        for observable_name, observable_name_dict in observable_dict.items():
+            for observable_label, observable in observable_name_dict.items():
+                times = observable.get('time')
+                times = self.format_times(times) if times is not None else []
+                for i_time, time in enumerate(times):
+                    if not configurational_dict_reorg.get(time):
+                        configurational_dict_reorg[time] = {}
+                    if not configurational_dict_reorg[time].get(observable_name):
+                        configurational_dict_reorg[time][observable_name] = {}
+                    configurational_dict_reorg[time][observable_name][observable_label] = observable.get('value', [None] * (i_time + 1))[i_time]
+
+        return configurational_dict_reorg
+
     def parse_atomsgroup(self, nomad_sec, h5md_sec_particlesgroup: Group):
         for i_key, key in enumerate(h5md_sec_particlesgroup.keys()):
             particles_group = {group_key: self._data_parser.get_value(h5md_sec_particlesgroup[key], group_key) for group_key in h5md_sec_particlesgroup[key].keys()}
@@ -442,14 +463,94 @@ class H5MDParser(MDParser):
 
     def parse_calculation(self):
         sec_run = self.archive.run[-1]
+        calculation_info = self.get_configurational_info_by_time()
+        system_info = self._system_info.get('calculation')  # note: it is currently ensured in parse_system() that these have the same length as the system_map
+        if not calculation_info:  # TODO should still create entries for system time link in this case
+            return
+        time_step = None  # TODO GET TIME STEP FROM PARAMS SECTION
+
+        self.trajectory_steps = self._system_time_map.keys()
+        self.thermodynamic_steps = calculation_info.keys()
+        times_list_full = list(set(self.trajectory_steps) | set(self.thermodynamic_steps))
+        system_map = {}
+        if not self._system_time_map:
+            self.logger.warning('No step or time available for system data. Cannot make calculation to system references.')
+            # TODO should we return here?
+        for time, i_sys in self._system_time_map.items():
+            system_map[time] = i_sys
+
+        for time in sorted(times_list_full):
+            data = {
+                'method_ref': sec_run.method[-1] if sec_run.method else None,
+                'energy': {},
+            }
+            data_h5md = {
+                'x_h5md_custom_calculations': [],
+                'x_h5md_energy_contributions': []
+            }
+            data['time'] = time * self._time_unit
+            if time_step:
+                data['step'] = int((time / time_step).magnitude)
+
+            system_index = system_map[time]
+            if system_index is not None:
+                for key, val in system_info.items():
+                    if key == 'forces':
+                        data[key] = dict(total=dict(value=val[system_index]))
+                    else:
+                        if hasattr(BaseCalculation, key):
+                            data[key] = val[system_index]
+                        else:
+                            unit = None
+                            if hasattr(val, 'units'):
+                                unit = val.units
+                                val = val.magnitude
+                            data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
+
+            observable_dict_time = calculation_info.get(time)
+            for observable_type, observable_dict in observable_dict_time.items():
+                for key, val in observable_dict.items():
+                    map_key = observable_type + '-' + key if key else observable_type
+                    if 'energ' in observable_type:  # TODO check for energies or energy when matching name
+                        if hasattr(Energy, key):
+                            data['energy'][key] = dict(value=val)
+                        else:
+                            data_h5md['x_h5md_energy_contributions'].append(EnergyEntry(kind=map_key, value=val))
+                    else:
+                        if key == '':
+                            key = observable_type
+                        else:
+                            key = map_key
+
+                        if hasattr(BaseCalculation, key):
+                            data[key] = val
+                        else:
+                            unit = None
+                            if hasattr(val, 'units'):
+                                unit = val.units
+                                val = val.magnitude
+                            data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
+
+            self.parse_thermodynamics_step(data)
+            sec_calc = sec_run.calculation[-1]
+            if self.format_times(sec_calc.time) != time:  # TODO check this comparison
+                sec_calc = sec_run.m_create(Calculation)
+                sec_calc.time = time * self._time_unit
+            for calc_entry in data_h5md['x_h5md_custom_calculations']:
+                sec_calc.x_h5md_custom_calculations.append(calc_entry)
+            sec_energy = sec_calc.energy
+            if not sec_energy:
+                sec_energy = sec_calc.m_create(Energy)
+            for energy_entry in data_h5md['x_h5md_energy_contributions']:
+                sec_energy.x_h5md_energy_contributions.append(energy_entry)
+
+    def parse_calculation_OLD(self):
+        sec_run = self.archive.run[-1]
         calculation_info = self.observable_info.get('configurational')
         system_info = self._system_info.get('calculation')  # note: it is currently ensured in parse_system() that these have the same length as the system_map
         if not calculation_info:  # TODO should still create entries for system time link in this case
             return
         time_step = None  # TODO GET TIME STEP FROM PARAMS SECTION
-        time_unit = ureg.picosecond
-        def format_times(times):
-            return np.around(times.magnitude * ureg.convert(1.0, times.units, time_unit), 5)
 
         system_map = {}
         system_map_key = ''
@@ -471,7 +572,7 @@ class H5MDParser(MDParser):
                 if system_map_key == 'time':
                     times = observable.get('time')
                     if times is not None:
-                        times = format_times(times)  # TODO What happens if no units are given?
+                        times = self.format_times(times)  # TODO What happens if no units are given?
                         for i_time, time in enumerate(times):
                             map_entry = system_map.get(time)
                             if map_entry:
@@ -503,7 +604,7 @@ class H5MDParser(MDParser):
                 'x_h5md_energy_contributions': []
             }
             if system_map_key == 'time':
-                data['time'] = frame * time_unit
+                data['time'] = frame * self._time_unit
                 if time_step:
                     data['step'] = int((frame / time_step).magnitude)
             elif system_map_key == 'step':
@@ -554,9 +655,9 @@ class H5MDParser(MDParser):
 
             self.parse_thermodynamics_step(data)
             sec_calc = sec_run.calculation[-1]
-            if format_times(sec_calc.time) != frame:  # TODO check this comparison
+            if self.format_times(sec_calc.time) != frame:  # TODO check this comparison
                 sec_calc = sec_run.m_create(Calculation)
-                sec_calc.time = frame * time_unit
+                sec_calc.time = frame * self._time_unit
             for calc_entry in data_h5md['x_h5md_custom_calculations']:
                 sec_calc.x_h5md_custom_calculations.append(calc_entry)
             sec_energy = sec_calc.energy

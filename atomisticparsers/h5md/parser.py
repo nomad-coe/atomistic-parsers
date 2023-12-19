@@ -191,148 +191,178 @@ class H5MDParser(MDParser):
                 self._frame_rate = 1 if cum_atoms <= self._cum_max_atoms else cum_atoms // self._cum_max_atoms
         return self._frame_rate
 
-    @property
-    def atom_parameters(self):
-        if self._atom_parameters is None:
-            if not self._h5md_particle_group_all:
-                return {}
-            if self._n_atoms is None:
-                return {}
-            self._atom_parameters = {}
-            n_atoms = self._n_atoms[0]  # TODO Extend to non-static n_atoms
-            particles = self._h5md_particle_group_all  # TODO Extend to arbitrary particle groups
+    def parse_atom_parameters(self):
+        if not self._h5md_particle_group_all:
+            return {}
+        if self._n_atoms is None:
+            return {}
+        self._atom_parameters = {}
+        n_atoms = self._n_atoms[0]  # TODO Extend to non-static n_atoms
+        particles = self._h5md_particle_group_all  # TODO Extend to arbitrary particle groups
 
-            atom_parameter_keys = ['label', 'mass', 'charge']
-            for key in atom_parameter_keys:
-                value = self._data_parser.get_value(particles, self._nomad_to_particles_group_map[key])
-                if value is not None:
-                    self._atom_parameters[key] = value
-                else:
+        atom_parameter_keys = ['label', 'mass', 'charge']
+        for key in atom_parameter_keys:
+            value = self._data_parser.get_value(particles, self._nomad_to_particles_group_map[key])
+            if value is not None:
+                self._atom_parameters[key] = value
+            else:
+                continue
+            if isinstance(self._atom_parameters[key], h5py.Group):
+                self.logger.warning('Time-dependent atom parameters currently not supported. Atom parameter values will not be stored.')
+                continue
+            elif len(self._atom_parameters[key]) != n_atoms:
+                self.logger.warning('Inconsistent length of some atom parameters. Atom parameter values will not be stored.')
+                continue
+
+    def parse_system_info(self):
+        self._system_info = {'system': {}, 'calculation': {}}
+        particles_group = self._h5md_particle_group_all
+        positions_group = self._h5md_positions_group_all
+        positions_value = self._h5md_positions_value_all
+        n_frames = self._n_frames
+        if particles_group is None or positions_value is None or positions_value is None: # For now we require that positions are present in the H5MD file to store other particle attributes
+            self.logger.warning('No positions available in H5MD file. Other particle attributes will not be stored')
+            return self._system_info
+
+        self._system_info['system']['positions'] = positions_value
+        self._system_info['system']['n_atoms'] = self._n_atoms
+        # get the times and steps based on the positions
+        self._system_info['system']['steps'] = self._data_parser.get_value(positions_group, 'step')
+        self._system_info['system']['times'] = self._data_parser.get_value(positions_group, 'time')
+
+        # get the remaining system particle quantities
+        system_keys = {'labels': 'system', 'velocities': 'system', 'forces': 'calculation'}
+        # TODO Should we extend this to pick up additional attributes in the particles group? Or require that we follow the H5MD schema strictly?
+        for key, sec_key in system_keys.items():
+            value = self._data_parser.get_value(particles_group, self._nomad_to_particles_group_map[key])
+            if value is not None:
+                self._system_info[sec_key][key] = value
+            else:
+                continue
+
+            if isinstance(self._system_info[sec_key][key], h5py.Group):
+                self._system_info[sec_key][key] = self._data_parser.get_value(self._system_info[sec_key][key], 'value')
+                if self._system_info[sec_key][key] is None:
                     continue
-                if isinstance(self._atom_parameters[key], h5py.Group):
-                    self.logger.warning('Time-dependent atom parameters currently not supported. Atom parameter values will not be stored.')
+                elif len(self._system_info[sec_key][key]) != n_frames:  # TODO Should really check that the stored times for these quantities are exact, not just the same length
+                    self.logger.warning('Distinct trajectory lengths of particle attributes not supported. These attributes will not be stored.')
                     continue
-                elif len(self._atom_parameters[key]) != n_atoms:
-                    self.logger.warning('Inconsistent length of some atom parameters. Atom parameter values will not be stored.')
+            else:
+                self._system_info[sec_key][key] = [self._system_info[sec_key][key]] * n_frames
+
+        # get the system box quantities
+        box = self._data_parser.get_value(particles_group, 'box')
+        if box is None:
+            return
+
+        box_attributes = {'dimension': 'system', 'periodic': 'system'}
+        for box_key, sec_key in box_attributes.items():
+            value = self._data_parser.get_attribute(box, self._nomad_to_box_group_map[box_key], path=None)
+            if value is not None:
+                self._system_info[sec_key][box_key] = [value] * n_frames
+
+        box_keys = {'lattice_vectors': 'system'}
+        for box_key, sec_key in box_keys.items():
+            value = self._data_parser.get_value(box, self._nomad_to_box_group_map[box_key])
+            if value is not None:
+                self._system_info[sec_key][box_key] = value
+            else:
+                continue
+
+            if isinstance(self._system_info[sec_key][box_key], h5py.Group):
+                self._system_info[sec_key][box_key] = self._data_parser.get_value(self._system_info[sec_key][box_key], 'value')
+                if self._system_info[sec_key][box_key] is None:
                     continue
-        return self._atom_parameters
-
-    @property
-    def system_info(self):
-        if self._system_info is None:
-            self._system_info = {'system': {}, 'calculation': {}}
-            particles_group = self._h5md_particle_group_all
-            positions_group = self._h5md_positions_group_all
-            positions_value = self._h5md_positions_value_all
-            if not particles_group:
-                return self._system_info
-
-            n_frames = self._n_frames
-            if positions_value is None:  # For now we require that positions are present in the H5MD file to store other particle attributes
-                self.logger.warning('No positions available in H5MD file. Other particle attributes will not be stored')
-                return self._system_info
-            self._system_info['system']['positions'] = positions_value
-            self._system_info['system']['n_atoms'] = self._n_atoms
-            # get the times and steps based on the positions
-            self._system_info['system']['steps'] = self._data_parser.get_value(positions_group, 'step')
-            self._system_info['system']['times'] = self._data_parser.get_value(positions_group, 'time')
-
-            # get the remaining system particle quantities
-            system_keys = {'labels': 'system', 'velocities': 'system', 'forces': 'calculation'}
-            for key, sec_key in system_keys.items():
-                value = self._data_parser.get_value(particles_group, self._nomad_to_particles_group_map[key])
-                if value is not None:
-                    self._system_info[sec_key][key] = value
-                else:
+                elif len(self._system_info[sec_key][box_key]) != n_frames:  # TODO Should really check that the stored times for these quantities are exact, not just the same length
+                    self.logger.warning('Distinct trajectory lengths of box vectors and positions is not supported. These values will not be stored.')
                     continue
+            else:
+                self._system_info[sec_key][box_key] = [self._system_info[sec_key][box_key]] * n_frames
 
-                if isinstance(self._system_info[sec_key][key], h5py.Group):
-                    self._system_info[sec_key][key] = self._data_parser.get_value(self._system_info[sec_key][key], 'value')
-                    if self._system_info[sec_key][key] is None:
-                        continue
-                    elif len(self._system_info[sec_key][key]) != n_frames:  # TODO Should really check that the stored times for these quantities are exact, not just the same length
-                        self.logger.warning('Distinct trajectory lengths of particle attributes not supported. These attributes will not be stored.')
-                        continue
+    # @property
+    # def observable_info(self):
+    #     if self._observable_info is None:
+    #         self._observable_info = {
+    #             'configurational': {},
+    #             'ensemble_average': {},
+    #             'correlation_function': {}
+    #         }
+    #         if self._observables_group is None:
+    #             return self._observable_info
+
+    #         def get_observable_paths(observable_group: Dict, current_path: str) -> List:
+    #             paths = []
+    #             for obs_key in observable_group.keys():
+    #                 path = obs_key + '.'
+    #                 observable = self._data_parser.get_value(observable_group, obs_key)
+    #                 observable_type = self._data_parser.get_value(observable_group, obs_key).attrs.get('type')
+    #                 if not observable_type:
+    #                     paths.extend(get_observable_paths(observable, f'{current_path}{path}'))
+    #                 else:
+    #                     paths.append(current_path + path[:-1])
+
+    #             return paths
+
+    #         observable_paths = get_observable_paths(self._observables_group, current_path='')
+
+    #         for path in observable_paths:
+    #             observable = self._data_parser.get_value(self._observables_group, path)
+    #             observable_type = self._data_parser.get_value(self._observables_group, path).attrs.get('type')
+    #             observable_name = path.split('.')[0]
+    #             observable_label = '-'.join(path.split('.')[1:])
+    #             if observable_name not in self._observable_info[observable_type].keys():
+    #                 self._observable_info[observable_type][observable_name] = {}
+    #             self._observable_info[observable_type][observable_name][observable_label] = {}
+    #             for key in observable.keys():
+    #                 observable_attribute = self._data_parser.get_value(observable, key)
+    #                 if isinstance(observable_attribute, h5py.Group):
+    #                     self.logger.warning('Group structures within individual observables not supported. These values will not be stored.')
+    #                     continue
+    #                 self._observable_info[observable_type][observable_name][observable_label][key] = observable_attribute
+    #     return self._observable_info
+
+    def parse_observable_info(self):
+        self._observable_info = {
+            'configurational': {},
+            'ensemble_average': {},
+            'correlation_function': {}
+        }
+        if self._observables_group is None:
+            return self._observable_info
+
+        def get_observable_paths(observable_group: Dict, current_path: str) -> List:
+            paths = []
+            for obs_key in observable_group.keys():
+                path = obs_key + '.'
+                observable = self._data_parser.get_value(observable_group, obs_key)
+                observable_type = self._data_parser.get_value(observable_group, obs_key).attrs.get('type')
+                if not observable_type:
+                    paths.extend(get_observable_paths(observable, f'{current_path}{path}'))
                 else:
-                    self._system_info[sec_key][key] = [self._system_info[sec_key][key]] * n_frames
+                    paths.append(current_path + path[:-1])
 
-            # TODO Should we extend this to pick up additional attributes in the particles group? Or require that we follow the H5MD schema strictly?
+            return paths
 
-            # get the system box quantities
-            box = self._data_parser.get_value(particles_group, 'box')
-            if box is None:
-                return
+        observable_paths = get_observable_paths(self._observables_group, current_path='')
 
-            box_attributes = {'dimension': 'system', 'periodic': 'system'}
-            for box_key, sec_key in box_attributes.items():
-                value = self._data_parser.get_attribute(box, self._nomad_to_box_group_map[box_key], path=None)
-                if value is not None:
-                    self._system_info[sec_key][box_key] = [value] * n_frames
-
-            box_keys = {'lattice_vectors': 'system'}
-            for box_key, sec_key in box_keys.items():
-                value = self._data_parser.get_value(box, self._nomad_to_box_group_map[box_key])
-                if value is not None:
-                    self._system_info[sec_key][box_key] = value
-                else:
+        for path in observable_paths:
+            observable = self._data_parser.get_value(self._observables_group, path)
+            observable_type = self._data_parser.get_value(self._observables_group, path).attrs.get('type')
+            observable_name = path.split('.')[0]
+            observable_label = '-'.join(path.split('.')[1:])
+            if observable_name not in self._observable_info[observable_type].keys():
+                self._observable_info[observable_type][observable_name] = {}
+            self._observable_info[observable_type][observable_name][observable_label] = {}
+            for key in observable.keys():
+                observable_attribute = self._data_parser.get_value(observable, key)
+                if isinstance(observable_attribute, h5py.Group):
+                    self.logger.warning('Group structures within individual observables not supported. These values will not be stored.')
                     continue
-
-                if isinstance(self._system_info[sec_key][box_key], h5py.Group):
-                    self._system_info[sec_key][box_key] = self._data_parser.get_value(self._system_info[sec_key][box_key], 'value')
-                    if self._system_info[sec_key][box_key] is None:
-                        continue
-                    elif len(self._system_info[sec_key][box_key]) != n_frames:  # TODO Should really check that the stored times for these quantities are exact, not just the same length
-                        self.logger.warning('Distinct trajectory lengths of box vectors and positions is not supported. These values will not be stored.')
-                        continue
-                else:
-                    self._system_info[sec_key][box_key] = [self._system_info[sec_key][box_key]] * n_frames
-        return self._system_info
-
-    @property
-    def observable_info(self):
-        if self._observable_info is None:
-            self._observable_info = {
-                'configurational': {},
-                'ensemble_average': {},
-                'correlation_function': {}
-            }
-            if self._observables_group is None:
-                return self._observable_info
-
-            def get_observable_paths(observable_group: Dict, current_path: str) -> List:
-                paths = []
-                for obs_key in observable_group.keys():
-                    path = obs_key + '.'
-                    observable = self._data_parser.get_value(observable_group, obs_key)
-                    observable_type = self._data_parser.get_value(observable_group, obs_key).attrs.get('type')
-                    if not observable_type:
-                        paths.extend(get_observable_paths(observable, f'{current_path}{path}'))
-                    else:
-                        paths.append(current_path + path[:-1])
-
-                return paths
-
-            observable_paths = get_observable_paths(self._observables_group, current_path='')
-
-            for path in observable_paths:
-                observable = self._data_parser.get_value(self._observables_group, path)
-                observable_type = self._data_parser.get_value(self._observables_group, path).attrs.get('type')
-                observable_name = path.split('.')[0]
-                observable_label = '-'.join(path.split('.')[1:])
-                if observable_name not in self._observable_info[observable_type].keys():
-                    self._observable_info[observable_type][observable_name] = {}
-                self._observable_info[observable_type][observable_name][observable_label] = {}
-                for key in observable.keys():
-                    observable_attribute = self._data_parser.get_value(observable, key)
-                    if isinstance(observable_attribute, h5py.Group):
-                        self.logger.warning('Group structures within individual observables not supported. These values will not be stored.')
-                        continue
-                    self._observable_info[observable_type][observable_name][observable_label][key] = observable_attribute
-        return self._observable_info
+                self._observable_info[observable_type][observable_name][observable_label][key] = observable_attribute
 
     def get_configurational_info_by_time(self):
         # reorganize the configurational observables by time step
-        observable_dict = self.observable_info.get('configurational')
+        observable_dict = self._observable_info.get('configurational')
         configurational_dict_reorg = {}
         for observable_name, observable_name_dict in observable_dict.items():
             for observable_label, observable in observable_name_dict.items():
@@ -622,7 +652,7 @@ class H5MDParser(MDParser):
     def parse_system(self):
         sec_run = self.archive.run[-1]
 
-        system_info = self.system_info.get('system')
+        system_info = self._system_info.get('system')
         if not system_info:
             self.logger.error('No particle information found in H5MD file.')
             return
@@ -674,12 +704,12 @@ class H5MDParser(MDParser):
             sec_atom = AtomParameters()
             sec_method.atom_parameters.append(sec_atom)
 
-            for key in self.atom_parameters.keys():
-                sec_atom.m_set(sec_atom.m_get_quantity_definition(key), self.atom_parameters[key][n])
+            for key in self._atom_parameters.keys():
+                sec_atom.m_set(sec_atom.m_get_quantity_definition(key), self._atom_parameters[key][n])
 
         # Get the interactions
         if self._connectivity_group:
-            atom_labels = self.atom_parameters.get('label')
+            atom_labels = self._atom_parameters.get('label')
             interaction_keys = ['bonds', 'angles', 'dihedrals', 'impropers']
             interactions_by_type = []
             for interaction_key in interaction_keys:
@@ -785,7 +815,7 @@ class H5MDParser(MDParser):
             return
 
         workflow_results = {}
-        ensemble_average_observables = self.observable_info.get('ensemble_average')
+        ensemble_average_observables = self._observable_info.get('ensemble_average')
         ensemble_property_dict = {
             'property_type_key': 'ensemble_properties',
             'property_type_value_key': 'ensemble_property_values',
@@ -796,7 +826,7 @@ class H5MDParser(MDParser):
         workflow_results.update(
             self.get_workflow_properties_dict(ensemble_average_observables, **ensemble_property_dict)
             )
-        correlation_function_observables = self.observable_info.get('correlation_function')
+        correlation_function_observables = self._observable_info.get('correlation_function')
         correlation_function_dict = {
             'property_type_key': 'correlation_functions',
             'property_type_value_key': 'correlation_function_values',
@@ -844,6 +874,7 @@ class H5MDParser(MDParser):
         self._connectivity_group = self._data_parser.get_value(self._data_parser.filehdf5, 'connectivity')
         self._parameters_group = self._data_parser.get_value(self._data_parser.filehdf5, 'parameters')
 
+        # Parse the hdf5 groups
         sec_run = Run()
         self.archive.run.append(sec_run)
 
@@ -865,6 +896,11 @@ class H5MDParser(MDParser):
         else:
             self.logger.warning('"h5md" group missing in (H5MD)hdf5 file. Program and author metadata will be missing!')
 
+        self.parse_atom_parameters()
+        self.parse_system_info()
+        self.parse_observable_info()
+
+        # Populate the archive
         self.parse_method()
 
         self.parse_system()

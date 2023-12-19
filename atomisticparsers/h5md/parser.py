@@ -182,46 +182,6 @@ class H5MDParser(MDParser):
         return np.around(times.magnitude * ureg.convert(1.0, times.units, self._time_unit), 5)
 
     @property
-    def h5md_particle_group_all(self):
-        if self._h5md_particle_group_all is None:
-            if not self._particles_group:
-                return
-            self._h5md_particle_group_all = self._data_parser.get_value(self._particles_group, 'all')
-        return self._h5md_particle_group_all
-
-    @property
-    def h5md_positions_group_all(self):
-        if self._h5md_positions_group_all is None:
-            if self.h5md_particle_group_all is None:
-                return
-            self._h5md_positions_group_all = self._data_parser.get_value(self.h5md_particle_group_all, 'position')
-        return self._h5md_positions_group_all
-
-    @property
-    def h5md_positions_value_all(self):
-        if self._h5md_positions_value_all is None:
-            if self.h5md_positions_group_all is None:
-                return
-            self._h5md_positions_value_all = self._data_parser.get_value(self.h5md_positions_group_all, 'value')
-        return self._h5md_positions_value_all
-
-    @property
-    def n_frames(self):
-        if self._n_frames is None:
-            if self.h5md_positions_value_all is None:
-                return
-            self._n_frames = len(self.h5md_positions_value_all) if self.h5md_positions_value_all is not None else None
-        return self._n_frames
-
-    @property
-    def n_atoms(self):
-        if self._n_atoms is None:
-            if self.h5md_positions_value_all is None:
-                return
-            self._n_atoms = [len(pos) for pos in self.h5md_positions_value_all] if self.h5md_positions_value_all is not None else None
-        return self._n_atoms
-
-    @property
     def frame_rate(self):  # TODO extend to non-fixed n_atoms
         if self._frame_rate is None:
             if self._n_atoms == 0 or self._n_frames == 0:
@@ -234,13 +194,13 @@ class H5MDParser(MDParser):
     @property
     def atom_parameters(self):
         if self._atom_parameters is None:
-            if not self.h5md_particle_group_all:
+            if not self._h5md_particle_group_all:
                 return {}
-            if self.n_atoms is None:
+            if self._n_atoms is None:
                 return {}
             self._atom_parameters = {}
-            n_atoms = self.n_atoms[0]  # TODO Extend to non-static n_atoms
-            particles = self.h5md_particle_group_all  # TODO Extend to arbitrary particle groups
+            n_atoms = self._n_atoms[0]  # TODO Extend to non-static n_atoms
+            particles = self._h5md_particle_group_all  # TODO Extend to arbitrary particle groups
 
             atom_parameter_keys = ['label', 'mass', 'charge']
             for key in atom_parameter_keys:
@@ -261,18 +221,18 @@ class H5MDParser(MDParser):
     def system_info(self):
         if self._system_info is None:
             self._system_info = {'system': {}, 'calculation': {}}
-            particles_group = self.h5md_particle_group_all
-            positions_group = self.h5md_positions_group_all
-            positions_value = self.h5md_positions_value_all
+            particles_group = self._h5md_particle_group_all
+            positions_group = self._h5md_positions_group_all
+            positions_value = self._h5md_positions_value_all
             if not particles_group:
                 return self._system_info
 
-            n_frames = self.n_frames
+            n_frames = self._n_frames
             if positions_value is None:  # For now we require that positions are present in the H5MD file to store other particle attributes
                 self.logger.warning('No positions available in H5MD file. Other particle attributes will not be stored')
                 return self._system_info
             self._system_info['system']['positions'] = positions_value
-            self._system_info['system']['n_atoms'] = self.n_atoms
+            self._system_info['system']['n_atoms'] = self._n_atoms
             # get the times and steps based on the positions
             self._system_info['system']['steps'] = self._data_parser.get_value(positions_group, 'step')
             self._system_info['system']['times'] = self._data_parser.get_value(positions_group, 'time')
@@ -708,7 +668,7 @@ class H5MDParser(MDParser):
         sec_model = sec_force_field.m_create(Model)
 
         # get the atom parameters
-        n_atoms = self.n_atoms[0]  # TODO Extend to non-static n_atoms
+        n_atoms = self._n_atoms[0] if self._n_atoms is not None else 0  # TODO Extend to non-static n_atoms
         for n in range(n_atoms):
             # sec_atom = sec_method.m_create(AtomParameters)
             sec_atom = AtomParameters()
@@ -871,6 +831,15 @@ class H5MDParser(MDParser):
         # Get the overarching H5MD groups
         self._h5md_group = self._data_parser.get_value(self._data_parser.filehdf5, 'h5md')
         self._particles_group = self._data_parser.get_value(self._data_parser.filehdf5, 'particles')
+        if self._particles_group:
+            self._h5md_particle_group_all = self._data_parser.get_value(self._particles_group, 'all')
+        if self._h5md_particle_group_all:
+            self._h5md_positions_group_all = self._data_parser.get_value(self._h5md_particle_group_all, 'position')
+        if self._h5md_positions_group_all:
+            self._h5md_positions_value_all = self._data_parser.get_value(self._h5md_positions_group_all, 'value')
+        if self._h5md_positions_value_all is not None:
+            self._n_frames = len(self._h5md_positions_value_all) if self._h5md_positions_value_all is not None else None
+            self._n_atoms = [len(pos) for pos in self._h5md_positions_value_all] if self._h5md_positions_value_all is not None else None
         self._observables_group = self._data_parser.get_value(self._data_parser.filehdf5, 'observables')
         self._connectivity_group = self._data_parser.get_value(self._data_parser.filehdf5, 'connectivity')
         self._parameters_group = self._data_parser.get_value(self._data_parser.filehdf5, 'parameters')

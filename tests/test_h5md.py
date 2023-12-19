@@ -126,7 +126,7 @@ def test_md(parser):
     assert sec_calc[1].x_h5md_custom_calculations[0].kind == 'custom_thermo'
     assert sec_calc[1].x_h5md_custom_calculations[0].value == 100.0
     assert sec_calc[1].x_h5md_custom_calculations[0].unit == 'newton / angstrom ** 2'
-    assert sec_calc[2].time.magnitude == 2e-12
+    assert sec_calc[2].time.magnitude == approx(2e-12)
     assert sec_calc[2].energy.kinetic.value.magnitude == approx(2000)
     assert sec_calc[2].energy.potential.value.magnitude == approx(1000)
     assert sec_calc[1].energy.x_h5md_energy_contributions[0].kind == 'energy-custom'
@@ -174,7 +174,6 @@ def test_md(parser):
     assert ensemble_property_1.radial_distribution_function_values[1].frame_start == 0
     assert ensemble_property_1.radial_distribution_function_values[1].frame_end == 4
     assert ensemble_property_1.radial_distribution_function_values[1].bins[51].magnitude == approx(2.55e-11)
- #   assert ensemble_property_1.radial_distribution_function_values[1].bins_unit == 'angstrom'
     assert ensemble_property_1.radial_distribution_function_values[1].value[51] == approx(0.284764)
     correlation_function_0 = sec_workflow_results.mean_squared_displacements[0]
     assert correlation_function_0.type == 'molecular'
@@ -186,5 +185,4 @@ def test_md(parser):
     assert correlation_function_0.mean_squared_displacement_values[0].n_times == 51
     assert correlation_function_0.mean_squared_displacement_values[0].times[10].magnitude == approx(2.e-11)
     assert correlation_function_0.mean_squared_displacement_values[0].value[10].magnitude == approx(6.79723e-21)
-#    assert correlation_function_0.mean_squared_displacement_values[0].value[10].units == 'angstrom ** 2'
     assert correlation_function_0.mean_squared_displacement_values[0].errors[10] == approx(0.0)

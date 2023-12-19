@@ -144,7 +144,7 @@ class H5MDParser(MDParser):
     def __init__(self):
         super().__init__()
         self._data_parser = HDF5Parser()
-        self._n_frames = None  # TODO use trajectory_steps from MDParser?
+        self._n_frames = None
         self._n_atoms = None
         self._frame_rate = None
         self._atom_parameters = None
@@ -224,102 +224,59 @@ class H5MDParser(MDParser):
             self.logger.warning('No positions available in H5MD file. Other particle attributes will not be stored')
             return self._system_info
 
-        self._system_info['system']['positions'] = positions_value
-        self._system_info['system']['n_atoms'] = self._n_atoms
-        # get the times and steps based on the positions
-        self._system_info['system']['steps'] = self._data_parser.get_value(positions_group, 'step')
-        self._system_info['system']['times'] = self._data_parser.get_value(positions_group, 'time')
+        def get_value(value, steps):
+            if value is None:
+                return value
+            if isinstance(value, h5py.Group):
+                group = value
+                value = self._data_parser.get_value(value, 'value')
+                attr_steps = self._data_parser.get_value(group, 'step')
+                if value is None or attr_steps is None:
+                    self.logger.warning('Missing values or steps in particle attributes. These attributes will not be stored.')
+                    return None
+                elif attr_steps.sort() != steps.sort() if attr_steps is not None else False:
+                    self.logger.warning('Distinct trajectory lengths of particle attributes not supported. These attributes will not be stored.')
+                    return None
+                else:
+                    return value
+            else:
+                return [value] * n_frames
 
-        # get the remaining system particle quantities
+        # get the steps based on the positions
+        steps = self._data_parser.get_value(positions_group, 'step')
+        if steps is None:
+            self.logger.warning('No step information available in H5MD file. System information cannot be parsed.')
+            return self._system_info
+        self.trajectory_steps = steps
+
+        # get the rest of the particle quantities
+        values_dict = {'system': {}, 'calculation': {}}
+        times = self._data_parser.get_value(positions_group, 'time')
+        values_dict['system']['time'] = times
+        values_dict['calculation']['time'] = times
+        values_dict['system']['positions'] = positions_value
+        values_dict['system']['n_atoms'] = self._n_atoms
         system_keys = {'labels': 'system', 'velocities': 'system', 'forces': 'calculation'}
-        # TODO Should we extend this to pick up additional attributes in the particles group? Or require that we follow the H5MD schema strictly?
         for key, sec_key in system_keys.items():
             value = self._data_parser.get_value(particles_group, self._nomad_to_particles_group_map[key])
-            if value is not None:
-                self._system_info[sec_key][key] = value
-            else:
-                continue
+            values_dict[sec_key][key] = get_value(value, steps)
 
-            if isinstance(self._system_info[sec_key][key], h5py.Group):
-                self._system_info[sec_key][key] = self._data_parser.get_value(self._system_info[sec_key][key], 'value')
-                if self._system_info[sec_key][key] is None:
-                    continue
-                elif len(self._system_info[sec_key][key]) != n_frames:  # TODO Should really check that the stored times for these quantities are exact, not just the same length
-                    self.logger.warning('Distinct trajectory lengths of particle attributes not supported. These attributes will not be stored.')
-                    continue
-            else:
-                self._system_info[sec_key][key] = [self._system_info[sec_key][key]] * n_frames
-
-        # get the system box quantities
+        # get the box quantities
         box = self._data_parser.get_value(particles_group, 'box')
-        if box is None:
-            return
+        if box is not None:
+            box_attributes = {'dimension': 'system', 'periodic': 'system'}
+            for box_key, sec_key in box_attributes.items():
+                value = self._data_parser.get_attribute(box, self._nomad_to_box_group_map[box_key], path=None)
+                values_dict[sec_key][box_key] = [value] * n_frames if value is not None else None
+            box_keys = {'lattice_vectors': 'system'}
+            for box_key, sec_key in box_keys.items():
+                value = self._data_parser.get_value(box, self._nomad_to_box_group_map[box_key])
+                values_dict[sec_key][box_key] = get_value(value, steps)
 
-        box_attributes = {'dimension': 'system', 'periodic': 'system'}
-        for box_key, sec_key in box_attributes.items():
-            value = self._data_parser.get_attribute(box, self._nomad_to_box_group_map[box_key], path=None)
-            if value is not None:
-                self._system_info[sec_key][box_key] = [value] * n_frames
-
-        box_keys = {'lattice_vectors': 'system'}
-        for box_key, sec_key in box_keys.items():
-            value = self._data_parser.get_value(box, self._nomad_to_box_group_map[box_key])
-            if value is not None:
-                self._system_info[sec_key][box_key] = value
-            else:
-                continue
-
-            if isinstance(self._system_info[sec_key][box_key], h5py.Group):
-                self._system_info[sec_key][box_key] = self._data_parser.get_value(self._system_info[sec_key][box_key], 'value')
-                if self._system_info[sec_key][box_key] is None:
-                    continue
-                elif len(self._system_info[sec_key][box_key]) != n_frames:  # TODO Should really check that the stored times for these quantities are exact, not just the same length
-                    self.logger.warning('Distinct trajectory lengths of box vectors and positions is not supported. These values will not be stored.')
-                    continue
-            else:
-                self._system_info[sec_key][box_key] = [self._system_info[sec_key][box_key]] * n_frames
-
-    # @property
-    # def observable_info(self):
-    #     if self._observable_info is None:
-    #         self._observable_info = {
-    #             'configurational': {},
-    #             'ensemble_average': {},
-    #             'correlation_function': {}
-    #         }
-    #         if self._observables_group is None:
-    #             return self._observable_info
-
-    #         def get_observable_paths(observable_group: Dict, current_path: str) -> List:
-    #             paths = []
-    #             for obs_key in observable_group.keys():
-    #                 path = obs_key + '.'
-    #                 observable = self._data_parser.get_value(observable_group, obs_key)
-    #                 observable_type = self._data_parser.get_value(observable_group, obs_key).attrs.get('type')
-    #                 if not observable_type:
-    #                     paths.extend(get_observable_paths(observable, f'{current_path}{path}'))
-    #                 else:
-    #                     paths.append(current_path + path[:-1])
-
-    #             return paths
-
-    #         observable_paths = get_observable_paths(self._observables_group, current_path='')
-
-    #         for path in observable_paths:
-    #             observable = self._data_parser.get_value(self._observables_group, path)
-    #             observable_type = self._data_parser.get_value(self._observables_group, path).attrs.get('type')
-    #             observable_name = path.split('.')[0]
-    #             observable_label = '-'.join(path.split('.')[1:])
-    #             if observable_name not in self._observable_info[observable_type].keys():
-    #                 self._observable_info[observable_type][observable_name] = {}
-    #             self._observable_info[observable_type][observable_name][observable_label] = {}
-    #             for key in observable.keys():
-    #                 observable_attribute = self._data_parser.get_value(observable, key)
-    #                 if isinstance(observable_attribute, h5py.Group):
-    #                     self.logger.warning('Group structures within individual observables not supported. These values will not be stored.')
-    #                     continue
-    #                 self._observable_info[observable_type][observable_name][observable_label][key] = observable_attribute
-    #     return self._observable_info
+        # populate the dictionary
+        for i_step, step in enumerate(steps):
+            self._system_info['system'][step] = {key: val[i_step] for key,val in values_dict['system'].items()}
+            self._system_info['calculation'][step] = {key: val[i_step] for key,val in values_dict['calculation'].items()}
 
     def parse_observable_info(self):
         self._observable_info = {
@@ -327,6 +284,7 @@ class H5MDParser(MDParser):
             'ensemble_average': {},
             'correlation_function': {}
         }
+        thermodynamics_steps = []
         if self._observables_group is None:
             return self._observable_info
 
@@ -344,38 +302,40 @@ class H5MDParser(MDParser):
             return paths
 
         observable_paths = get_observable_paths(self._observables_group, current_path='')
-
         for path in observable_paths:
             observable = self._data_parser.get_value(self._observables_group, path)
             observable_type = self._data_parser.get_value(self._observables_group, path).attrs.get('type')
             observable_name = path.split('.')[0]
             observable_label = '-'.join(path.split('.')[1:])
-            if observable_name not in self._observable_info[observable_type].keys():
-                self._observable_info[observable_type][observable_name] = {}
-            self._observable_info[observable_type][observable_name][observable_label] = {}
-            for key in observable.keys():
-                observable_attribute = self._data_parser.get_value(observable, key)
-                if isinstance(observable_attribute, h5py.Group):
-                    self.logger.warning('Group structures within individual observables not supported. These values will not be stored.')
+            if observable_type == 'configurational':
+                steps = self._data_parser.get_value(observable, 'step')
+                if steps is None:
+                    self.logger.warning('Missing step information in some observables. These will not be stored.')
                     continue
-                self._observable_info[observable_type][observable_name][observable_label][key] = observable_attribute
+                thermodynamics_steps = list(set(steps) | set(thermodynamics_steps))
+                times = self._data_parser.get_value(observable, 'time')
+                values = self._data_parser.get_value(observable, 'value')
+                if isinstance(values, h5py.Group):
+                    self.logger.warning('Group structures within individual observables not supported. These will not be stored.')
+                    continue
+                for i_step, step in enumerate(steps):
+                    if not self._observable_info[observable_type].get(step):
+                        self._observable_info[observable_type][step] = {}
+                        self._observable_info[observable_type][step]['time'] = times[i_step]
+                    observable_key = f'{observable_name}-{observable_label}' if observable_label else f'{observable_name}'
+                    self._observable_info[observable_type][step][observable_key] = values[i_step]
+            else:
+                if observable_name not in self._observable_info[observable_type].keys():
+                    self._observable_info[observable_type][observable_name] = {}
+                self._observable_info[observable_type][observable_name][observable_label] = {}
+                for key in observable.keys():
+                    observable_attribute = self._data_parser.get_value(observable, key)
+                    if isinstance(observable_attribute, h5py.Group):
+                        self.logger.warning('Group structures within individual observables not supported. These will not be stored.')
+                        continue
+                    self._observable_info[observable_type][observable_name][observable_label][key] = observable_attribute
 
-    def get_configurational_info_by_time(self):
-        # reorganize the configurational observables by time step
-        observable_dict = self._observable_info.get('configurational')
-        configurational_dict_reorg = {}
-        for observable_name, observable_name_dict in observable_dict.items():
-            for observable_label, observable in observable_name_dict.items():
-                times = observable.get('time')
-                times = self.format_times(times) if times is not None else []
-                for i_time, time in enumerate(times):
-                    if not configurational_dict_reorg.get(time):
-                        configurational_dict_reorg[time] = {}
-                    if not configurational_dict_reorg[time].get(observable_name):
-                        configurational_dict_reorg[time][observable_name] = {}
-                    configurational_dict_reorg[time][observable_name][observable_label] = observable.get('value', [None] * (i_time + 1))[i_time]
-
-        return configurational_dict_reorg
+            self.thermodynamics_steps = thermodynamics_steps
 
     def parse_atomsgroup(self, nomad_sec, h5md_sec_particlesgroup: Group):
         for i_key, key in enumerate(h5md_sec_particlesgroup.keys()):
@@ -446,65 +406,30 @@ class H5MDParser(MDParser):
 
     def parse_calculation(self):
         sec_run = self.archive.run[-1]
-        calculation_info = self.get_configurational_info_by_time()
+        calculation_info = self._observable_info.get('configurational')
         system_info = self._system_info.get('calculation')  # note: it is currently ensured in parse_system() that these have the same length as the system_map
         if not calculation_info:  # TODO should still create entries for system time link in this case
             return
-        time_step = None  # TODO GET TIME STEP FROM PARAMS SECTION
 
-        self.trajectory_steps = self._system_time_map.keys()
-        self.thermodynamic_steps = calculation_info.keys()
-        times_list_full = list(set(self.trajectory_steps) | set(self.thermodynamic_steps))
-        system_map = {}
-        if not self._system_time_map:
-            self.logger.warning('No step or time available for system data. Cannot make calculation to system references.')
-            # TODO should we return here?
-        for time, i_sys in self._system_time_map.items():
-            system_map[time] = i_sys
-
-        for time in sorted(times_list_full):
+        for step in self.steps:
             data = {
                 'method_ref': sec_run.method[-1] if sec_run.method else None,
+                'step': step,
                 'energy': {},
             }
             data_h5md = {
                 'x_h5md_custom_calculations': [],
                 'x_h5md_energy_contributions': []
             }
-            data['time'] = time * self._time_unit
-            if time_step:
-                data['step'] = int((time / time_step).magnitude)
+            data['time'] = calculation_info.get('step', {}).get('time') # * self._time_unit
+            if not data['time']:
+                data['time'] = system_info.get('step', {}).get('time')
 
-            system_index = system_map[time]
-            if system_index is not None:
-                for key, val in system_info.items():
+            if system_info.get(step):
+                for key, val in system_info[step].items():
                     if key == 'forces':
-                        data[key] = dict(total=dict(value=val[system_index]))
+                        data[key] = dict(total=dict(value=val))
                     else:
-                        if hasattr(BaseCalculation, key):
-                            data[key] = val[system_index]
-                        else:
-                            unit = None
-                            if hasattr(val, 'units'):
-                                unit = val.units
-                                val = val.magnitude
-                            data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
-
-            observable_dict_time = calculation_info.get(time)
-            for observable_type, observable_dict in observable_dict_time.items():
-                for key, val in observable_dict.items():
-                    map_key = observable_type + '-' + key if key else observable_type
-                    if 'energ' in observable_type:  # TODO check for energies or energy when matching name
-                        if hasattr(Energy, key):
-                            data['energy'][key] = dict(value=val)
-                        else:
-                            data_h5md['x_h5md_energy_contributions'].append(EnergyEntry(kind=map_key, value=val))
-                    else:
-                        if key == '':
-                            key = observable_type
-                        else:
-                            key = map_key
-
                         if hasattr(BaseCalculation, key):
                             data[key] = val
                         else:
@@ -512,13 +437,35 @@ class H5MDParser(MDParser):
                             if hasattr(val, 'units'):
                                 unit = val.units
                                 val = val.magnitude
-                            data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
+                            data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
+
+            if calculation_info.get(step):
+                for key, val in calculation_info[step].items():
+                    key_split = key.split('-')
+                    observable_name = key_split[0]
+                    observable_label = key_split[1] if len(key_split) > 1 else key_split[0]
+                    if 'energ' in observable_name:  # TODO check for energies or energy when matching name
+                        if hasattr(Energy, observable_label):
+                            data['energy'][observable_label] = dict(value=val)
+                        else:
+                            data_h5md['x_h5md_energy_contributions'].append(EnergyEntry(kind=key, value=val))
+                    else:
+                        if hasattr(BaseCalculation, observable_label):
+                            data[observable_label] = val
+                        else:
+                            unit = None
+                            if hasattr(val, 'units'):
+                                unit = val.units
+                                val = val.magnitude
+                            data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
 
             self.parse_thermodynamics_step(data)
             sec_calc = sec_run.calculation[-1]
-            if self.format_times(sec_calc.time) != time:  # TODO check this comparison
+
+            if sec_calc.step != step:  # TODO check this comparison
                 sec_calc = sec_run.m_create(Calculation)
-                sec_calc.time = time * self._time_unit
+                sec_calc.step = int(step)
+                sec_calc.time = data['time']
             for calc_entry in data_h5md['x_h5md_custom_calculations']:
                 sec_calc.x_h5md_custom_calculations.append(calc_entry)
             sec_energy = sec_calc.energy
@@ -526,128 +473,6 @@ class H5MDParser(MDParser):
                 sec_energy = sec_calc.m_create(Energy)
             for energy_entry in data_h5md['x_h5md_energy_contributions']:
                 sec_energy.x_h5md_energy_contributions.append(energy_entry)
-
-    # def parse_calculation_OLD(self):
-    #     sec_run = self.archive.run[-1]
-    #     calculation_info = self.observable_info.get('configurational')
-    #     system_info = self._system_info.get('calculation')  # note: it is currently ensured in parse_system() that these have the same length as the system_map
-    #     if not calculation_info:  # TODO should still create entries for system time link in this case
-    #         return
-    #     time_step = None  # TODO GET TIME STEP FROM PARAMS SECTION
-
-    #     system_map = {}
-    #     system_map_key = ''
-    #     if self._system_time_map:
-    #         system_map_key = 'time'
-    #         for time, i_sys in self._system_time_map.items():
-    #             system_map[time] = {'system': i_sys}
-    #     elif self._system_step_map:
-    #         system_map_key = 'step'
-    #         for step, i_sys in self._system_step_map.items():
-    #             system_map[step] = {'system': i_sys}
-    #     else:
-    #         self.logger.warning('No step or time available for system data. Cannot make calculation to system references.')
-    #         system_map_key = 'time'
-
-    #     for observable_type, observable_dict in calculation_info.items():
-    #         for key, observable in observable_dict.items():
-    #             map_key = observable_type + '-' + key if key else observable_type
-    #             if system_map_key == 'time':
-    #                 times = observable.get('time')
-    #                 if times is not None:
-    #                     times = self.format_times(times)  # TODO What happens if no units are given?
-    #                     for i_time, time in enumerate(times):
-    #                         map_entry = system_map.get(time)
-    #                         if map_entry:
-    #                             map_entry[map_key] = i_time
-    #                         else:
-    #                             system_map[time] = {map_key: i_time}
-    #                 else:
-    #                     self.logger.warning('No time information available for some observables. Cannot store these values.')
-    #             elif system_map_key == 'step':
-    #                 steps = observable.get('step')
-    #                 if steps:
-    #                     steps = np.around(steps)
-    #                     for i_step, step in enumerate(steps):
-    #                         map_entry = system_map.get(step)
-    #                         if map_entry:
-    #                             map_entry[map_key] = i_step
-    #                         else:
-    #                             system_map[time] = {map_key: i_step}
-    #             else:
-    #                 self.logger.error('system_map_key not assigned correctly.')
-
-    #     for frame in sorted(system_map):
-    #         data = {
-    #             'method_ref': sec_run.method[-1] if sec_run.method else None,
-    #             'energy': {},
-    #         }
-    #         data_h5md = {
-    #             'x_h5md_custom_calculations': [],
-    #             'x_h5md_energy_contributions': []
-    #         }
-    #         if system_map_key == 'time':
-    #             data['time'] = frame * self._time_unit
-    #             if time_step:
-    #                 data['step'] = int((frame / time_step).magnitude)
-    #         elif system_map_key == 'step':
-    #             data['step'] = frame
-    #             if time_step:
-    #                 data['time'] = data['step'] * time_step
-
-    #         system_index = system_map[frame]['system']
-    #         if system_index is not None:
-    #             for key, val in system_info.items():
-    #                 if key == 'forces':
-    #                     data[key] = dict(total=dict(value=val[system_index]))
-    #                 else:
-    #                     if hasattr(BaseCalculation, key):
-    #                         data[key] = val[system_index]
-    #                     else:
-    #                         unit = None
-    #                         if hasattr(val, 'units'):
-    #                             unit = val.units
-    #                             val = val.magnitude
-    #                         data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=key, value=val, unit=unit))
-
-    #         for observable_type, observable_dict in calculation_info.items():
-    #             for key, observable in observable_dict.items():
-    #                 map_key = observable_type + '-' + key if key else observable_type
-    #                 obs_index = system_map[frame].get(map_key)
-    #                 if obs_index:
-    #                     val = observable.get('value', [None] * (obs_index + 1))[obs_index]
-    #                     if 'energ' in observable_type:  # TODO check for energies or energy when matching name
-    #                         if hasattr(Energy, key):
-    #                             data['energy'][key] = dict(value=val)
-    #                         else:
-    #                             data_h5md['x_h5md_energy_contributions'].append(EnergyEntry(kind=map_key, value=val))
-    #                     else:
-    #                         if key == '':
-    #                             key = observable_type
-    #                         else:
-    #                             key = map_key
-
-    #                         if hasattr(BaseCalculation, key):
-    #                             data[key] = val
-    #                         else:
-    #                             unit = None
-    #                             if hasattr(val, 'units'):
-    #                                 unit = val.units
-    #                                 val = val.magnitude
-    #                             data_h5md['x_h5md_custom_calculations'].append(CalcEntry(kind=map_key, value=val, unit=unit))
-
-    #         self.parse_thermodynamics_step(data)
-    #         sec_calc = sec_run.calculation[-1]
-    #         if self.format_times(sec_calc.time) != frame:  # TODO check this comparison
-    #             sec_calc = sec_run.m_create(Calculation)
-    #             sec_calc.time = frame * self._time_unit
-    #         for calc_entry in data_h5md['x_h5md_custom_calculations']:
-    #             sec_calc.x_h5md_custom_calculations.append(calc_entry)
-    #         sec_energy = sec_calc.energy
-    #         if not sec_energy:
-    #             sec_energy = sec_calc.m_create(Energy)
-    #         for energy_entry in data_h5md['x_h5md_energy_contributions']:
-    #             sec_energy.x_h5md_energy_contributions.append(energy_entry)
 
     def parse_system(self):
         sec_run = self.archive.run[-1]
@@ -657,29 +482,13 @@ class H5MDParser(MDParser):
             self.logger.error('No particle information found in H5MD file.')
             return
 
-        n_frames = len(system_info.get('times', []))
         self._system_time_map = {}
-        self._system_step_map = {}
-
-        for frame in range(n_frames):
-            # if (n % self.frame_rate) > 0:
-            #     continue
-
-            atoms_dict = {}
-            for key in system_info.keys():
-                if key == 'times':
-                    time = system_info.get('times', [None] * (frame + 1))[frame]
-                    if time is not None:
-                        self._system_time_map[self.format_times(time)] = len(self._system_time_map)
-                elif key == 'steps':
-                    step = system_info.get('steps', [None] * (frame + 1))[frame]
-                    if step is not None:
-                        self._system_step_map[round(step)] = len(self._system_step_map)
-                else:
-                    atoms_dict[key] = system_info.get(key, [None] * (frame + 1))[frame]
+        for i_step, step in enumerate(self.trajectory_steps):
+            time = system_info[step].pop('time')
+            atoms_dict = system_info[step]
 
             topology = None
-            if frame == 0 and self._connectivity_group: # TODO extend to time-dependent bond lists and topologies
+            if i_step == 0 and self._connectivity_group: # TODO extend to time-dependent bond lists and topologies
                 atoms_dict['bond_list'] = self._data_parser.get_value(self._connectivity_group, 'bonds')
                 topology = self._data_parser.get_value(self._connectivity_group, 'particles_group', None)
 
@@ -688,7 +497,7 @@ class H5MDParser(MDParser):
             })
 
             if topology:
-                self.parse_atomsgroup(sec_run.system[frame], topology)
+                self.parse_atomsgroup(sec_run.system[i_step], topology)
 
     def parse_method(self):
 

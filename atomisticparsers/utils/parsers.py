@@ -168,9 +168,15 @@ class MDParser(AtomisticParser):
         if (step := data.get('step')) is not None and step not in self.trajectory_steps:
             return
 
-        sec_run = self.archive.run[-1] if self.archive.run else self.archive.m_create(Run)
+        if self.archive.run:
+            sec_run = self.archive.run[-1]
+        else:
+            sec_run = Run()
+            self.archive.run.append(sec_run)
 
-        self.parse_section(data, sec_run.m_create(System))
+        sec_system = System()
+        sec_run.system.append(sec_system)
+        self.parse_section(data, sec_system)
 
     def parse_thermodynamics_step(self, data: Dict[str, Any]) -> None:
         '''
@@ -182,8 +188,13 @@ class MDParser(AtomisticParser):
         if (step := data.get('step')) is not None and step not in self.thermodynamics_steps:
             return
 
-        sec_run = self.archive.run[-1] if self.archive.run else self.archive.m_create(Run)
-        sec_calc = sec_run.m_create(Calculation)
+        if self.archive.run:
+            sec_run = self.archive.run[-1]
+        else:
+            sec_run = Run()
+            self.archive.run.append(sec_run)
+        sec_calc = Calculation()
+        sec_run.calculation.append(sec_calc)
 
         self.parse_section(data, sec_calc)
         try:
@@ -212,7 +223,8 @@ class MDParser(AtomisticParser):
         interaction_dict = {key: val for key, val in interaction_dict.items()}
         interaction_types = np.unique(interaction_dict['type']) if interaction_dict.get('type') is not None else []
         for interaction_type in interaction_types:
-            sec_interaction = sec_model.m_create(Interaction)
+            sec_interaction = Interaction()
+            sec_model.contributions.append(sec_interaction)
             interaction_indices = np.where(interaction_dict['type'] == interaction_type)[0]
             sec_interaction.type = interaction_type
             sec_interaction.n_interactions = len(interaction_indices)

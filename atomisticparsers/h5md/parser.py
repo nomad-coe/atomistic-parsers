@@ -21,13 +21,13 @@ import numpy as np
 import logging
 import h5py
 
-from typing import List, Dict, Tuple, Any, Union, Iterable, cast, Callable, TYPE_CHECKING
+from typing import List, Dict
 from h5py import Group
 
 from nomad.datamodel import EntryArchive
 from nomad.metainfo.util import MEnum
 from nomad.parsing.file_parser import FileParser
-from nomad.datamodel.metainfo.simulation.run import Run, Program  # TimeRun
+from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, ForceField, Model, AtomParameters, ForceCalculations, NeighborSearching
 )
@@ -192,7 +192,7 @@ class H5MDParser(MDParser):
         return np.around(times.magnitude * ureg.convert(1.0, times.units, self._time_unit), 5)
 
     @property
-    def frame_rate(self):  # TODO extend to non-fixed n_atoms
+    def frame_rate(self):  # TODO extend to non-fixed n_atoms, check integration of MDParser class here
         if self._frame_rate is None:
             if self._n_atoms == 0 or self._n_frames == 0:
                 self._frame_rate = 1
@@ -228,7 +228,7 @@ class H5MDParser(MDParser):
     def parse_system_info(self):
         self._system_info = {'system': {}, 'calculation': {}}
         particles_group = self._h5md_particle_group_all
-        positions_group = self._h5md_positions_group_all
+        # positions_group = self._h5md_positions_group_all
         positions_value = self._h5md_positions_value_all
         n_frames = self._n_frames
         if particles_group is None or positions_value is None or positions_value is None: # For now we require that positions are present in the H5MD file to store other particle attributes
@@ -300,7 +300,8 @@ class H5MDParser(MDParser):
             values_dict[sec_key][key] = get_value(value, steps, path=path)
 
         # get the box quantities
-        box = self._data_parser.get_value(particles_group, 'box')
+        # box = self._data_parser.get_value(particles_group, 'box')
+        box = self._data_parser.get(f'{self._path_group_particles_all}.box')
         if box is not None:
             box_attributes = {'dimension': 'system', 'periodic': 'system'}
             for box_key, sec_key in box_attributes.items():
@@ -360,7 +361,7 @@ class H5MDParser(MDParser):
                 thermodynamics_steps = list(set(steps) | set(thermodynamics_steps))
                 # times = self._data_parser.get_value(observable, 'time')
                 times = self._data_parser.get(f'{full_path}.time')
-                values = self._data_parser.get_value(observable, 'value')
+                # values = self._data_parser.get_value(observable, 'value')
                 values = self._data_parser.get(f'{full_path}.value')
                 if isinstance(values, h5py.Group):
                     self.logger.warning('Group structures within individual observables not supported. These will not be stored.')
@@ -385,9 +386,34 @@ class H5MDParser(MDParser):
 
             self.thermodynamics_steps = thermodynamics_steps
 
-    def parse_atomsgroup(self, nomad_sec, h5md_sec_particlesgroup: Group):
+    # def parse_atomsgroup(self, nomad_sec, h5md_sec_particlesgroup: Group):
+    #     for i_key, key in enumerate(h5md_sec_particlesgroup.keys()):
+    #         particles_group = {group_key: self._data_parser.get_value(h5md_sec_particlesgroup[key], group_key) for group_key in h5md_sec_particlesgroup[key].keys()}
+    #         sec_atomsgroup = AtomsGroup()
+    #         nomad_sec.atoms_group.append(sec_atomsgroup)
+    #         sec_atomsgroup.type = particles_group.pop('type', None)
+    #         sec_atomsgroup.index = i_key
+    #         sec_atomsgroup.atom_indices = particles_group.pop('indices', None)
+    #         sec_atomsgroup.n_atoms = len(sec_atomsgroup.atom_indices) if sec_atomsgroup.atom_indices is not None else None
+    #         sec_atomsgroup.is_molecule = particles_group.pop('is_molecule', None)
+    #         sec_atomsgroup.label = particles_group.pop('label', None)
+    #         sec_atomsgroup.composition_formula = particles_group.pop('formula', None)
+    #         particles_subgroup = particles_group.pop('particles_group', None)
+    #         # set the remaining attributes
+    #         for particles_group_key in particles_group.keys():
+    #             val = particles_group.get(particles_group_key)
+    #             units = val.units if hasattr(val, 'units') else None
+    #             val = val.magnitude if units is not None else val
+    #             sec_atomsgroup.x_h5md_parameters.append(ParamEntry(kind=particles_group_key, value=val, unit=units))
+    #         # get the next atomsgroup
+    #         if particles_subgroup:
+    #             self.parse_atomsgroup(sec_atomsgroup, particles_subgroup)
+
+    def parse_atomsgroup(self, nomad_sec, h5md_sec_particlesgroup: Group, path_particlesgroup: str):
         for i_key, key in enumerate(h5md_sec_particlesgroup.keys()):
-            particles_group = {group_key: self._data_parser.get_value(h5md_sec_particlesgroup[key], group_key) for group_key in h5md_sec_particlesgroup[key].keys()}
+            path_particlesgroup_key = f'{path_particlesgroup}.{key}'
+            # particles_group = {group_key: self._data_parser.get_value(h5md_sec_particlesgroup[key], group_key) for group_key in h5md_sec_particlesgroup[key].keys()}
+            particles_group = {group_key: self._data_parser.get(f'{path_particlesgroup_key}.{group_key}') for group_key in h5md_sec_particlesgroup[key].keys()}
             sec_atomsgroup = AtomsGroup()
             nomad_sec.atoms_group.append(sec_atomsgroup)
             sec_atomsgroup.type = particles_group.pop('type', None)
@@ -406,7 +432,7 @@ class H5MDParser(MDParser):
                 sec_atomsgroup.x_h5md_parameters.append(ParamEntry(kind=particles_group_key, value=val, unit=units))
             # get the next atomsgroup
             if particles_subgroup:
-                self.parse_atomsgroup(sec_atomsgroup, particles_subgroup)
+                self.parse_atomsgroup(sec_atomsgroup, particles_subgroup, f'{path_particlesgroup_key}.particles_group')
 
     def is_valid_key_val(self, metainfo_class, key: str, val) -> bool:
         if hasattr(metainfo_class, key):
@@ -446,16 +472,12 @@ class H5MDParser(MDParser):
             def get_parameters(parameter_group: Group, path: str) -> Dict:
                 param_dict = {}
                 for key, val in parameter_group.items():
-                    print(key)
                     path_key = f'{path}.{key}'
-                    print(path)
                     if isinstance(val, h5py.Group):
                         param_dict[key] = get_parameters(val, path_key)
-                        print(param_dict[key])
                     else:
                         # param_dict[key] = self._data_parser.get_value(parameter_group, key)
                         param_dict[key] = self._data_parser.get(path_key)
-                        print(param_dict[key])
                         if isinstance(param_dict[key], str):
                             if key == 'thermodynamic_ensemble':
                                 param_dict[key] = param_dict[key].upper()  # TODO change enums to lower case and adjust Gromacs and Lammps code accordingly
@@ -467,11 +489,13 @@ class H5MDParser(MDParser):
                 return param_dict
 
             path_force_calculations = 'parameters.force_calculations'
-            force_calculations_group = self._data_parser.get_value(self._data_parser.filehdf5, path_force_calculations)
+            # force_calculations_group = self._data_parser.get_value(self._data_parser.filehdf5, path_force_calculations)
+            force_calculations_group = self._data_parser.get(path_force_calculations)
             if force_calculations_group is not None:
                 self._parameter_info['force_calculations'] = get_parameters(force_calculations_group, path_force_calculations)
             path_workflow = 'parameters.workflow'
-            workflow_group = self._data_parser.get_value(self._data_parser.filehdf5, path_workflow)
+            # workflow_group = self._data_parser.get_value(self._data_parser.filehdf5, path_workflow)
+            workflow_group = self._data_parser.get(path_workflow)
             if workflow_group is not None:
                 self._parameter_info['workflow'] = get_parameters(workflow_group, path_workflow)
 
@@ -564,14 +588,17 @@ class H5MDParser(MDParser):
             if i_step == 0 and self._connectivity_group: # TODO extend to time-dependent bond lists and topologies
                 # atoms_dict['bond_list'] = self._data_parser.get_value(self._connectivity_group, 'bonds')
                 atoms_dict['bond_list'] = self._data_parser.get('connectivity.bonds')
-                topology = self._data_parser.get_value(self._connectivity_group, 'particles_group', None)  # JFR - come back to this to consider the new get() functionality
+                path_topology = 'connectivity.particles_group'
+                # topology = self._data_parser.get_value(self._connectivity_group, 'particles_group', None)
+                topology = self._data_parser.get(path_topology)
 
             self.parse_trajectory_step({
                 'atoms': atoms_dict
             })
 
             if topology:
-                self.parse_atomsgroup(sec_run.system[i_step], topology)
+                # self.parse_atomsgroup(sec_run.system[i_step], topology)
+                self.parse_atomsgroup(sec_run.system[i_step], topology, path_topology)
 
     def parse_method(self):
 
@@ -751,25 +778,37 @@ class H5MDParser(MDParser):
             self._n_frames = len(positions) if positions is not None else None
             self._n_atoms = [len(pos) for pos in positions] if positions is not None else None
 
-        self._particles_group = self._data_parser.get_value(self._data_parser.filehdf5, 'particles')
+        # self._particles_group = self._data_parser.get_value(self._data_parser.filehdf5, 'particles')
+        path = 'particles'
+        self._particles_group = self._data_parser.get(path)
         if self._particles_group:
-            self._h5md_particle_group_all = self._data_parser.get_value(self._particles_group, 'all')
+            # self._h5md_particle_group_all = self._data_parser.get_value(self._particles_group, 'all')
+            path = f'{path}.all'
+            self._h5md_particle_group_all = self._data_parser.get(path)
         if self._h5md_particle_group_all:
-            self._h5md_positions_group_all = self._data_parser.get_value(self._h5md_particle_group_all, 'position')
+            # self._h5md_positions_group_all = self._data_parser.get_value(self._h5md_particle_group_all, 'position')
+            path = f'{path}.position'
+            self._h5md_positions_group_all = self._data_parser.get(path)
         if self._h5md_positions_group_all:
-            self._h5md_positions_value_all = self._data_parser.get_value(self._h5md_positions_group_all, 'value')
+            # self._h5md_positions_value_all = self._data_parser.get_value(self._h5md_positions_group_all, 'value')
+            path = f'{path}.value'
+            self._h5md_positions_value_all = self._data_parser.get(path)
         # if self._h5md_positions_value_all is not None:
         #     self._n_frames = len(self._h5md_positions_value_all) if self._h5md_positions_value_all is not None else None
         #     self._n_atoms = [len(pos) for pos in self._h5md_positions_value_all] if self._h5md_positions_value_all is not None else None
-        self._observables_group = self._data_parser.get_value(self._data_parser.filehdf5, 'observables')
-        self._connectivity_group = self._data_parser.get_value(self._data_parser.filehdf5, 'connectivity')
-        self._parameters_group = self._data_parser.get_value(self._data_parser.filehdf5, 'parameters')
+        # self._observables_group = self._data_parser.get_value(self._data_parser.filehdf5, 'observables')
+        # self._connectivity_group = self._data_parser.get_value(self._data_parser.filehdf5, 'connectivity')
+        # self._parameters_group = self._data_parser.get_value(self._data_parser.filehdf5, 'parameters')
+        self._observables_group = self._data_parser.get('observables')
+        self._connectivity_group = self._data_parser.get('connectivity')
+        self._parameters_group = self._data_parser.get('parameters')
 
         # Parse the hdf5 groups
         sec_run = Run()
         self.archive.run.append(sec_run)
 
-        group_h5md = self._data_parser.get_value(self._data_parser.filehdf5, 'h5md')
+        # group_h5md = self._data_parser.get_value(self._data_parser.filehdf5, 'h5md')
+        group_h5md = self._data_parser.get('h5md')
         if group_h5md:
             # program_name = self._data_parser.get_attribute(group_h5md, 'name', path='program')
             program_name = self._data_parser.get('h5md.program.name', isattr=True)

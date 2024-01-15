@@ -125,8 +125,6 @@ class HDF5Parser(FileParser):
         return value if value is not None else default
 
     def parse(self, path: str = None, **kwargs):
-        # program_name = self._data_parser.get('name', source=group_h5md, path='program', isattr=True)
-        #print('in h5md class parse function, key = ' + quantity_key)
         source = kwargs.get('source', self.filehdf5)
         isattr = kwargs.get('isattr', False)
         value = None
@@ -135,12 +133,6 @@ class HDF5Parser(FileParser):
             attribute = attr_path[-1]
             attr_path = '.'.join(attr_path[:-1])
             value = self.get_attribute(source, attribute, path=attr_path)
-            # print(value)
-        # # prepath = kwargs.get('prepath', '')
-        # # path = kwargs.get('path')
-        # # if isattr:
-        # #     value = self.get_attribute(source, key, path=path)
-        # #     print(value)
         else:
             value = self.get_value(source, path)
         self._results[path] = value
@@ -151,23 +143,11 @@ class H5MDParser(MDParser):
         self._data_parser = HDF5Parser()
         self._n_frames = None
         self._n_atoms = None
-        self._frame_rate = None
         self._atom_parameters = None
         self._system_info = None
         self._observable_info = None
         self._parameter_info = None
-        self._h5md_groups = None
-        self._h5md_particle_group_all = None
-        self._h5md_positions_group_all = None
-        self._h5md_positions_value_all = None
         self._time_unit = ureg.picosecond
-        self._h5md_group = None
-        self._particles_group = None
-        self._observables_group = None
-        self._connectivity_group = None
-        self._parameters_group = None
-
-        # new
         self._path_group_particles_all = None
         self._path_group_positions_all = None
         self._path_value_positions_all = None
@@ -191,28 +171,14 @@ class H5MDParser(MDParser):
     def format_times(self, times):
         return np.around(times.magnitude * ureg.convert(1.0, times.units, self._time_unit), 5)
 
-    @property
-    def frame_rate(self):  # TODO extend to non-fixed n_atoms, check integration of MDParser class here
-        if self._frame_rate is None:
-            if self._n_atoms == 0 or self._n_frames == 0:
-                self._frame_rate = 1
-            else:
-                cum_atoms = self._n_atoms * self._n_frames
-                self._frame_rate = 1 if cum_atoms <= self._cum_max_atoms else cum_atoms // self._cum_max_atoms
-        return self._frame_rate
-
     def parse_atom_parameters(self):
-        if not self._h5md_particle_group_all:
-            return {}
         if self._n_atoms is None:
             return {}
         self._atom_parameters = {}
         n_atoms = self._n_atoms[0]  # TODO Extend to non-static n_atoms
-        # particles = self._h5md_particle_group_all  # TODO Extend to arbitrary particle groups
 
         atom_parameter_keys = ['label', 'mass', 'charge']
         for key in atom_parameter_keys:
-            # value = self._data_parser.get_value(particles, self._nomad_to_particles_group_map[key])
             value = self._data_parser.get(f'{self._path_group_particles_all}.{self._nomad_to_particles_group_map[key]}')
             if value is not None:
                 self._atom_parameters[key] = value
@@ -227,41 +193,19 @@ class H5MDParser(MDParser):
 
     def parse_system_info(self):
         self._system_info = {'system': {}, 'calculation': {}}
-        particles_group = self._h5md_particle_group_all
-        # positions_group = self._h5md_positions_group_all
-        positions_value = self._h5md_positions_value_all
+        particles_group = self._data_parser.get(self._path_group_particles_all)
+        positions = self._data_parser.get(self._path_value_positions_all)
         n_frames = self._n_frames
-        if particles_group is None or positions_value is None or positions_value is None: # For now we require that positions are present in the H5MD file to store other particle attributes
+        if particles_group is None or positions is None or positions is None: # For now we require that positions are present in the H5MD file to store other particle attributes
             self.logger.warning('No positions available in H5MD file. Other particle attributes will not be stored')
             return self._system_info
-
-        # def get_value(value, steps):
-        #     if value is None:
-        #         return value
-        #     if isinstance(value, h5py.Group):
-        #         group = value
-        #         value = self._data_parser.get_value(value, 'value')
-        #         attr_steps = self._data_parser.get_value(group, 'step')
-        #         if value is None or attr_steps is None:
-        #             self.logger.warning('Missing values or steps in particle attributes. These attributes will not be stored.')
-        #             return None
-        #         elif attr_steps.sort() != steps.sort() if attr_steps is not None else False:
-        #             self.logger.warning('Distinct trajectory lengths of particle attributes not supported. These attributes will not be stored.')
-        #             return None
-        #         else:
-        #             return value
-        #     else:
-        #         return [value] * n_frames
 
         def get_value(value, steps, path=''):
             if value is None:
                 return value
             if isinstance(value, h5py.Group):
-                # group = value
-                # value = self._data_parser.get_value(value, 'value')
                 path_value = f'{path}.value' if path else 'value'
                 value = self._data_parser.get(path_value)
-                # attr_steps = self._data_parser.get_value(group, 'step')
                 path_step = f'{path}.step' if path else 'step'
                 attr_steps = self._data_parser.get(path_step)
                 if value is None or attr_steps is None:
@@ -276,7 +220,6 @@ class H5MDParser(MDParser):
                 return [value] * n_frames
 
         # get the steps based on the positions
-        # steps = self._data_parser.get_value(positions_group, 'step')
         steps = self._data_parser.get(f'{self._path_group_positions_all}.step')
         if steps is None:
             self.logger.warning('No step information available in H5MD file. System information cannot be parsed.')
@@ -285,36 +228,29 @@ class H5MDParser(MDParser):
 
         # get the rest of the particle quantities
         values_dict = {'system': {}, 'calculation': {}}
-        # times = self._data_parser.get_value(positions_group, 'time')
         times = self._data_parser.get(f'{self._path_group_positions_all}.time')
         values_dict['system']['time'] = times
         values_dict['calculation']['time'] = times
-        values_dict['system']['positions'] = positions_value
+        values_dict['system']['positions'] = positions
         values_dict['system']['n_atoms'] = self._n_atoms
         system_keys = {'labels': 'system', 'velocities': 'system', 'forces': 'calculation'}
         for key, sec_key in system_keys.items():
-            # value = self._data_parser.get_value(particles_group, self._nomad_to_particles_group_map[key])
             path = f'{self._path_group_particles_all}.{self._nomad_to_particles_group_map[key]}'
             value = self._data_parser.get(path)
-            # values_dict[sec_key][key] = get_value(value, steps)
             values_dict[sec_key][key] = get_value(value, steps, path=path)
 
         # get the box quantities
-        # box = self._data_parser.get_value(particles_group, 'box')
         box = self._data_parser.get(f'{self._path_group_particles_all}.box')
         if box is not None:
             box_attributes = {'dimension': 'system', 'periodic': 'system'}
             for box_key, sec_key in box_attributes.items():
-                # value = self._data_parser.get_attribute(box, self._nomad_to_box_group_map[box_key], path=None)
                 path = f'{self._path_group_particles_all}.box.{self._nomad_to_box_group_map[box_key]}'
                 value = self._data_parser.get(path, isattr=True)
                 values_dict[sec_key][box_key] = [value] * n_frames if value is not None else None
             box_keys = {'lattice_vectors': 'system'}
             for box_key, sec_key in box_keys.items():
-                # value = self._data_parser.get_value(box, self._nomad_to_box_group_map[box_key])
                 path = f'{self._path_group_particles_all}.box.{self._nomad_to_box_group_map[box_key]}'
                 value = self._data_parser.get(path)
-                # values_dict[sec_key][box_key] = get_value(value, steps)
                 values_dict[sec_key][box_key] = get_value(value, steps, path=path)
 
         # populate the dictionary
@@ -329,7 +265,8 @@ class H5MDParser(MDParser):
             'correlation_function': {}
         }
         thermodynamics_steps = []
-        if self._observables_group is None:
+        observables_group = self._data_parser.get('observables')
+        if observables_group is None:
             return self._observable_info
 
         def get_observable_paths(observable_group: Dict, current_path: str) -> List:
@@ -345,23 +282,20 @@ class H5MDParser(MDParser):
 
             return paths
 
-        observable_paths = get_observable_paths(self._observables_group, current_path='')
+        observable_paths = get_observable_paths(observables_group, current_path='')
         for path in observable_paths:
             full_path = f'observables.{path}'
-            observable = self._data_parser.get_value(self._observables_group, path)
-            observable_type = self._data_parser.get_value(self._observables_group, path).attrs.get('type')
+            observable = self._data_parser.get_value(observables_group, path)
+            observable_type = self._data_parser.get_value(observables_group, path).attrs.get('type')
             observable_name = path.split('.')[0]
             observable_label = '-'.join(path.split('.')[1:])
             if observable_type == 'configurational':
-                # steps = self._data_parser.get_value(observable, 'step')
                 steps = self._data_parser.get(f'{full_path}.step')
                 if steps is None:
                     self.logger.warning('Missing step information in some observables. These will not be stored.')
                     continue
                 thermodynamics_steps = list(set(steps) | set(thermodynamics_steps))
-                # times = self._data_parser.get_value(observable, 'time')
                 times = self._data_parser.get(f'{full_path}.time')
-                # values = self._data_parser.get_value(observable, 'value')
                 values = self._data_parser.get(f'{full_path}.value')
                 if isinstance(values, h5py.Group):
                     self.logger.warning('Group structures within individual observables not supported. These will not be stored.')
@@ -377,7 +311,6 @@ class H5MDParser(MDParser):
                     self._observable_info[observable_type][observable_name] = {}
                 self._observable_info[observable_type][observable_name][observable_label] = {}
                 for key in observable.keys():
-                    # observable_attribute = self._data_parser.get_value(observable, key)
                     observable_attribute = self._data_parser.get(f'{full_path}.{key}')
                     if isinstance(observable_attribute, h5py.Group):
                         self.logger.warning('Group structures within individual observables not supported. These will not be stored.')
@@ -386,33 +319,9 @@ class H5MDParser(MDParser):
 
             self.thermodynamics_steps = thermodynamics_steps
 
-    # def parse_atomsgroup(self, nomad_sec, h5md_sec_particlesgroup: Group):
-    #     for i_key, key in enumerate(h5md_sec_particlesgroup.keys()):
-    #         particles_group = {group_key: self._data_parser.get_value(h5md_sec_particlesgroup[key], group_key) for group_key in h5md_sec_particlesgroup[key].keys()}
-    #         sec_atomsgroup = AtomsGroup()
-    #         nomad_sec.atoms_group.append(sec_atomsgroup)
-    #         sec_atomsgroup.type = particles_group.pop('type', None)
-    #         sec_atomsgroup.index = i_key
-    #         sec_atomsgroup.atom_indices = particles_group.pop('indices', None)
-    #         sec_atomsgroup.n_atoms = len(sec_atomsgroup.atom_indices) if sec_atomsgroup.atom_indices is not None else None
-    #         sec_atomsgroup.is_molecule = particles_group.pop('is_molecule', None)
-    #         sec_atomsgroup.label = particles_group.pop('label', None)
-    #         sec_atomsgroup.composition_formula = particles_group.pop('formula', None)
-    #         particles_subgroup = particles_group.pop('particles_group', None)
-    #         # set the remaining attributes
-    #         for particles_group_key in particles_group.keys():
-    #             val = particles_group.get(particles_group_key)
-    #             units = val.units if hasattr(val, 'units') else None
-    #             val = val.magnitude if units is not None else val
-    #             sec_atomsgroup.x_h5md_parameters.append(ParamEntry(kind=particles_group_key, value=val, unit=units))
-    #         # get the next atomsgroup
-    #         if particles_subgroup:
-    #             self.parse_atomsgroup(sec_atomsgroup, particles_subgroup)
-
     def parse_atomsgroup(self, nomad_sec, h5md_sec_particlesgroup: Group, path_particlesgroup: str):
         for i_key, key in enumerate(h5md_sec_particlesgroup.keys()):
             path_particlesgroup_key = f'{path_particlesgroup}.{key}'
-            # particles_group = {group_key: self._data_parser.get_value(h5md_sec_particlesgroup[key], group_key) for group_key in h5md_sec_particlesgroup[key].keys()}
             particles_group = {group_key: self._data_parser.get(f'{path_particlesgroup_key}.{group_key}') for group_key in h5md_sec_particlesgroup[key].keys()}
             sec_atomsgroup = AtomsGroup()
             nomad_sec.atoms_group.append(sec_atomsgroup)
@@ -442,64 +351,38 @@ class H5MDParser(MDParser):
         else:
             return False
 
-    @property
-    def parameter_info(self):
-        if self._parameter_info is None:
-            self._parameter_info = {
-                'force_calculations': {},
-                'workflow': {}
-            }
-            if self._parameters_group is None:
-                return self._parameter_info
+    def parse_parameter_info(self):
+        self._parameter_info = {
+            'force_calculations': {},
+            'workflow': {}
+        }
 
-            # def get_parameters(parameter_group: Group) -> Dict:
-            #     param_dict = {}
-            #     for key, val in parameter_group.items():
-            #         if isinstance(val, h5py.Group):
-            #             param_dict[key] = get_parameters(val)
-            #         else:
-            #             param_dict[key] = self._data_parser.get_value(parameter_group, key)
-            #             if isinstance(param_dict[key], str):
-            #                 if key == 'thermodynamic_ensemble':
-            #                     param_dict[key] = param_dict[key].upper()  # TODO change enums to lower case and adjust Gromacs and Lammps code accordingly
-            #                 else:
-            #                     param_dict[key] = param_dict[key].lower()
-            #             elif isinstance(param_dict[key], (int, np.int32, np.int64)):
-            #                 param_dict[key] = param_dict[key].item()
+        def get_parameters(parameter_group: Group, path: str) -> Dict:
+            param_dict = {}
+            for key, val in parameter_group.items():
+                path_key = f'{path}.{key}'
+                if isinstance(val, h5py.Group):
+                    param_dict[key] = get_parameters(val, path_key)
+                else:
+                    param_dict[key] = self._data_parser.get(path_key)
+                    if isinstance(param_dict[key], str):
+                        if key == 'thermodynamic_ensemble':
+                            param_dict[key] = param_dict[key].upper()  # TODO change enums to lower case and adjust Gromacs and Lammps code accordingly
+                        else:
+                            param_dict[key] = param_dict[key].lower()
+                    elif isinstance(param_dict[key], (int, np.int32, np.int64)):
+                        param_dict[key] = param_dict[key].item()
 
-            #     return param_dict
+            return param_dict
 
-            def get_parameters(parameter_group: Group, path: str) -> Dict:
-                param_dict = {}
-                for key, val in parameter_group.items():
-                    path_key = f'{path}.{key}'
-                    if isinstance(val, h5py.Group):
-                        param_dict[key] = get_parameters(val, path_key)
-                    else:
-                        # param_dict[key] = self._data_parser.get_value(parameter_group, key)
-                        param_dict[key] = self._data_parser.get(path_key)
-                        if isinstance(param_dict[key], str):
-                            if key == 'thermodynamic_ensemble':
-                                param_dict[key] = param_dict[key].upper()  # TODO change enums to lower case and adjust Gromacs and Lammps code accordingly
-                            else:
-                                param_dict[key] = param_dict[key].lower()
-                        elif isinstance(param_dict[key], (int, np.int32, np.int64)):
-                            param_dict[key] = param_dict[key].item()
-
-                return param_dict
-
-            path_force_calculations = 'parameters.force_calculations'
-            # force_calculations_group = self._data_parser.get_value(self._data_parser.filehdf5, path_force_calculations)
-            force_calculations_group = self._data_parser.get(path_force_calculations)
-            if force_calculations_group is not None:
-                self._parameter_info['force_calculations'] = get_parameters(force_calculations_group, path_force_calculations)
-            path_workflow = 'parameters.workflow'
-            # workflow_group = self._data_parser.get_value(self._data_parser.filehdf5, path_workflow)
-            workflow_group = self._data_parser.get(path_workflow)
-            if workflow_group is not None:
-                self._parameter_info['workflow'] = get_parameters(workflow_group, path_workflow)
-
-        return self._parameter_info
+        path_force_calculations = 'parameters.force_calculations'
+        force_calculations_group = self._data_parser.get(path_force_calculations)
+        if force_calculations_group is not None:
+            self._parameter_info['force_calculations'] = get_parameters(force_calculations_group, path_force_calculations)
+        path_workflow = 'parameters.workflow'
+        workflow_group = self._data_parser.get(path_workflow)
+        if workflow_group is not None:
+            self._parameter_info['workflow'] = get_parameters(workflow_group, path_workflow)
 
     def parse_calculation(self):
         sec_run = self.archive.run[-1]
@@ -585,19 +468,16 @@ class H5MDParser(MDParser):
             atoms_dict = system_info[step]
 
             topology = None
-            if i_step == 0 and self._connectivity_group: # TODO extend to time-dependent bond lists and topologies
-                # atoms_dict['bond_list'] = self._data_parser.get_value(self._connectivity_group, 'bonds')
+            if i_step == 0: # TODO extend to time-dependent bond lists and topologies
                 atoms_dict['bond_list'] = self._data_parser.get('connectivity.bonds')
                 path_topology = 'connectivity.particles_group'
-                # topology = self._data_parser.get_value(self._connectivity_group, 'particles_group', None)
                 topology = self._data_parser.get(path_topology)
 
             self.parse_trajectory_step({
                 'atoms': atoms_dict
             })
 
-            if topology:
-                # self.parse_atomsgroup(sec_run.system[i_step], topology)
+            if i_step == 0 and topology: # TODO extend to time-dependent topologies
                 self.parse_atomsgroup(sec_run.system[i_step], topology, path_topology)
 
     def parse_method(self):
@@ -610,7 +490,6 @@ class H5MDParser(MDParser):
         # get the atom parameters
         n_atoms = self._n_atoms[0] if self._n_atoms is not None else 0  # TODO Extend to non-static n_atoms
         for n in range(n_atoms):
-            # sec_atom = sec_method.m_create(AtomParameters)
             sec_atom = AtomParameters()
             sec_method.atom_parameters.append(sec_atom)
 
@@ -618,12 +497,12 @@ class H5MDParser(MDParser):
                 sec_atom.m_set(sec_atom.m_get_quantity_definition(key), self._atom_parameters[key][n])
 
         # Get the interactions
-        if self._connectivity_group:
+        connectivity_group = self._data_parser.get('connectivity')
+        if connectivity_group:
             atom_labels = self._atom_parameters.get('label')
             interaction_keys = ['bonds', 'angles', 'dihedrals', 'impropers']
             interactions_by_type = []
             for interaction_key in interaction_keys:
-                # interaction_list = self._data_parser.get_value(self._connectivity_group, interaction_key)
                 interaction_list = self._data_parser.get(f'connectivity.{interaction_key}')
                 if interaction_list is None:
                     continue
@@ -642,7 +521,7 @@ class H5MDParser(MDParser):
             self.parse_interactions_by_type(interactions_by_type, sec_model)
 
         # Get the force calculation parameters
-        force_calculation_parameters = self.parameter_info.get('force_calculations')
+        force_calculation_parameters = self._parameter_info.get('force_calculations')
         if force_calculation_parameters:
             sec_force_calculations = sec_force_field.m_create(ForceCalculations)
             sec_neighbor_searching = sec_force_calculations.m_create(NeighborSearching)
@@ -719,7 +598,7 @@ class H5MDParser(MDParser):
 
     def parse_workflow(self):
 
-        workflow_parameters = self.parameter_info.get('workflow').get('molecular_dynamics')
+        workflow_parameters = self._parameter_info.get('workflow').get('molecular_dynamics')
         # TODO should store parameters that do not match the enum vals as x_h5MD params,
         # not sure how with MDParser??
         if workflow_parameters is None:
@@ -778,56 +657,21 @@ class H5MDParser(MDParser):
             self._n_frames = len(positions) if positions is not None else None
             self._n_atoms = [len(pos) for pos in positions] if positions is not None else None
 
-        # self._particles_group = self._data_parser.get_value(self._data_parser.filehdf5, 'particles')
-        path = 'particles'
-        self._particles_group = self._data_parser.get(path)
-        if self._particles_group:
-            # self._h5md_particle_group_all = self._data_parser.get_value(self._particles_group, 'all')
-            path = f'{path}.all'
-            self._h5md_particle_group_all = self._data_parser.get(path)
-        if self._h5md_particle_group_all:
-            # self._h5md_positions_group_all = self._data_parser.get_value(self._h5md_particle_group_all, 'position')
-            path = f'{path}.position'
-            self._h5md_positions_group_all = self._data_parser.get(path)
-        if self._h5md_positions_group_all:
-            # self._h5md_positions_value_all = self._data_parser.get_value(self._h5md_positions_group_all, 'value')
-            path = f'{path}.value'
-            self._h5md_positions_value_all = self._data_parser.get(path)
-        # if self._h5md_positions_value_all is not None:
-        #     self._n_frames = len(self._h5md_positions_value_all) if self._h5md_positions_value_all is not None else None
-        #     self._n_atoms = [len(pos) for pos in self._h5md_positions_value_all] if self._h5md_positions_value_all is not None else None
-        # self._observables_group = self._data_parser.get_value(self._data_parser.filehdf5, 'observables')
-        # self._connectivity_group = self._data_parser.get_value(self._data_parser.filehdf5, 'connectivity')
-        # self._parameters_group = self._data_parser.get_value(self._data_parser.filehdf5, 'parameters')
-        self._observables_group = self._data_parser.get('observables')
-        self._connectivity_group = self._data_parser.get('connectivity')
-        self._parameters_group = self._data_parser.get('parameters')
-
         # Parse the hdf5 groups
         sec_run = Run()
         self.archive.run.append(sec_run)
 
-        # group_h5md = self._data_parser.get_value(self._data_parser.filehdf5, 'h5md')
         group_h5md = self._data_parser.get('h5md')
         if group_h5md:
-            # program_name = self._data_parser.get_attribute(group_h5md, 'name', path='program')
             program_name = self._data_parser.get('h5md.program.name', isattr=True)
-            # program_version = self._data_parser.get_attribute(group_h5md, 'version', path='program')
             program_version = self._data_parser.get('h5md.program.version', isattr=True)
             sec_run.program = Program(name=program_name, version=program_version)
-            # h5md_version = self._data_parser.get_attribute(group_h5md, 'version', path=None)
             h5md_version = self._data_parser.get('h5md.version', isattr=True)
             sec_run.x_h5md_version = h5md_version
-            # group_author = self._data_parser.get_value(group_h5md, 'author')
-            # h5md_author_name = self._data_parser.get_attribute(group_author, 'name', path=None)
             h5md_author_name = self._data_parser.get('h5md.author.name', isattr=True)
-            # h5md_author_email = self._data_parser.get_attribute(group_author, 'email', path=None)
             h5md_author_email = self._data_parser.get('h5md.author.email', isattr=True)
             sec_run.x_h5md_author = Author(name=h5md_author_name, email=h5md_author_email)
-            # group_creator = self._data_parser.get_value(group_h5md, 'creator')
-            # h5md_creator_name = self._data_parser.get_attribute(group_creator, 'name', path=None)
             h5md_creator_name = self._data_parser.get('h5md.creator.name', isattr=True)
-            # h5md_creator_version = self._data_parser.get_attribute(group_creator, 'version', path=None)
             h5md_creator_version = self._data_parser.get('h5md.creator.version', isattr=True)
             sec_run.x_h5md_creator = Program(name=h5md_creator_name, version=h5md_creator_version)
         else:
@@ -836,6 +680,7 @@ class H5MDParser(MDParser):
         self.parse_atom_parameters()
         self.parse_system_info()
         self.parse_observable_info()
+        self.parse_parameter_info()
 
         # Populate the archive
         self.parse_method()

@@ -50,8 +50,8 @@ def test_md(parser):
     sec_atom_params = sec_method[0].atom_parameters
     assert len(sec_atom_params) == 31583
     assert sec_atom_params[164].label == 'O'
-    assert sec_atom_params[164].mass.magnitude == approx(2.656767806475139e-26)
-    assert sec_atom_params[164].charge.magnitude == approx(-8.01088317e-20)
+    assert sec_atom_params[164].mass.to('amu').magnitude == approx(15.999429702758789)
+    assert sec_atom_params[164].charge.to('e').magnitude == approx(-0.5)
 
     assert len(sec_method[0].force_field.model[0].contributions) == 3
     assert sec_method[0].force_field.model[0].contributions[1].type == 'angles'
@@ -60,14 +60,11 @@ def test_md(parser):
     assert sec_method[0].force_field.model[0].contributions[1].atom_labels[10][0] == 'O'
     assert sec_method[0].force_field.model[0].contributions[1].atom_indices[100][1] == 51
 
-    assert sec_method[0].force_field.force_calculations.vdw_cutoff.magnitude == approx(1.2e-09)
-    assert sec_method[0].force_field.force_calculations.vdw_cutoff.units == 'meter'
+    assert sec_method[0].force_field.force_calculations.vdw_cutoff.to('nm').magnitude == approx(1.2)
     assert sec_method[0].force_field.force_calculations.coulomb_type == 'particle_mesh_ewald'
-    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.magnitude == approx(1.2e-09)
-    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.units == 'meter'
+    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.to('nm').magnitude == approx(1.2)
     assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_frequency == 1
-    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.magnitude == approx(1.2e-09)
-    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.units == 'meter'
+    assert sec_method[0].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.to('nm').magnitude == approx(1.2)
 
     sec_systems = sec_run.system
     assert len(sec_systems) == 5
@@ -76,9 +73,9 @@ def test_md(parser):
     assert sec_systems[0].atoms.n_atoms == 31583
     assert sec_systems[0].atoms.labels[100] == 'H'
 
-    assert sec_systems[2].atoms.positions[800][1].magnitude == approx(2.686057472229004e-09)
-    assert sec_systems[2].atoms.velocities[1200][2].magnitude == approx(40000.0)
-    assert sec_systems[3].atoms.lattice_vectors[2][2].magnitude == approx(6.822318267822266e-09)
+    assert sec_systems[2].atoms.positions[800][1].to('angstrom').magnitude == approx(26.860575)
+    assert sec_systems[2].atoms.velocities[1200][2].to('angstrom/ps').magnitude == approx(400.0)
+    assert sec_systems[3].atoms.lattice_vectors[2][2].to('angstrom').magnitude == approx(68.22318)
     assert sec_systems[0].atoms.bond_list[200][0] == 198
 
     sec_atoms_group = sec_systems[0].atoms_group
@@ -120,40 +117,34 @@ def test_md(parser):
     sec_calc = sec_run.calculation
     assert len(sec_calc) == 5
     assert np.shape(sec_calc[1].forces.total.value) == (31583, 3)
-    assert sec_calc[1].forces.total.value[2100][2].magnitude == 500.0
-    assert sec_calc[2].temperature.magnitude == 300.0
+    assert sec_calc[1].forces.total.value[2100][2].to('newton').magnitude == approx(500.0)
+    assert sec_calc[2].temperature.to('kelvin').magnitude == approx(300.0)
     assert len(sec_calc[1].x_h5md_custom_calculations) == 1
     assert sec_calc[1].x_h5md_custom_calculations[0].kind == 'custom_thermo'
-    assert sec_calc[1].x_h5md_custom_calculations[0].value == 100.0
+    assert sec_calc[1].x_h5md_custom_calculations[0].value == approx(100.0)
     assert sec_calc[1].x_h5md_custom_calculations[0].unit == 'newton / angstrom ** 2'
-    assert sec_calc[2].time.magnitude == approx(2e-12)
-    assert sec_calc[2].energy.kinetic.value.magnitude == approx(2000)
-    assert sec_calc[2].energy.potential.value.magnitude == approx(1000)
+    assert sec_calc[2].time.to('ps').magnitude == approx(2.0)
+    assert sec_calc[2].energy.kinetic.value.to('kilojoule').magnitude == approx(2.0)
+    assert sec_calc[2].energy.potential.value.to('kilojoule').magnitude == approx(1.0)
     assert sec_calc[1].energy.x_h5md_energy_contributions[0].kind == 'energy-custom'
-    assert sec_calc[1].energy.x_h5md_energy_contributions[0].value.magnitude == 3000.0
+    assert sec_calc[1].energy.x_h5md_energy_contributions[0].value.magnitude == approx(3000.0)
 
     sec_workflow = archive.workflow2
     assert sec_workflow.m_def.name == 'MolecularDynamics'
     sec_method = sec_workflow.method
     assert sec_method.thermodynamic_ensemble == 'NPT'
     assert sec_method.integrator_type == 'langevin_leap_frog'
-    assert sec_method.integration_timestep.magnitude == 2e-27
-    assert sec_method.integration_timestep.units == 'second'
+    assert sec_method.integration_timestep.to('ps').magnitude == approx(2.0e-15)
     assert sec_method.n_steps == 20000000
     assert sec_method.coordinate_save_frequency == 10000
     assert sec_method.thermostat_parameters[0].thermostat_type == 'langevin_leap_frog'
-    assert sec_method.thermostat_parameters[0].reference_temperature.magnitude == 300.0
-    assert sec_method.thermostat_parameters[0].reference_temperature.units == 'kelvin'
-    assert sec_method.thermostat_parameters[0].coupling_constant.magnitude == 1e-12
-    assert sec_method.thermostat_parameters[0].coupling_constant.units == 'second'
+    assert sec_method.thermostat_parameters[0].reference_temperature.to('kelvin').magnitude == approx(300.0)
+    assert sec_method.thermostat_parameters[0].coupling_constant.to('ps').magnitude == approx(1.0)
     assert sec_method.barostat_parameters[0].barostat_type == 'berendsen'
     assert sec_method.barostat_parameters[0].coupling_type == 'isotropic'
-    assert np.all(sec_method.barostat_parameters[0].reference_pressure.magnitude == [[100000., 0., 0.], [0., 100000., 0.], [0., 0., 100000.]])
-    assert sec_method.barostat_parameters[0].reference_pressure.units == 'pascal'
-    assert np.all(sec_method.barostat_parameters[0].coupling_constant.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
-    assert sec_method.barostat_parameters[0].coupling_constant.units == 'second'
-    assert np.all(sec_method.barostat_parameters[0].compressibility.magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
-    assert sec_method.barostat_parameters[0].compressibility.units == '1 / pascal'
+    assert np.all(sec_method.barostat_parameters[0].reference_pressure.to('bar').magnitude == [[1.0, 0., 0.], [0., 1.0, 0.], [0., 0., 1.0]])
+    assert np.all(sec_method.barostat_parameters[0].coupling_constant.to('ps').magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
+    assert np.all(sec_method.barostat_parameters[0].compressibility.to('1/bar').magnitude == [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
 
     sec_workflow_results = sec_workflow.results
     assert len(sec_workflow_results.ensemble_properties) == 1
@@ -164,7 +155,7 @@ def test_md(parser):
     assert ensemble_property_0.ensemble_property_values[1].label == 'MOL2'
     assert ensemble_property_0.ensemble_property_values[1].errors == 0.95
     assert ensemble_property_0.ensemble_property_values[1].value_magnitude == 2.
-    assert ensemble_property_0.ensemble_property_values[1].value_unit == 'angstrom ** 2 / picosecond'
+    assert ensemble_property_0.ensemble_property_values[1].value_unit == 'nanometer ** 2 / picosecond'
     ensemble_property_1 = sec_workflow_results.radial_distribution_functions[0]
     assert ensemble_property_1.label == 'radial_distribution_functions'
     assert ensemble_property_1.type == 'molecular'
@@ -173,7 +164,7 @@ def test_md(parser):
     assert ensemble_property_1.radial_distribution_function_values[1].n_bins == 651
     assert ensemble_property_1.radial_distribution_function_values[1].frame_start == 0
     assert ensemble_property_1.radial_distribution_function_values[1].frame_end == 4
-    assert ensemble_property_1.radial_distribution_function_values[1].bins[51].magnitude == approx(2.55e-11)
+    assert ensemble_property_1.radial_distribution_function_values[1].bins[51].to('nm').magnitude == approx(0.255)
     assert ensemble_property_1.radial_distribution_function_values[1].value[51] == approx(0.284764)
     correlation_function_0 = sec_workflow_results.mean_squared_displacements[0]
     assert correlation_function_0.type == 'molecular'
@@ -183,6 +174,6 @@ def test_md(parser):
     assert len(correlation_function_0.mean_squared_displacement_values) == 2
     assert correlation_function_0.mean_squared_displacement_values[0].label == 'MOL1'
     assert correlation_function_0.mean_squared_displacement_values[0].n_times == 51
-    assert correlation_function_0.mean_squared_displacement_values[0].times[10].magnitude == approx(2.e-11)
-    assert correlation_function_0.mean_squared_displacement_values[0].value[10].magnitude == approx(6.79723e-21)
+    assert correlation_function_0.mean_squared_displacement_values[0].times[10].to('ps').magnitude == approx(20.0)
+    assert correlation_function_0.mean_squared_displacement_values[0].value[10].to('nm**2').magnitude == approx(0.679723)
     assert correlation_function_0.mean_squared_displacement_values[0].errors[10] == approx(0.0)

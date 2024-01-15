@@ -129,9 +129,7 @@ class HDF5Parser(FileParser):
         isattr = kwargs.get('isattr', False)
         value = None
         if isattr:
-            attr_path = path.split('.')
-            attribute = attr_path[-1]
-            attr_path = '.'.join(attr_path[:-1])
+            attr_path, attribute = path.rsplit('.', 1)
             value = self.get_attribute(source, attribute, path=attr_path)
         else:
             value = self.get_value(source, path)

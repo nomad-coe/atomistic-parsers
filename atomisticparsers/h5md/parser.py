@@ -439,14 +439,16 @@ class H5MDParser(MDParser):
             sec_calc = sec_run.calculation[-1]
 
             if sec_calc.step != step:  # TODO check this comparison
-                sec_calc = sec_run.m_create(Calculation)
+                sec_calc = Calculation()
+                sec_run.calculation.append(sec_calc)
                 sec_calc.step = int(step)
                 sec_calc.time = data['time']
             for calc_entry in data_h5md['x_h5md_custom_calculations']:
                 sec_calc.x_h5md_custom_calculations.append(calc_entry)
             sec_energy = sec_calc.energy
             if not sec_energy:
-                sec_energy = sec_calc.m_create(Energy)
+                sec_energy = Energy()
+                sec_calc.append(sec_energy)
             for energy_entry in data_h5md['x_h5md_energy_contributions']:
                 sec_energy.x_h5md_energy_contributions.append(energy_entry)
 
@@ -522,8 +524,10 @@ class H5MDParser(MDParser):
         # Get the force calculation parameters
         force_calculation_parameters = self._parameter_info.get('force_calculations')
         if force_calculation_parameters:
-            sec_force_calculations = sec_force_field.m_create(ForceCalculations)
-            sec_neighbor_searching = sec_force_calculations.m_create(NeighborSearching)
+            sec_force_calculations = ForceCalculations()
+            sec_force_field.force_calculations = sec_force_calculations
+            sec_neighbor_searching = NeighborSearching()
+            sec_force_calculations.neighbor_searching = sec_neighbor_searching
 
             for key, val in force_calculation_parameters.items():
                 if not isinstance(val, dict):
@@ -598,8 +602,6 @@ class H5MDParser(MDParser):
     def parse_workflow(self):
 
         workflow_parameters = self._parameter_info.get('workflow').get('molecular_dynamics')
-        # TODO should store parameters that do not match the enum vals as x_h5MD params,
-        # not sure how with MDParser??
         if workflow_parameters is None:
             return
 

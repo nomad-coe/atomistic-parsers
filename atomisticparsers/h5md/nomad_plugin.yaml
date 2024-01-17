@@ -1,0 +1,19 @@
+code_category: Atomistic code
+# code_homepage: http://www.??.org/
+# TODO is this the correct category
+code_name: H5MD
+metadata:
+  codeCategory: Atomistic code
+  codeLabel: H5MD
+  codeLabelStyle: All in capitals
+  codeName: h5md
+  # codeUrl: http://www.??.org/
+  parserDirName: dependencies/parsers/atomistic/atomisticparsers/h5md/
+  parserGitUrl: https://github.com/nomad-coe/atomistic-parsers.git
+  parserSpecific: ''
+  preamble: ''
+  status: production
+  tableOfFiles: ''
+name: parsers/h5md
+parser_class_name: atomisticparsers.h5md.parser.H5MDParser
+python_package: atomisticparsers.h5md

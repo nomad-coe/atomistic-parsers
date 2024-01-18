@@ -514,7 +514,6 @@ class MDAnalysisParser(FileParser):
             self.logger.warning(
                 "At least 50 frames required to calculate molecular"  # noqa: PLE1205
                 " mean squared displacements, skipping.",
-                UserWarning,
             )
             return
 

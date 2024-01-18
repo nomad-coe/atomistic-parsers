@@ -21,7 +21,7 @@ import numpy as np
 import logging
 import h5py
 
-from typing import List, Dict
+from typing import List, Dict, Union, Any
 from h5py import Group
 
 from nomad.datamodel import EntryArchive
@@ -72,9 +72,9 @@ class HDF5Parser(FileParser):
         if quantity is None:
             return
         if unit:
-            unit = ureg(unit)
-            unit *= unit_factor
-            quantity *= unit
+            unit_val = ureg(unit)
+            unit_val *= unit_factor
+            quantity *= unit_val
 
         return quantity
 
@@ -400,7 +400,7 @@ class H5MDParser(MDParser):
 
     def parse_atomsgroup(
         self,
-        nomad_sec: System or AtomsGroup,
+        nomad_sec: Union[System, AtomsGroup],
         h5md_sec_particlesgroup: Group,
         path_particlesgroup: str,
     ):
@@ -454,7 +454,7 @@ class H5MDParser(MDParser):
         self._parameter_info = {"force_calculations": {}, "workflow": {}}
 
         def get_parameters(parameter_group: Group, path: str) -> Dict:
-            param_dict = {}
+            param_dict: Dict[Any, Any] = {}
             for key, val in parameter_group.items():
                 path_key = f"{path}.{key}"
                 if isinstance(val, h5py.Group):
@@ -713,14 +713,14 @@ class H5MDParser(MDParser):
                 )
                 property_dict[f"{val_name}_magnitude"] = value_magnitude
 
-        workflow_properties_dict = {}
+        workflow_properties_dict: Dict[Any, Any] = {}
         for observable_type, observable_dict in observables.items():
             flag_known_property = False
             if observable_type in properties_known:
                 property_type_key = observable_type
                 property_type_value_key = properties_known[observable_type]
                 flag_known_property = True
-            property_dict = {property_type_value_key: []}
+            property_dict: Dict[Any, Any] = {property_type_value_key: []}
             property_dict["label"] = observable_type
             for key, observable in observable_dict.items():
                 property_values_dict = {"label": key}

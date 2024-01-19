@@ -783,7 +783,8 @@ class LogParser(TextParser):
     def get_data_files(self):
         def check_file_header(file_path, regex_pattern):
             header_size = 1024
-
+            file_path = f"{self.maindir}/{file_path}"
+            print(file_path)
             with open(file_path, "rb") as file:
                 file_header = file.read(header_size)
                 file_header_str = file_header.decode(errors="ignore")

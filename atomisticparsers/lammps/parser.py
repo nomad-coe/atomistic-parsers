@@ -788,7 +788,7 @@ class LogParser(TextParser):
                 with open(file_path, "rb") as file:
                     file_header = file.read(header_size)
                     file_header_str = file_header.decode(errors="ignore")
-            except FileExistsError:
+            except Exception:
                 file_header_str = ""
 
             return re.search(regex_pattern, file_header_str)

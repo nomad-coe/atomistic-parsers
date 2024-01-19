@@ -784,11 +784,14 @@ class LogParser(TextParser):
         def check_file_header(file_path, regex_pattern):
             header_size = 1024
             file_path = f"{self.maindir}/{file_path}"
-            print(file_path)
-            with open(file_path, "rb") as file:
-                file_header = file.read(header_size)
-                file_header_str = file_header.decode(errors="ignore")
-                return re.search(regex_pattern, file_header_str)
+            try:
+                with open(file_path, "rb") as file:
+                    file_header = file.read(header_size)
+                    file_header_str = file_header.decode(errors="ignore")
+            except FileExistsError:
+                file_header_str = ""
+
+            return re.search(regex_pattern, file_header_str)
 
         read_data = self.get("read_data")
         if read_data is None or "CPU" in read_data:
@@ -803,7 +806,10 @@ class LogParser(TextParser):
                     f for f in data_files if check_file_header(f, "LAMMPS data file")
                 ]  # TODO: Should this be the default?
             if len(data_files) > 1:
-                prefix = os.path.basename(self.mainfile).rsplit(".", 1)[1]
+                prefix = os.path.basename(self.mainfile).rsplit(".", 1)
+                prefix = (
+                    prefix[1] if len(prefix) > 1 and prefix[1] != "log" else prefix[0]
+                )
                 data_files = [f for f in data_files if prefix in f]
         else:
             data_files = read_data

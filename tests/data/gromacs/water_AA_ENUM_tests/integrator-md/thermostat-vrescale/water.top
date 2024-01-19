@@ -1,0 +1,16 @@
+;
+;
+;     Topology file for spce water
+;
+;
+;
+#include "oplsaa.ff/forcefield.itp"
+
+#include "oplsaa.ff/spce.itp"
+
+[ system ]
+spce water
+
+[ molecules ]
+SOL 216
+

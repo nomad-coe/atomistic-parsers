@@ -35,7 +35,6 @@ from runschema.method import (
     AtomParameters,
 )
 from runschema.system import AtomsGroup
-from nomad.datamodel.metainfo.simulation.system import AtomsGroup
 from simulationworkflowschema import (
     GeometryOptimization,
     GeometryOptimizationMethod,

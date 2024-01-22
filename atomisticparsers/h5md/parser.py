@@ -27,8 +27,8 @@ from h5py import Group
 from nomad.datamodel import EntryArchive
 from nomad.metainfo.util import MEnum
 from nomad.parsing.file_parser import FileParser
-from nomad.datamodel.metainfo.simulation.run import Run, Program, MSection
-from nomad.datamodel.metainfo.simulation.method import (
+from runschema.run import Run, Program, MSection
+from runschema.method import (
     Method,
     ForceField,
     Model,
@@ -36,8 +36,8 @@ from nomad.datamodel.metainfo.simulation.method import (
     ForceCalculations,
     NeighborSearching,
 )
-from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
-from nomad.datamodel.metainfo.simulation.calculation import (
+from runschema.system import System, AtomsGroup
+from runschema.calculation import (
     Calculation,
     Energy,
     EnergyEntry,

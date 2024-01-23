@@ -20,6 +20,7 @@ import numpy as np
 import os
 import logging
 from ase import data as asedata
+import re
 
 from nomad.units import ureg
 
@@ -780,22 +781,35 @@ class LogParser(TextParser):
         return [os.path.join(self.maindir, f) for f in traj_files]
 
     def get_data_files(self):
+        def check_file_header(file_path, regex_pattern):
+            header_size = 1024
+            file_path = f"{self.maindir}/{file_path}"
+            try:
+                with open(file_path, "rb") as file:
+                    file_header = file.read(header_size)
+                    file_header_str = file_header.decode(errors="ignore")
+            except Exception:
+                file_header_str = ""
+
+            return re.search(regex_pattern, file_header_str)
+
         read_data = self.get("read_data")
         if read_data is None or "CPU" in read_data:
             self.logger.warning("Data file not specified in directory, will scan.")
-            # TODO improve matching of data file
             data_files = os.listdir(self.maindir)
             data_files = [
                 f for f in data_files if f.endswith("data") or f.startswith("data")
             ]
+            if not data_files:
+                data_files = os.listdir(self.maindir)
+                data_files = [
+                    f for f in data_files if check_file_header(f, "LAMMPS data file")
+                ]  # TODO: Should this be the default?
             if len(data_files) > 1:
-                prefix = os.path.basename(
-                    self.mainfile
-                ).rsplit(
-                    ".", 1
-                )[
-                    1
-                ]  # JFR- @Alvin Please check this - changed from [0] to [1] for case that filename is leading with log
+                prefix = os.path.basename(self.mainfile).rsplit(".", 1)
+                prefix = (
+                    prefix[1] if len(prefix) > 1 and prefix[1] != "log" else prefix[0]
+                )
                 data_files = [f for f in data_files if prefix in f]
         else:
             data_files = read_data

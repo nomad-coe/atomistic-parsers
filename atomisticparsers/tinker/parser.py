@@ -24,14 +24,14 @@ import fnmatch
 
 from nomad.parsing.file_parser.text_parser import Quantity, TextParser
 from nomad.units import ureg
-from nomad.datamodel.metainfo.simulation.run import Run, Program
-from nomad.datamodel.metainfo.simulation.system import (
+from runschema.run import Run, Program
+from runschema.system import (
     System, Atoms
 )
-from nomad.datamodel.metainfo.simulation.method import (
+from runschema.method import (
     Method, ForceField, Model, AtomParameters
 )
-from nomad.datamodel.metainfo.simulation.calculation import (
+from runschema.calculation import (
     Calculation, Energy, EnergyEntry, VibrationalFrequencies
 )
 from simulationworkflowschema import (
@@ -283,7 +283,8 @@ class TinkerParser(MDParser):
         if self.traj_parser.universe is None:
             return
 
-        sec_system = self.archive.run[-1].m_create(System)
+        sec_system = System()
+        self.archive.run[-1].system.append(sec_system)
         trajectory = self.traj_parser.universe.trajectory[index]
         sec_system.atoms = Atoms(
             positions=trajectory.positions * ureg.angstrom,
@@ -297,7 +298,8 @@ class TinkerParser(MDParser):
         return sec_system
 
     def parse_method(self):
-        sec_method = self.archive.run[-1].m_create(Method)
+        sec_method = Method()
+        self.archive.run[-1].method.append(sec_method)
 
         parameters = self.archive.run[-1].x_tinker_control_parameters
         if parameters.get('parameters') is not None:
@@ -309,7 +311,8 @@ class TinkerParser(MDParser):
         }
         if self.traj_parser.universe is not None:
             for atom in list(self.traj_parser.universe.atoms):
-                sec_atom = sec_method.m_create(AtomParameters)
+                sec_atom = AtomParameters()
+                sec_method.atom_parameters.append(sec_atom)
                 for key in ['charge', 'mass', 'name', 'type', 'resid']:
                     if hasattr(atom, key):
                         setattr(sec_atom, property_map.get(key, key), getattr(atom, key))
@@ -402,7 +405,8 @@ class TinkerParser(MDParser):
 
         # TODO put runs in separate archives
         for run in self.out_parser.get('run', []):
-            sec_run = archive.m_create(Run)
+            sec_run = Run()
+            archive.run.append(sec_run)
             sec_run.program = Program(name='tinker', version=run.get('program_version'))
 
             workflow_type = self.resolve_workflow_type(run)
@@ -418,8 +422,10 @@ class TinkerParser(MDParser):
             if run.vibrate is not None:
                 # reference structure
                 sec_system = self.parse_system(0, get_reference_filename(program))
-                sec_scc = sec_run.m_create(Calculation)
-                sec_vibrations = sec_scc.m_create(VibrationalFrequencies)
+                sec_scc = Calculation()
+                sec_run.calculation.append(sec_scc)
+                sec_vibrations = VibrationalFrequencies()
+                sec_scc.vibrational_frequencies.append(sec_vibrations)
                 sec_vibrations.value = [run.vibrate.frequencies[n] for n in range(len(
                     run.vibrate.get('frequencies', []))) if n % 2 == 1] * (1 / ureg.cm)
                 sec_vibrations.x_tinker_eigenvalues = [run.vibrate.eigenvalues[n] for n in range(len(
@@ -434,7 +440,8 @@ class TinkerParser(MDParser):
                 sec_system = self.parse_system(0, self._get_tinker_file('xyz'))
 
                 for n, step in enumerate(run.minimize.get('iteration', {}).get('step', [])):
-                    sec_scc = sec_run.m_create(Calculation)
+                    sec_scc = Calculation()
+                    sec_run.calculation.append(sec_scc)
                     sec_scc.energy = Energy(total=EnergyEntry(
                         value=step[0] * len(sec_system.atoms.positions) * ureg.J * 4184.0 / mol))
                     if n == 0:
@@ -509,7 +516,8 @@ class TinkerParser(MDParser):
             parameters = {key.lower(): val for key, val in self.key_parser.get('key_val', [])}
             sec_run.x_tinker_control_parameters = parameters
             # TODO should this be removed and only have a dictionary of control parameters
-            sec_control = sec_run.m_create(x_tinker_section_control_parameters)
+            sec_control = x_tinker_section_control_parameters()
+            sec_run.x_tinker_section_control_parameters.append(sec_control)
             for key, val in parameters.items():
                 key = key.replace('-', '_')
                 setattr(sec_control, f'x_tinker_inout_control_{key}', val if isinstance(val, bool) else str(val))

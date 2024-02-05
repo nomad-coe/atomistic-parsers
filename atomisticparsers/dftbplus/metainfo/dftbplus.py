@@ -21,13 +21,16 @@ import numpy as np            # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     Package, Quantity, Section, SubSection, JSON
 )
-from nomad.datamodel.metainfo import simulation
+import runschema.run  # pylint: disable=unused-import
+import runschema.calculation  # pylint: disable=unused-import
+import runschema.method  # pylint: disable=unused-import
+import runschema.system  # pylint: disable=unused-import
 
 
 m_package = Package()
 
 
-class AtomParameters(simulation.method.AtomParameters):
+class AtomParameters(runschema.method.AtomParameters):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -46,7 +49,7 @@ class AtomParameters(simulation.method.AtomParameters):
         ''')
 
 
-class System(simulation.system.System):
+class System(runschema.system.System):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -72,7 +75,7 @@ class System(simulation.system.System):
         ''')
 
 
-class BandEnergies(simulation.calculation.BandEnergies):
+class BandEnergies(runschema.calculation.BandEnergies):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -91,7 +94,7 @@ class BandEnergies(simulation.calculation.BandEnergies):
         ''')
 
 
-class Calculation(simulation.calculation.Calculation):
+class Calculation(runschema.calculation.Calculation):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -131,28 +134,28 @@ class Calculation(simulation.calculation.Calculation):
         ''')
 
 
-class Energy(simulation.calculation.Energy):
+class Energy(runschema.calculation.Energy):
 
     m_def = Section(validate=False, extends_base_section=True)
 
-    x_dftbp_total_mermin = SubSection(simulation.calculation.EnergyEntry.m_def)
+    x_dftbp_total_mermin = SubSection(runschema.calculation.EnergyEntry.m_def)
 
-    x_dftbp_band = SubSection(simulation.calculation.EnergyEntry.m_def)
+    x_dftbp_band = SubSection(runschema.calculation.EnergyEntry.m_def)
 
-    x_dftbp_ts = SubSection(simulation.calculation.EnergyEntry.m_def)
+    x_dftbp_ts = SubSection(runschema.calculation.EnergyEntry.m_def)
 
-    x_dftbp_band_free = SubSection(simulation.calculation.EnergyEntry.m_def)
+    x_dftbp_band_free = SubSection(runschema.calculation.EnergyEntry.m_def)
 
-    x_dftbp_band_t0 = SubSection(simulation.calculation.EnergyEntry.m_def)
+    x_dftbp_band_t0 = SubSection(runschema.calculation.EnergyEntry.m_def)
 
-    x_dftbp_scc = SubSection(simulation.calculation.EnergyEntry.m_def)
+    x_dftbp_scc = SubSection(runschema.calculation.EnergyEntry.m_def)
 
-    x_dftbp_dispersion = SubSection(simulation.calculation.EnergyEntry.m_def)
+    x_dftbp_dispersion = SubSection(runschema.calculation.EnergyEntry.m_def)
 
-    x_dftbp_force_related = SubSection(simulation.calculation.EnergyEntry.m_def)
+    x_dftbp_force_related = SubSection(runschema.calculation.EnergyEntry.m_def)
 
 
-class TB(simulation.method.TB):
+class TB(runschema.method.TB):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -176,7 +179,7 @@ class TB(simulation.method.TB):
         ''')
 
 
-class Run(simulation.run.Run):
+class Run(runschema.run.Run):
 
     m_def = Section(validate=False, extends_base_section=True)
 

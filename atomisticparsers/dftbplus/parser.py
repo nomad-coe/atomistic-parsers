@@ -24,16 +24,16 @@ import numpy as np
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
-from nomad.datamodel.metainfo.simulation.run import (
+from runschema.run import (
     Run, Program
 )
-from nomad.datamodel.metainfo.simulation.method import (
+from runschema.method import (
     Method, TB
 )
-from nomad.datamodel.metainfo.simulation.system import (
+from runschema.system import (
     System, Atoms
 )
-from nomad.datamodel.metainfo.simulation.calculation import (
+from runschema.calculation import (
     Calculation, Energy, EnergyEntry, ScfIteration, BandEnergies,
     Multipoles, MultipolesEntry, Forces, ForcesEntry
 )
@@ -332,11 +332,13 @@ class DFTBPlusParser:
         self.maindir = os.path.dirname(self.filepath)
         self.init_parser()
 
-        sec_run = self.archive.m_create(Run)
+        sec_run = Run()
+        self.archive.run.append(sec_run)
         sec_run.program = Program(name='DFTB+', version=self.out_parser.get('program_version'))
 
         def parse_system(source):
-            sec_system = sec_run.m_create(System)
+            sec_system = System()
+            sec_run.system.append(sec_system)
             sec_system.atoms = Atoms(
                 labels=source.get('symbols'), positions=source.get('positions'),
                 lattice_vectors=source.get('lattice_vectors'))
@@ -352,21 +354,25 @@ class DFTBPlusParser:
         for key in ['input_file', 'processed_input_file', 'parser_version']:
             setattr(sec_run, f'x_dftbp_{key}', self.out_parser.get(key))
 
-        sec_method = sec_run.m_create(Method)
-        sec_tb = sec_method.m_create(TB)
+        sec_method = Method()
+        sec_run.method.append(sec_method)
+        sec_tb = TB()
+        sec_method.tb = sec_tb
         sec_tb.name = 'DFTB'
         sec_tb.x_dftbp_input_parameters = input_parameters
         sec_tb.x_dftbp_sk_files = self.out_parser.sk_files
 
         for step in self.out_parser.get('step', []):
-            sec_scc = sec_run.m_create(Calculation)
+            sec_scc = Calculation()
+            sec_run.calculation.append(sec_scc)
             sec_scc.energy = Energy(
                 total=EnergyEntry(value=step.energy_total),
                 total_t0=EnergyEntry(value=step.energy_total_t0))
             sec_scc.energy.x_dftbp_total_mermin = EnergyEntry(value=step.energy_x_dftbp_total_mermin)
             sec_scc.pressure = step.pressure
             for scf in step.get('scf', []):
-                sec_scf = sec_scc.m_create(ScfIteration)
+                sec_scf = ScfIteration()
+                sec_scc.scf_iteration.append(sec_scf)
                 sec_scf.energy = Energy(
                     total=EnergyEntry(value=scf[0] * ureg.hartree),
                     change=scf[1] * ureg.hartree)
@@ -396,7 +402,8 @@ class DFTBPlusParser:
             elif key == 'pressure':
                 sec_scc.pressure = val
             elif key == 'eigenvalues_occupations':
-                sec_eigenvalues = sec_scc.m_create(BandEnergies)
+                sec_eigenvalues = BandEnergies()
+                sec_scc.eigenvalues.append(sec_eigenvalues)
                 # TODO handle spin polarization
                 n_spin = 1
                 eigs = np.vstack([kpoint[0] for kpoint in val.get('kpoint', [])])
@@ -404,5 +411,6 @@ class DFTBPlusParser:
                 occs = np.vstack([kpoint[1] for kpoint in val.get('kpoint', [])])
                 sec_eigenvalues.occupations = np.reshape(occs, (n_spin, *np.shape(occs)))
             elif key == 'dipole':
-                sec_multipole = sec_scc.m_create(Multipoles)
+                sec_multipole = Multipoles()
+                sec_scc.multipoles.append(sec_multipole)
                 sec_multipole.dipole = MultipolesEntry(total=val)

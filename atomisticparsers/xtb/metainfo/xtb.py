@@ -21,14 +21,17 @@ import numpy as np            # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     Package, Quantity, Section, SubSection, JSON
 )
-from nomad.datamodel.metainfo import simulation
+import runschema.run  # pylint: disable=unused-import
+import runschema.calculation  # pylint: disable=unused-import
+import runschema.method  # pylint: disable=unused-import
+import runschema.system  # pylint: disable=unused-import
 import simulationworkflowschema
 
 
 m_package = Package()
 
 
-class Run(simulation.method.Method):
+class Run(runschema.method.Method):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -39,7 +42,7 @@ class Run(simulation.method.Method):
         ''')
 
 
-class TB(simulation.method.TB):
+class TB(runschema.method.TB):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -50,28 +53,28 @@ class TB(simulation.method.TB):
         ''')
 
 
-class Energy(simulation.calculation.Energy):
+class Energy(runschema.calculation.Energy):
 
     m_def = Section(validate=False, extends_base_section=True)
 
-    x_xtb_scc = SubSection(sub_section=simulation.calculation.EnergyEntry.m_def)
+    x_xtb_scc = SubSection(sub_section=runschema.calculation.EnergyEntry.m_def)
 
-    x_xtb_isotropic_es = SubSection(sub_section=simulation.calculation.EnergyEntry.m_def)
+    x_xtb_isotropic_es = SubSection(sub_section=runschema.calculation.EnergyEntry.m_def)
 
-    x_xtb_anisotropic_es = SubSection(sub_section=simulation.calculation.EnergyEntry.m_def)
+    x_xtb_anisotropic_es = SubSection(sub_section=runschema.calculation.EnergyEntry.m_def)
 
-    x_xtb_anistropic_xc = SubSection(sub_section=simulation.calculation.EnergyEntry.m_def)
+    x_xtb_anistropic_xc = SubSection(sub_section=runschema.calculation.EnergyEntry.m_def)
 
-    x_xtb_dispersion = SubSection(sub_section=simulation.calculation.EnergyEntry.m_def)
+    x_xtb_dispersion = SubSection(sub_section=runschema.calculation.EnergyEntry.m_def)
 
-    x_xtb_repulsion = SubSection(sub_section=simulation.calculation.EnergyEntry.m_def)
+    x_xtb_repulsion = SubSection(sub_section=runschema.calculation.EnergyEntry.m_def)
 
-    x_xtb_halogen_bond_corr = SubSection(sub_section=simulation.calculation.EnergyEntry.m_def)
+    x_xtb_halogen_bond_corr = SubSection(sub_section=runschema.calculation.EnergyEntry.m_def)
 
-    x_xtb_add_restraining = SubSection(sub_section=simulation.calculation.EnergyEntry.m_def)
+    x_xtb_add_restraining = SubSection(sub_section=runschema.calculation.EnergyEntry.m_def)
 
 
-class MultipolesEntry(simulation.calculation.MultipolesEntry):
+class MultipolesEntry(runschema.calculation.MultipolesEntry):
 
     m_def = Section(validate=False, extends_base_section=True)
 

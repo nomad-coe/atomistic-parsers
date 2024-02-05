@@ -16,175 +16,217 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import numpy as np            # pylint: disable=unused-import
-import typing                 # pylint: disable=unused-import
+import numpy as np  # pylint: disable=unused-import
+import typing  # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
-    MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    MSection,
+    MCategory,
+    Category,
+    Package,
+    Quantity,
+    Section,
+    SubSection,
+    SectionProxy,
+    Reference,
 )
-from nomad.datamodel.metainfo import simulation
+import runschema.run  # pylint: disable=unused-import
+import runschema.calculation  # pylint: disable=unused-import
+import runschema.method  # pylint: disable=unused-import
+import runschema.system  # pylint: disable=unused-import
 
 
 m_package = Package()
 
 
 class ParamEntry(MSection):
-    '''
+    """
     Generic section defining a parameter name and value
-    '''
+    """
 
     m_def = Section(validate=False)
 
     kind = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         Name of the parameter.
-        ''')
+        """,
+    )
 
     value = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         Value of the parameter as a string.
-        ''')
+        """,
+    )
 
     unit = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         Unit of the parameter as a string.
-        ''')
+        """,
+    )
 
     # TODO add description quantity
 
 
 class CalcEntry(MSection):
-    '''
+    """
     Section describing a general type of calculation.
-    '''
+    """
 
     m_def = Section(validate=False)
 
     kind = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         Kind of the quantity.
-        ''')
+        """,
+    )
 
     value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        description='''
+        description="""
         Value of this contribution.
-        ''')
+        """,
+    )
 
     unit = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         Unit of the parameter as a string.
-        ''')
+        """,
+    )
 
     # TODO add description quantity
 
-class ForceCalculations(simulation.method.ForceCalculations):
 
-    m_def = Section(validate=False, extends_base_section=True,)
+class ForceCalculations(runschema.method.ForceCalculations):
+    m_def = Section(
+        validate=False,
+        extends_base_section=True,
+    )
 
     x_h5md_parameters = SubSection(
         sub_section=ParamEntry.m_def,
-        description='''
+        description="""
         Contains non-normalized force calculation parameters.
-        ''',
-        repeats=True)
+        """,
+        repeats=True,
+    )
 
-class NeighborSearching(simulation.method.NeighborSearching):
 
-    m_def = Section(validate=False, extends_base_section=True,)
+class NeighborSearching(runschema.method.NeighborSearching):
+    m_def = Section(
+        validate=False,
+        extends_base_section=True,
+    )
 
     x_h5md_parameters = SubSection(
         sub_section=ParamEntry.m_def,
-        description='''
+        description="""
         Contains non-normalized neighbor searching parameters.
-        ''',
-        repeats=True)
+        """,
+        repeats=True,
+    )
 
-class AtomsGroup(simulation.system.AtomsGroup):
-    '''
+
+class AtomsGroup(runschema.system.AtomsGroup):
+    """
     Describes a group of atoms which may constitute a sub system as in the case of a
     molecule.
-    '''
+    """
 
-    m_def = Section(validate=False, extends_base_section=True,)
+    m_def = Section(
+        validate=False,
+        extends_base_section=True,
+    )
 
-    x_h5md_parameters = SubSection(  # TODO should this be called parameters or attributes or what?
-        sub_section=ParamEntry.m_def,
-        description='''
+    x_h5md_parameters = (
+        SubSection(  # TODO should this be called parameters or attributes or what?
+            sub_section=ParamEntry.m_def,
+            description="""
         Contains additional information about the atom group .
-        ''',
-        repeats=True)
+        """,
+            repeats=True,
+        )
+    )
 
 
-class Calculation(simulation.calculation.Calculation):
-
-    m_def = Section(validate=False, extends_base_section=True,)
+class Calculation(runschema.calculation.Calculation):
+    m_def = Section(
+        validate=False,
+        extends_base_section=True,
+    )
 
     x_h5md_custom_calculations = SubSection(
         sub_section=ParamEntry.m_def,
-        description='''
+        description="""
         Contains other generic custom calculations that are not already defined.
-        ''',
-        repeats=True)
+        """,
+        repeats=True,
+    )
 
 
-class Energy(simulation.calculation.Energy):
-
-    m_def = Section(validate=False, extends_base_section=True,)
+class Energy(runschema.calculation.Energy):
+    m_def = Section(
+        validate=False,
+        extends_base_section=True,
+    )
 
     x_h5md_energy_contributions = SubSection(
-        sub_section=simulation.calculation.EnergyEntry.m_def,
-        description='''
+        sub_section=runschema.calculation.EnergyEntry.m_def,
+        description="""
         Contains other custom energy contributions that are not already defined.
-        ''',
-        repeats=True)
+        """,
+        repeats=True,
+    )
 
 
 class Author(MSection):
-    '''
+    """
     Contains the specifications of the program.
-    '''
+    """
 
     m_def = Section(validate=False)
 
     name = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         Specifies the name of the author who generated the h5md file.
-        ''',)
+        """,
+    )
 
     email = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         Author's email.
-        ''',)
+        """,
+    )
 
 
-class Run(simulation.run.Run):
-
-    m_def = Section(validate=False, extends_base_section=True,)
+class Run(runschema.run.Run):
+    m_def = Section(
+        validate=False,
+        extends_base_section=True,
+    )
 
     # TODO Not sure how we are dealing with versioning with H5MD-NOMAD
     x_h5md_version = Quantity(
         type=np.dtype(np.int32),
         shape=[2],
-        description='''
+        description="""
         Specifies the version of the h5md schema being followed.
-        ''',)
+        """,
+    )
 
     x_h5md_author = SubSection(sub_section=Author.m_def)
 
-    x_h5md_creator = SubSection(sub_section=simulation.run.Program.m_def)
+    x_h5md_creator = SubSection(sub_section=runschema.run.Program.m_def)

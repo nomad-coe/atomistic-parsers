@@ -22,12 +22,16 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, JSON
 )
-from nomad.datamodel.metainfo import simulation
+import runschema.run  # pylint: disable=unused-import
+import runschema.calculation  # pylint: disable=unused-import
+import runschema.method  # pylint: disable=unused-import
+import runschema.system  # pylint: disable=unused-import
+
 
 m_package = Package()
 
 
-class Method(simulation.calculation.Method):
+class Method(runschema.calculation.Method):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -38,71 +42,71 @@ class Method(simulation.calculation.Method):
         ''')
 
 
-class Energy(simulation.calculation.Energy):
+class Energy(runschema.calculation.Energy):
 
     m_def = Section(validate=False, extends_base_section=True)
 
     x_bopfox_bond = SubSection(
-        sub_section=simulation.calculation.EnergyEntry.m_def,
+        sub_section=runschema.calculation.EnergyEntry.m_def,
         description='''
         Contains the value and information regarding the bond energy.
         ''')
 
     x_bopfox_prom = SubSection(
-        sub_section=simulation.calculation.EnergyEntry.m_def,
+        sub_section=runschema.calculation.EnergyEntry.m_def,
         description='''
         Contains the value and information regarding the promotion energy.
         ''')
 
     x_bopfox_rep1 = SubSection(
-        sub_section=simulation.calculation.EnergyEntry.m_def,
+        sub_section=runschema.calculation.EnergyEntry.m_def,
         description='''
         Contains the value and information regarding the first repulsion energy.
         ''')
 
     x_bopfox_rep2 = SubSection(
-        sub_section=simulation.calculation.EnergyEntry.m_def,
+        sub_section=runschema.calculation.EnergyEntry.m_def,
         description='''
         Contains the value and information regarding the second repulsion energy.
         ''')
 
     x_bopfox_rep3 = SubSection(
-        sub_section=simulation.calculation.EnergyEntry.m_def,
+        sub_section=runschema.calculation.EnergyEntry.m_def,
         description='''
         Contains the value and information regarding the third repulsion energy.
         ''')
 
 
-class Forces(simulation.calculation.Forces):
+class Forces(runschema.calculation.Forces):
 
     m_def = Section(validate=False, extends_base_section=True)
 
     x_bopfox_analytic = SubSection(
-        sub_section=simulation.calculation.ForcesEntry.m_def,
+        sub_section=runschema.calculation.ForcesEntry.m_def,
         description='''
         Contains the value and information regarding the analytic forces.
         ''')
 
     x_bopfox_rep1 = SubSection(
-        sub_section=simulation.calculation.ForcesEntry.m_def,
+        sub_section=runschema.calculation.ForcesEntry.m_def,
         description='''
         Contains the value and information regarding the first analytic forces.
         ''')
 
     x_bopfox_rep2 = SubSection(
-        sub_section=simulation.calculation.ForcesEntry.m_def,
+        sub_section=runschema.calculation.ForcesEntry.m_def,
         description='''
         Contains the value and information regarding the second analytic forces.
         ''')
 
     x_bopfox_rep3 = SubSection(
-        sub_section=simulation.calculation.ForcesEntry.m_def,
+        sub_section=runschema.calculation.ForcesEntry.m_def,
         description='''
         Contains the value and information regarding the third analytic forces.
         ''')
 
 
-class x_bopfox_onsite_levels_value(simulation.calculation.AtomicValues):
+class x_bopfox_onsite_levels_value(runschema.calculation.AtomicValues):
 
     m_def = Section(validate=False)
 
@@ -114,21 +118,21 @@ class x_bopfox_onsite_levels_value(simulation.calculation.AtomicValues):
         ''')
 
 
-class x_bopfox_onsite_levels(simulation.calculation.Atomic):
+class x_bopfox_onsite_levels(runschema.calculation.Atomic):
 
     m_def = Section(validate=False)
 
     orbital_projected = SubSection(sub_section=x_bopfox_onsite_levels_value.m_def, repeats=True)
 
 
-class Calculation(simulation.calculation.Calculation):
+class Calculation(runschema.calculation.Calculation):
 
     m_def = Section(validate=False, extends_base_section=True)
 
     x_bopfox_onsite_levels = SubSection(sub_section=x_bopfox_onsite_levels.m_def, repeats=True)
 
 
-class Interaction(simulation.method.Interaction):
+class Interaction(runschema.method.Interaction):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -161,7 +165,7 @@ class Interaction(simulation.method.Interaction):
         ''')
 
 
-class Model(simulation.method.Model):
+class Model(runschema.method.Model):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -172,7 +176,7 @@ class Model(simulation.method.Model):
         ''')
 
 
-class xTB(simulation.method.xTB):
+class xTB(runschema.method.xTB):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -183,7 +187,7 @@ class xTB(simulation.method.xTB):
         ''')
 
 
-class AtomParameters(simulation.method.AtomParameters):
+class AtomParameters(runschema.method.AtomParameters):
 
     m_def = Section(validate=False, extends_base_section=True)
 

@@ -25,10 +25,10 @@ from datetime import datetime
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import Quantity, TextParser
-from nomad.datamodel.metainfo.simulation.run import Run, Program, TimeRun
-from nomad.datamodel.metainfo.simulation.method import Method, TB, xTB, Interaction
-from nomad.datamodel.metainfo.simulation.system import System, Atoms
-from nomad.datamodel.metainfo.simulation.calculation import (
+from runschema.run import Run, Program, TimeRun
+from runschema.method import Method, TB, xTB, Interaction
+from runschema.system import System, Atoms
+from runschema.calculation import (
     Calculation, ScfIteration, Energy, EnergyEntry, BandEnergies, Multipoles, MultipolesEntry
 )
 from simulationworkflowschema import (
@@ -537,8 +537,10 @@ class XTBParser(MDParser):
         if atoms is None:
             return
 
-        sec_system = self.archive.run[0].m_create(System)
-        sec_atoms = sec_system.m_create(Atoms)
+        sec_system = System()
+        self.archive.run[0].system.append(sec_system)
+        sec_atoms = Atoms()
+        sec_system.atoms = sec_atoms
         sec_atoms.labels = atoms.get_chemical_symbols()
         sec_atoms.positions = atoms.get_positions() * ureg.angstrom
         lattice_vectors = np.array(atoms.get_cell())
@@ -549,15 +551,18 @@ class XTBParser(MDParser):
         return sec_system
 
     def parse_calculation(self, source):
-        sec_calc = self.archive.run[0].m_create(Calculation)
+        sec_calc = Calculation()
+        self.archive.run[0].calculation.append(sec_calc)
         # total energy
-        sec_energy = sec_calc.m_create(Energy)
+        sec_energy = Energy()
+        sec_calc.energy = sec_energy
         sec_energy.total = EnergyEntry(value=source.energy_total)
         sec_energy.change = source.energy_change
 
         # scf
         for step in source.get('scf_iteration', {}).get('step', []):
-            sec_scf = sec_calc.m_create(ScfIteration)
+            sec_scf = ScfIteration()
+            sec_calc.scf_iteration.append(sec_scf)
             sec_scf.energy = Energy(
                 total=EnergyEntry(value=step[1] * ureg.hartree),
                 change=step[2] * ureg.hartree
@@ -571,7 +576,8 @@ class XTBParser(MDParser):
 
         # eigenvalues
         if source.eigenvalues is not None:
-            sec_eigs = sec_calc.m_create(BandEnergies)
+            sec_eigs = BandEnergies()
+            sec_calc.eigenvalues.append(sec_eigs)
             sec_eigs.occupations = np.reshape(source.eigenvalues[0], (1, 1, len(source.eigenvalues[0])))
             sec_eigs.energies = np.reshape(source.eigenvalues[1], (1, 1, len(source.eigenvalues[1])))
             sec_eigs.kpoints = np.zeros((1, 3))
@@ -583,12 +589,15 @@ class XTBParser(MDParser):
         if model is None:
             return
 
-        sec_method = self.archive.run[-1].m_create(Method)
+        sec_method = Method()
+        self.archive.run[-1].method.append(sec_method)
         parameters = {p[0]: p[1] for p in self.out_parser.get(section, {}).get('setup', {}).get('parameter', [])}
-        sec_tb = sec_method.m_create(TB)
+        sec_tb = TB()
+        sec_method.tb = sec_tb
         sec_tb.name = 'xTB'
         sec_tb.x_xtb_setup = parameters
-        sec_xtb = sec_tb.m_create(xTB)
+        sec_xtb = xTB()
+        sec_tb.xtb = sec_xtb
         sec_xtb.name = section
 
         if model.get('reference') is not None:
@@ -597,13 +606,17 @@ class XTBParser(MDParser):
         for contribution in model.get('contribution', []):
             name = contribution.name.lower()
             if name == 'hamiltonian':
-                sec_interaction = sec_xtb.m_create(Interaction, xTB.hamiltonian)
+                sec_interaction = Interaction()
+                sec_xtb.hamiltonian.append(sec_interaction)
             elif name == 'coulomb':
-                sec_interaction = sec_xtb.m_create(Interaction, xTB.coulomb)
+                sec_interaction = Interaction()
+                sec_xtb.coulomb.append(sec_interaction)
             elif name == 'repulsion':
-                sec_interaction = sec_xtb.m_create(Interaction, xTB.repulsion)
+                sec_interaction = Interaction()
+                sec_xtb.repulsion.append(sec_interaction)
             else:
-                sec_interaction = sec_xtb.m_create(Interaction, xTB.contributions)
+                sec_interaction = Interaction()
+                sec_xtb.contributions.append(sec_interaction)
                 sec_interaction.type = name
             sec_interaction.parameters = {
                 p[0]: p[1].tolist() if isinstance(p[1], np.ndarray) else p[1] for p in contribution.parameters}
@@ -727,7 +740,8 @@ class XTBParser(MDParser):
         self._run_index = 0
 
         # run parameters
-        sec_run = self.archive.m_create(Run)
+        sec_run = Run()
+        self.archive.run.append(sec_run)
         sec_run.program = Program(name='xTB', version=self.out_parser.get('program_version'))
         sec_run.x_xtb_calculation_setup = {
             p[0]: p[1] for p in self.out_parser.get('calculation_setup', {}).get('parameter', [])
@@ -750,8 +764,13 @@ class XTBParser(MDParser):
         # output properties
         properties = self.out_parser.get('property')
         if properties.dipole is not None:
-            sec_calc = sec_run.calculation[-1] if sec_run.calculation else sec_run.m_create(Calculation)
-            sec_multipoles = sec_calc.m_create(Multipoles)
+            if sec_run.calculation:
+                sec_calc = sec_run.calculation[-1]
+            else:
+                sec_calc = Calculation()
+                sec_run.calculation.append(sec_calc)
+            sec_multipoles = Multipoles()
+            sec_calc.multipoles.append(sec_multipoles)
             sec_multipoles.dipole = MultipolesEntry(
                 total=properties.dipole.full.to('C * m').magnitude,
                 x_xtb_q_only=properties.dipole.q.to('C * m').magnitude

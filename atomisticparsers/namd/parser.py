@@ -25,8 +25,8 @@ from typing import Dict, Any
 from nomad.units import ureg
 from nomad.datamodel import EntryArchive
 from nomad.parsing.file_parser import TextParser, Quantity
-from nomad.datamodel.metainfo.simulation.run import Run, Program
-from nomad.datamodel.metainfo.simulation.method import Method
+from runschema.run import Run, Program
+from runschema.method import Method
 from simulationworkflowschema import MolecularDynamics
 from atomisticparsers.utils import MDAnalysisParser, MDParser
 from .metainfo import m_env  # pylint: disable=unused-import
@@ -147,7 +147,8 @@ class NAMDParser(MDParser):
         self.logger = logger if logger is not None else logging
 
         self.init_parser()
-        sec_run = archive.m_create(Run)
+        sec_run = Run()
+        archive.run.append(sec_run)
         version_arch = self.mainfile_parser.get('version_arch', [None, None])
         sec_run.program = Program(name='namd', version=version_arch[0])
         sec_run.program.x_namd_build_osarch = version_arch[1]
@@ -155,7 +156,8 @@ class NAMDParser(MDParser):
         # read the config file and simulation parameters
         self.config_parser.mainfile = os.path.join(
             self.maindir, os.path.basename(self.mainfile_parser.get('config_file', '')))
-        sec_method = sec_run.m_create(Method)
+        sec_method = Method()
+        sec_run.method.append(sec_method)
         sec_method.x_namd_input_parameters = self.config_parser.get_parameters()
         sec_method.x_namd_simulation_parameters = self.mainfile_parser.get_parameters()
 

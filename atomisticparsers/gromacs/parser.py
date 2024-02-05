@@ -32,11 +32,11 @@ except Exception:
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
-from nomad.datamodel.metainfo.simulation.run import Run, Program, TimeRun
-from nomad.datamodel.metainfo.simulation.method import (
+from runschema.run import Run, Program, TimeRun
+from runschema.method import (
     NeighborSearching, ForceCalculations, Method, ForceField, Model, AtomParameters
 )
-from nomad.datamodel.metainfo.simulation.system import (
+from runschema.system import (
     AtomsGroup
 )
 from simulationworkflowschema import (
@@ -733,7 +733,8 @@ class GromacsParser(MDParser):
         atoms_resnames = np.array(atoms_info['resnames'])
         for segment in self.traj_parser.universe.segments:
             # we only create atomsgroup in the initial system
-            sec_segment = sec_run.system[0].m_create(AtomsGroup)
+            sec_segment = AtomsGroup()
+            sec_run.system[0].atoms_group.append(sec_segment)
             sec_segment.type = 'molecule_group'
             sec_segment.index = int(segment.segindex)
             sec_segment.atom_indices = segment.atoms.ix
@@ -752,7 +753,8 @@ class GromacsParser(MDParser):
             sec_segment.label = f'group_{moltypes[0]}'
 
             for i_molecule, molecule in enumerate(np.unique(atoms_molnums[sec_segment.atom_indices])):
-                sec_molecule = sec_segment.m_create(AtomsGroup)
+                sec_molecule = AtomsGroup()
+                sec_segment.atoms_group.append(sec_molecule)
                 sec_molecule.index = i_molecule
                 sec_molecule.atom_indices = np.where(atoms_molnums == molecule)[0]
                 sec_molecule.n_atoms = len(sec_molecule.atom_indices)
@@ -771,7 +773,8 @@ class GromacsParser(MDParser):
                     mol_resnames = atoms_resnames[sec_molecule.atom_indices]
                     restypes = np.unique(mol_resnames)
                     for i_restype, restype in enumerate(restypes):
-                        sec_monomer_group = sec_molecule.m_create(AtomsGroup)
+                        sec_monomer_group = AtomsGroup()
+                        sec_molecule.atoms_group.append(sec_monomer_group)
                         restype_indices = np.where(atoms_resnames == restype)[0]
                         sec_monomer_group.label = f'group_{restype}'
                         sec_monomer_group.type = 'monomer_group'
@@ -784,7 +787,8 @@ class GromacsParser(MDParser):
                         restype_count = restype_resids.shape[0]
                         sec_monomer_group.composition_formula = f'{restype}({restype_count})'
                         for i_res, res_id in enumerate(restype_resids):
-                            sec_residue = sec_monomer_group.m_create(AtomsGroup)
+                            sec_residue = AtomsGroup()
+                            sec_monomer_group.atoms_group.append(sec_residue)
                             sec_residue.index = i_res
                             atom_indices = np.where(atoms_resids == res_id)[0]
                             sec_residue.atom_indices = np.intersect1d(atom_indices, sec_monomer_group.atom_indices)
@@ -807,9 +811,12 @@ class GromacsParser(MDParser):
                     sec_molecule.composition_formula = get_composition(names_firstatom)
 
     def parse_method(self):
-        sec_method = self.archive.run[-1].m_create(Method)
-        sec_force_field = sec_method.m_create(ForceField)
-        sec_model = sec_force_field.m_create(Model)
+        sec_method = Method()
+        self.archive.run[-1].method.append(sec_method)
+        sec_force_field = ForceField()
+        sec_method.force_field = sec_force_field
+        sec_model = Model()
+        sec_force_field.model.append(sec_model)
         try:
             n_atoms = self.traj_parser.get('n_atoms', 0)
         except Exception:
@@ -819,7 +826,8 @@ class GromacsParser(MDParser):
 
         atoms_info = self.traj_parser.get('atoms_info', {})
         for n in range(n_atoms):
-            sec_atom = sec_method.m_create(AtomParameters)
+            sec_atom = AtomParameters()
+            sec_method.atom_parameters.append(sec_atom)
             sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
             sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
             sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
@@ -836,8 +844,10 @@ class GromacsParser(MDParser):
         self.parse_interactions(interactions, sec_model)
 
         input_parameters = self.log_parser.get('input_parameters', {})
-        sec_force_calculations = sec_force_field.m_create(ForceCalculations)
-        sec_neighbor_searching = sec_force_calculations.m_create(NeighborSearching)
+        sec_force_calculations = ForceCalculations()
+        sec_force_field.force_calculations = sec_force_calculations
+        sec_neighbor_searching = NeighborSearching()
+        sec_force_calculations.neighbor_searching = sec_neighbor_searching
 
         nstlist = input_parameters.get('nstlist', None)
         sec_neighbor_searching.neighbor_update_frequency = int(nstlist) if nstlist else None
@@ -973,7 +983,8 @@ class GromacsParser(MDParser):
 
     def parse_input(self):
         sec_run = self.archive.run[-1]
-        sec_input_output_files = sec_run.m_create(x_gromacs_section_input_output_files)
+        sec_input_output_files = x_gromacs_section_input_output_files()
+        sec_run.x_gromacs_section_input_output_files = sec_input_output_files
 
         topology_file = os.path.basename(self.traj_parser.mainfile)
         if topology_file.endswith('tpr'):
@@ -987,7 +998,8 @@ class GromacsParser(MDParser):
         edr_file = os.path.basename(self.energy_parser.mainfile)
         sec_input_output_files.x_gromacs_inout_file_eneredr = edr_file
 
-        sec_control_parameters = sec_run.m_create(x_gromacs_section_control_parameters)
+        sec_control_parameters = x_gromacs_section_control_parameters()
+        sec_run.x_gromacs_section_control_parameters = sec_control_parameters
         input_parameters = self.log_parser.get('input_parameters', {})
         input_parameters.update(self.log_parser.get('header', {}))
         for key, val in input_parameters.items():
@@ -1016,14 +1028,16 @@ class GromacsParser(MDParser):
 
         self.init_parser()
 
-        sec_run = self.archive.m_create(Run)
+        sec_run = Run()
+        self.archive.run.append(sec_run)
 
         header = self.log_parser.get('header', {})
 
         sec_run.program = Program(
             name='GROMACS', version=str(header.get('version', 'unknown')).lstrip('VERSION '))
 
-        sec_time_run = sec_run.m_create(TimeRun)
+        sec_time_run = TimeRun()
+        sec_run.time_run = sec_time_run
         for key in ['start', 'end']:
             time = self.log_parser.get('time_%s' % key)
             if time is None:

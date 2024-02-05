@@ -22,7 +22,10 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference
 )
-from nomad.datamodel.metainfo import simulation
+import runschema.run  # pylint: disable=unused-import
+import runschema.calculation  # pylint: disable=unused-import
+import runschema.method  # pylint: disable=unused-import
+import runschema.system  # pylint: disable=unused-import
 import simulationworkflowschema
 
 
@@ -85,7 +88,7 @@ class x_amber_section_single_configuration_calculation(MSection):
     m_def = Section(validate=False)
 
 
-class System(simulation.system.System):
+class System(runschema.system.System):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -265,7 +268,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
         ''')
 
 
-class AtomParameters(simulation.method.AtomParameters):
+class AtomParameters(runschema.method.AtomParameters):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -284,12 +287,12 @@ class AtomParameters(simulation.method.AtomParameters):
         ''')
 
 
-class Interaction(simulation.method.Interaction):
+class Interaction(runschema.method.Interaction):
 
     m_def = Section(validate=False, extends_base_section=True)
 
     x_amber_interaction_atom_to_atom_type_ref = Quantity(
-        type=simulation.method.AtomParameters,
+        type=runschema.method.AtomParameters,
         shape=['number_of_atoms_per_interaction'],
         description='''
         Reference to the atom type of each interaction atoms.
@@ -303,7 +306,7 @@ class Interaction(simulation.method.Interaction):
         ''')
 
     x_amber_pair_interaction_atom_type_ref = Quantity(
-        type=simulation.method.AtomParameters,
+        type=runschema.method.AtomParameters,
         shape=['x_amber_number_of_defined_pair_interactions', 'number_of_atoms_per_interaction'],
         description='''
         Reference to the atom type for pair interactions.
@@ -317,7 +320,7 @@ class Interaction(simulation.method.Interaction):
         ''')
 
     x_amber_molecule_interaction_atom_to_atom_type_ref = Quantity(
-        type=simulation.method.AtomParameters,
+        type=runschema.method.AtomParameters,
         shape=['number_of_atoms_per_interaction'],
         description='''
         Reference to the atom type of each molecule interaction atoms.
@@ -338,14 +341,14 @@ class Interaction(simulation.method.Interaction):
         ''')
 
     x_amber_pair_molecule_interaction_to_atom_type_ref = Quantity(
-        type=simulation.method.AtomParameters,
+        type=runschema.method.AtomParameters,
         shape=['x_amber_number_of_defined_pair_interactions', 'number_of_atoms_per_interaction'],
         description='''
         Reference to the atom type for pair interactions within a molecule.
         ''')
 
 
-class Run(simulation.run.Run):
+class Run(runschema.run.Run):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -431,7 +434,7 @@ class Run(simulation.run.Run):
         repeats=False)
 
 
-class Calculation(simulation.calculation.Calculation):
+class Calculation(runschema.calculation.Calculation):
 
     m_def = Section(validate=False, extends_base_section=True)
 

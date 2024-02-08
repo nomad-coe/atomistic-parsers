@@ -52,6 +52,7 @@ from simulationworkflowschema.molecular_dynamics import (
 from atomisticparsers.utils import MDParser, MOL
 from .metainfo.h5md import ParamEntry, CalcEntry, Author
 from nomad.units import ureg
+from ase.symbols import symbols2numbers
 
 
 class HDF5Parser(FileParser):
@@ -583,11 +584,9 @@ class H5MDParser(MDParser):
             atom_labels = atoms_dict.get("labels")
             if atom_labels is not None:
                 try:
-                    from ase import Atoms as ase_atoms
-
-                    _ = ase_atoms(symbols=atom_labels)
-                except Exception:  # TODO this check should be moved to the system normalizer in the new schema
-                    atoms_dict["labels"] = ["X" for _ in atom_labels]
+                    symbols2numbers(atom_labels)
+                except KeyError:  # TODO this check should be moved to the system normalizer in the new schema
+                    atoms_dict["labels"] = ["X"] * len(atom_labels)
 
             topology = None
             if i_step == 0:  # TODO extend to time-dependent bond lists and topologies

@@ -30,7 +30,7 @@ try:
 except Exception:
     logging.warning("Required module MDAnalysis not found.")
     MDAnalysis = False
-
+from ase.symbols import symbols2numbers
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from runschema.run import Run, Program, TimeRun
@@ -837,12 +837,11 @@ class GromacsParser(MDParser):
                 )
 
             atom_labels = self.traj_parser.get_atom_labels(n)
-            try:
-                from ase import Atoms as ase_atoms
-
-                _ = ase_atoms(symbols=atom_labels)
-            except Exception:  # TODO this check should be moved to the system normalizer in the new schema
-                atom_labels = ["X" for _ in atom_labels]
+            if atom_labels is not None:
+                try:
+                    symbols2numbers(atom_labels)
+                except KeyError:
+                    atom_labels = ["X"] * len(atom_labels)
 
             self.parse_trajectory_step(
                 {

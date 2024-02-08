@@ -580,6 +580,15 @@ class H5MDParser(MDParser):
             time = system_info[step].pop("time")
             atoms_dict = system_info[step]
 
+            atom_labels = atoms_dict.get("labels")
+            if atom_labels is not None:
+                try:
+                    from ase import Atoms as ase_atoms
+
+                    _ = ase_atoms(symbols=atom_labels)
+                except Exception:  # TODO this check should be moved to the system normalizer in the new schema
+                    atoms_dict["labels"] = ["X" for _ in atom_labels]
+
             topology = None
             if i_step == 0:  # TODO extend to time-dependent bond lists and topologies
                 atoms_dict["bond_list"] = self._data_parser.get("connectivity.bonds")

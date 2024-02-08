@@ -23,33 +23,42 @@ import re
 import datetime
 
 import panedr
+
 try:
     import MDAnalysis
     from MDAnalysis.topology.tpr import utils as tpr_utils, setting as tpr_setting
 except Exception:
-    logging.warning('Required module MDAnalysis not found.')
+    logging.warning("Required module MDAnalysis not found.")
     MDAnalysis = False
-
+from ase.symbols import symbols2numbers
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from runschema.run import Run, Program, TimeRun
 from runschema.method import (
-    NeighborSearching, ForceCalculations, Method, ForceField, Model, AtomParameters
+    NeighborSearching,
+    ForceCalculations,
+    Method,
+    ForceField,
+    Model,
+    AtomParameters,
 )
-from runschema.system import (
-    AtomsGroup
-)
+from runschema.system import AtomsGroup
 from simulationworkflowschema import (
-    GeometryOptimization, GeometryOptimizationMethod, GeometryOptimizationResults
+    GeometryOptimization,
+    GeometryOptimizationMethod,
+    GeometryOptimizationResults,
 )
-from .metainfo.gromacs import x_gromacs_section_control_parameters, x_gromacs_section_input_output_files
+from .metainfo.gromacs import (
+    x_gromacs_section_control_parameters,
+    x_gromacs_section_input_output_files,
+)
 from atomisticparsers.utils import MDAnalysisParser, MDParser
 from nomad.atomutils import get_bond_list_from_model_contributions
 
-re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
-re_n = r'[\n\r]'
+re_float = r"[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?"
+re_n = r"[\n\r]"
 
-MOL = 6.022140857e+23
+MOL = 6.022140857e23
 
 
 class GromacsLogParser(TextParser):
@@ -58,14 +67,14 @@ class GromacsLogParser(TextParser):
 
     def init_quantities(self):
         def str_to_header(val_in):
-            val = [v.split(':', 1) for v in val_in.strip().split('\n')]
+            val = [v.split(":", 1) for v in val_in.strip().split("\n")]
             return {v[0].strip(): v[1].strip() for v in val if len(v) == 2}
 
         def str_to_input_parameters(val_in):
-            re_array = re.compile(r'\s*([\w\-]+)\[[\d ]+\]\s*=\s*\{*(.+)')
-            re_scalar = re.compile(r'\s*([\w\-]+)\s*[=:]\s*(.+)')
+            re_array = re.compile(r"\s*([\w\-]+)\[[\d ]+\]\s*=\s*\{*(.+)")
+            re_scalar = re.compile(r"\s*([\w\-]+)\s*[=:]\s*(.+)")
             parameters = dict()
-            val = val_in.strip().split('\n')
+            val = val_in.strip().split("\n")
             for val_n in val:
                 val_scalar = re_scalar.match(val_n)
                 if val_scalar:
@@ -74,13 +83,25 @@ class GromacsLogParser(TextParser):
                 val_array = re_array.match(val_n)
                 if val_array:
                     parameters.setdefault(val_array.group(1), [])
-                    value = [float(v) for v in val_array.group(2).rstrip('}').split(',')]
-                    parameters[val_array.group(1)].append(value[0] if len(value) == 1 else value)
+                    value = [
+                        float(v) for v in val_array.group(2).rstrip("}").split(",")
+                    ]
+                    parameters[val_array.group(1)].append(
+                        value[0] if len(value) == 1 else value
+                    )
             return parameters
 
         def str_to_energies(val_in):
-            thermo_common = [r'Total Energy', r'Potential', r'Kinetic En.', r'Temperature',
-                             r'Pressure \(bar\)', r'LJ \(SR\)', r'Coulomb \(SR\)', r'Proper Dih.']
+            thermo_common = [
+                r"Total Energy",
+                r"Potential",
+                r"Kinetic En.",
+                r"Temperature",
+                r"Pressure \(bar\)",
+                r"LJ \(SR\)",
+                r"Coulomb \(SR\)",
+                r"Proper Dih.",
+            ]
             n_chars_val = re.search(rf'( +{"| +".join(thermo_common)})', val_in)
             n_chars_val = len(n_chars_val.group(1)) if n_chars_val is not None else None
             if n_chars_val is None:
@@ -90,116 +111,141 @@ class GromacsLogParser(TextParser):
             for n in range(0, len(rows), 2):
                 pointer = 0
                 while pointer < len(rows[n]):
-                    key = rows[n][pointer: pointer + n_chars_val].strip()
-                    value = rows[n + 1][pointer: pointer + n_chars_val]
+                    key = rows[n][pointer : pointer + n_chars_val].strip()
+                    value = rows[n + 1][pointer : pointer + n_chars_val]
                     energies[key] = float(value)
                     pointer += n_chars_val
             return energies
 
         def str_to_step_info(val_in):
-            val = val_in.strip().split('\n')
+            val = val_in.strip().split("\n")
             keys = val[0].split()
             values = [float(v) for v in val[1].split()]
             return {key: values[n] for n, key in enumerate(keys)}
 
         thermo_quantities = [
             Quantity(
-                'energies',
-                r'Energies \(kJ/mol\).*\n(\s*[\s\S]+?)(?:\n.*step.* load imb.*|\n\n)',
-                str_operation=str_to_energies, convert=False),
+                "energies",
+                r"Energies \(kJ/mol\).*\n(\s*[\s\S]+?)(?:\n.*step.* load imb.*|\n\n)",
+                str_operation=str_to_energies,
+                convert=False,
+            ),
             Quantity(
-                'step_info',
-                rf'{re_n}\s*(Step.+\n[\d\.\- ]+)',
-                str_operation=str_to_step_info, convert=False)]
+                "step_info",
+                rf"{re_n}\s*(Step.+\n[\d\.\- ]+)",
+                str_operation=str_to_step_info,
+                convert=False,
+            ),
+        ]
 
         self._quantities = [
-            Quantity('time_start', r'Log file opened on (.+)', flatten=False),
+            Quantity("time_start", r"Log file opened on (.+)", flatten=False),
             Quantity(
-                'host_info',
-                r'Host:\s*(\S+)\s*pid:\s*(\d+)\s*rank ID:\s*(\d+)\s*number of ranks:\s*(\d*)'),
-            Quantity('module_version', r'GROMACS:\s*(.+?),\s*VERSION\s*(\S+)', flatten=False),
-            Quantity('execution_path', r'Executable:\s*(.+)'),
-            Quantity('working_path', r'Data prefix:\s*(.+)'),
+                "host_info",
+                r"Host:\s*(\S+)\s*pid:\s*(\d+)\s*rank ID:\s*(\d+)\s*number of ranks:\s*(\d*)",
+            ),
+            Quantity(
+                "module_version", r"GROMACS:\s*(.+?),\s*VERSION\s*(\S+)", flatten=False
+            ),
+            Quantity("execution_path", r"Executable:\s*(.+)"),
+            Quantity("working_path", r"Data prefix:\s*(.+)"),
             # TODO cannot understand treatment of the command line in the old parser
             Quantity(
-                'header',
-                r'(?:GROMACS|Gromacs) (20[\s\S]+?)\n\n', str_operation=str_to_header),
+                "header",
+                r"(?:GROMACS|Gromacs) (20[\s\S]+?)\n\n",
+                str_operation=str_to_header,
+            ),
             Quantity(
-                'header',
-                r'(?:GROMACS|Gromacs) (version:[\s\S]+?)\n\n', str_operation=str_to_header),
+                "header",
+                r"(?:GROMACS|Gromacs) (version:[\s\S]+?)\n\n",
+                str_operation=str_to_header,
+            ),
             Quantity(
-                'input_parameters',
-                r'Input Parameters:\s*([\s\S]+?)\n\n', str_operation=str_to_input_parameters),
+                "input_parameters",
+                r"Input Parameters:\s*([\s\S]+?)\n\n",
+                str_operation=str_to_input_parameters,
+            ),
+            Quantity("maximum_force", r"Norm of force\s*([\s\S]+?)\n\n", flatten=False),
             Quantity(
-                'maximum_force',
-                r'Norm of force\s*([\s\S]+?)\n\n', flatten=False),
+                "step",
+                r"(Step\s*Time[\s\S]+?Energies[\s\S]+?\n\n)",
+                repeats=True,
+                sub_parser=TextParser(quantities=thermo_quantities),
+            ),
             Quantity(
-                'step',
-                r'(Step\s*Time[\s\S]+?Energies[\s\S]+?\n\n)',
-                repeats=True, sub_parser=TextParser(quantities=thermo_quantities)),
-            Quantity(
-                'averages',
-                r'A V E R A G E S  ====>([\s\S]+?\n\n\n)',
-                sub_parser=TextParser(quantities=thermo_quantities)),
-            Quantity('time_end', r'Finished \S+ on rank \d+ (.+)', flatten=False)]
+                "averages",
+                r"A V E R A G E S  ====>([\s\S]+?\n\n\n)",
+                sub_parser=TextParser(quantities=thermo_quantities),
+            ),
+            Quantity("time_end", r"Finished \S+ on rank \d+ (.+)", flatten=False),
+        ]
 
     def get_pbc(self):
-        pbc = self.get('input_parameters', {}).get('pbc', 'xyz')
-        return ['x' in pbc, 'y' in pbc, 'z' in pbc]
+        pbc = self.get("input_parameters", {}).get("pbc", "xyz")
+        return ["x" in pbc, "y" in pbc, "z" in pbc]
 
     def get_sampling_settings(self):
-        input_parameters = self.get('input_parameters', {})
-        integrator = input_parameters.get('integrator', 'md').lower()
-        if integrator in ['l-bfgs', 'cg', 'steep']:
-            sampling_method = 'geometry_optimization'
-        elif integrator in ['bd']:
-            sampling_method = 'langevin_dynamics'
+        input_parameters = self.get("input_parameters", {})
+        integrator = input_parameters.get("integrator", "md").lower()
+        if integrator in ["l-bfgs", "cg", "steep"]:
+            sampling_method = "geometry_optimization"
+        elif integrator in ["bd"]:
+            sampling_method = "langevin_dynamics"
         else:
-            sampling_method = 'molecular_dynamics'
+            sampling_method = "molecular_dynamics"
 
-        ensemble_type = 'NVE' if sampling_method == 'molecular_dynamics' else None
-        tcoupl = input_parameters.get('tcoupl', 'no').lower()
-        if tcoupl != 'no':
-            ensemble_type = 'NVT'
-            pcoupl = input_parameters.get('pcoupl', 'no').lower()
-            if pcoupl != 'no':
-                ensemble_type = 'NPT'
+        ensemble_type = "NVE" if sampling_method == "molecular_dynamics" else None
+        tcoupl = input_parameters.get("tcoupl", "no").lower()
+        if tcoupl != "no":
+            ensemble_type = "NVT"
+            pcoupl = input_parameters.get("pcoupl", "no").lower()
+            if pcoupl != "no":
+                ensemble_type = "NPT"
 
         return dict(
-            sampling_method=sampling_method, integrator_type=integrator,
-            ensemble_type=ensemble_type)
+            sampling_method=sampling_method,
+            integrator_type=integrator,
+            ensemble_type=ensemble_type,
+        )
 
     def get_tpstat_settings(self):
-        input_parameters = self.get('input_parameters', {})
-        target_t = input_parameters.get('ref-t', 0) * ureg.kelvin
+        input_parameters = self.get("input_parameters", {})
+        target_t = input_parameters.get("ref-t", 0) * ureg.kelvin
 
         thermostat_type = None
-        tcoupl = input_parameters.get('tcoupl', 'no').lower()
-        if tcoupl != 'no':
-            thermostat_type = 'Velocity Rescaling' if tcoupl == 'v-rescale' else tcoupl.title()
+        tcoupl = input_parameters.get("tcoupl", "no").lower()
+        if tcoupl != "no":
+            thermostat_type = (
+                "Velocity Rescaling" if tcoupl == "v-rescale" else tcoupl.title()
+            )
 
-        thermostat_tau = input_parameters.get('tau-t', 0) * ureg.ps
+        thermostat_tau = input_parameters.get("tau-t", 0) * ureg.ps
 
         # TODO infer langevin_gamma [s] from bd_fric
         # bd_fric = self.get('bd-fric', 0, unit='amu/ps')
         langevin_gamma = None
 
-        target_p = input_parameters.get('ref-p', 0) * ureg.bar
+        target_p = input_parameters.get("ref-p", 0) * ureg.bar
         # if P is array e.g. for non-isotropic pressures, get average since metainfo is float
-        if hasattr(target_p, 'shape'):
+        if hasattr(target_p, "shape"):
             target_p = np.average(target_p)
 
         barostat_type = None
-        pcoupl = input_parameters.get('pcoupl', 'no').lower()
-        if pcoupl != 'no':
+        pcoupl = input_parameters.get("pcoupl", "no").lower()
+        if pcoupl != "no":
             barostat_type = pcoupl.title()
 
-        barostat_tau = input_parameters.get('tau-p', 0) * ureg.ps
+        barostat_tau = input_parameters.get("tau-p", 0) * ureg.ps
 
         return dict(
-            target_t=target_t, thermostat_type=thermostat_type, thermostat_tau=thermostat_tau,
-            target_p=target_p, barostat_type=barostat_type, barostat_tau=barostat_tau,
-            langevin_gamma=langevin_gamma)
+            target_t=target_t,
+            thermostat_type=thermostat_type,
+            thermostat_tau=thermostat_tau,
+            target_p=target_p,
+            barostat_type=barostat_type,
+            barostat_tau=barostat_tau,
+            langevin_gamma=langevin_gamma,
+        )
 
 
 class GromacsEDRParser(FileParser):
@@ -212,7 +258,7 @@ class GromacsEDRParser(FileParser):
             try:
                 self._file_handler = panedr.edr_to_df(self.mainfile)
             except Exception:
-                self.logger.error('Error reading edr file.')
+                self.logger.error("Error reading edr file.")
 
         return self._file_handler
 
@@ -248,9 +294,9 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
         try:
             interactions.extend(self.get_force_field_parameters())
         except Exception:
-            self.logger.error('Error parsing force field parameters.')
+            self.logger.error("Error parsing force field parameters.")
 
-        self._results['interactions'] = interactions
+        self._results["interactions"] = interactions
 
         return interactions
 
@@ -258,10 +304,10 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
         # read force field parameters not saved by MDAnalysis
         # copied from MDAnalysis.topology.tpr.utils
         # TODO maybe a better implementation exists
-        if MDAnalysis.__version__ != '2.0.0':
-            self.logger.warning('Incompatible version of MDAnalysis.')
+        if MDAnalysis.__version__ != "2.0.0":
+            self.logger.warning("Incompatible version of MDAnalysis.")
 
-        with open(self.mainfile, 'rb') as f:
+        with open(self.mainfile, "rb") as f:
             data = tpr_utils.TPXUnpacker(f.read())
 
         interactions = []
@@ -272,7 +318,7 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
         if header.fver >= tpr_setting.tpxv_AddSizeField and header.fgen >= 27:
             actual_body_size = len(data.get_buffer()) - data.get_position()
             if actual_body_size == 4 * header.sizeOfTprBody:
-                self.logger.error('Unsupported tpr format.')
+                self.logger.error("Unsupported tpr format.")
                 return interactions
             data = tpr_utils.TPXUnpacker2020.from_unpacker(data)
 
@@ -297,9 +343,12 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
         for i in functypes:
             parameters = []
             if i in [
-                tpr_setting.F_ANGLES, tpr_setting.F_G96ANGLES,
-                tpr_setting.F_BONDS, tpr_setting.F_G96BONDS,
-                tpr_setting.F_HARMONIC, tpr_setting.F_IDIHS
+                tpr_setting.F_ANGLES,
+                tpr_setting.F_G96ANGLES,
+                tpr_setting.F_BONDS,
+                tpr_setting.F_G96BONDS,
+                tpr_setting.F_HARMONIC,
+                tpr_setting.F_IDIHS,
             ]:
                 parameters.append(data.unpack_real())  # rA
                 parameters.append(data.unpack_real())  # krA
@@ -327,8 +376,10 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
                 parameters.append(data.unpack_real())  # restraint.up2B
                 parameters.append(data.unpack_real())  # restraint.kB
             elif i in [
-                tpr_setting.F_TABBONDS, tpr_setting.F_TABBONDSNC,
-                tpr_setting.F_TABANGLES, tpr_setting.F_TABDIHS,
+                tpr_setting.F_TABBONDS,
+                tpr_setting.F_TABBONDSNC,
+                tpr_setting.F_TABANGLES,
+                tpr_setting.F_TABDIHS,
             ]:
                 parameters.append(data.unpack_real())  # tab.kA
                 parameters.append(data.unpack_int())  # tab.table
@@ -354,7 +405,7 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
                     parameters.append(data.unpack_real())  # u_b.kUBB
             elif i in [tpr_setting.F_QUARTIC_ANGLES]:
                 parameters.append(data.unpack_real())  # qangle.theta
-                parameters.append(tpr_utils.ndo_real(data, 5))   # qangle.c
+                parameters.append(tpr_utils.ndo_real(data, 5))  # qangle.c
             elif i in [tpr_setting.F_BHAM]:
                 parameters.append(data.unpack_real())  # bham.a
                 parameters.append(data.unpack_real())  # bham.b
@@ -413,8 +464,10 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
                 parameters.append(data.unpack_real())  # ljcnb.c12
 
             elif i in [
-                tpr_setting.F_PIDIHS, tpr_setting.F_ANGRES,
-                tpr_setting.F_ANGRESZ, tpr_setting.F_PDIHS,
+                tpr_setting.F_PIDIHS,
+                tpr_setting.F_ANGRES,
+                tpr_setting.F_ANGRESZ,
+                tpr_setting.F_PDIHS,
             ]:
                 parameters.append(data.unpack_real())  # pdihs_phiA
                 parameters.append(data.unpack_real())  # pdihs_cpA
@@ -460,22 +513,32 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
                 parameters.append(tpr_utils.do_rvec(data))  # posres.fcB
 
             elif i in [tpr_setting.F_FBPOSRES]:
-                parameters.append(data.unpack_int())   # fbposres.geom
-                parameters.append(tpr_utils.do_rvec(data))       # fbposres.pos0
+                parameters.append(data.unpack_int())  # fbposres.geom
+                parameters.append(tpr_utils.do_rvec(data))  # fbposres.pos0
                 parameters.append(data.unpack_real())  # fbposres.r
                 parameters.append(data.unpack_real())  # fbposres.k
 
             elif i in [tpr_setting.F_CBTDIHS]:
-                parameters.append(tpr_utils.ndo_real(data, tpr_setting.NR_CBTDIHS))  # cbtdihs.cbtcA
+                parameters.append(
+                    tpr_utils.ndo_real(data, tpr_setting.NR_CBTDIHS)
+                )  # cbtdihs.cbtcA
 
             elif i in [tpr_setting.F_RBDIHS]:
-                parameters.append(tpr_utils.ndo_real(data, tpr_setting.NR_RBDIHS))  # iparams_rbdihs_rbcA
-                parameters.append(tpr_utils.ndo_real(data, tpr_setting.NR_RBDIHS))  # iparams_rbdihs_rbcB
+                parameters.append(
+                    tpr_utils.ndo_real(data, tpr_setting.NR_RBDIHS)
+                )  # iparams_rbdihs_rbcA
+                parameters.append(
+                    tpr_utils.ndo_real(data, tpr_setting.NR_RBDIHS)
+                )  # iparams_rbdihs_rbcB
 
             elif i in [tpr_setting.F_FOURDIHS]:
                 # Fourier dihedrals
-                parameters.append(tpr_utils.ndo_real(data, tpr_setting.NR_RBDIHS))  # rbdihs.rbcA
-                parameters.append(tpr_utils.ndo_real(data, tpr_setting.NR_RBDIHS))  # rbdihs.rbcB
+                parameters.append(
+                    tpr_utils.ndo_real(data, tpr_setting.NR_RBDIHS)
+                )  # rbdihs.rbcA
+                parameters.append(
+                    tpr_utils.ndo_real(data, tpr_setting.NR_RBDIHS)
+                )  # rbdihs.rbcB
 
             elif i in [tpr_setting.F_CONSTR, tpr_setting.F_CONSTRNC]:
                 parameters.append(data.unpack_real())  # dA
@@ -491,10 +554,18 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
             elif i in [tpr_setting.F_VSITE2, tpr_setting.F_VSITE2FD]:
                 parameters.append(data.unpack_real())  # vsite.a
 
-            elif i in [tpr_setting.F_VSITE3, tpr_setting.F_VSITE3FD, tpr_setting.F_VSITE3FAD]:
+            elif i in [
+                tpr_setting.F_VSITE3,
+                tpr_setting.F_VSITE3FD,
+                tpr_setting.F_VSITE3FAD,
+            ]:
                 parameters.append(data.unpack_real())  # vsite.a
 
-            elif i in [tpr_setting.F_VSITE3OUT, tpr_setting.F_VSITE4FD, tpr_setting.F_VSITE4FDN]:
+            elif i in [
+                tpr_setting.F_VSITE3OUT,
+                tpr_setting.F_VSITE4FD,
+                tpr_setting.F_VSITE4FDN,
+            ]:
                 parameters.append(data.unpack_real())  # vsite.a
                 parameters.append(data.unpack_real())  # vsite.b
                 parameters.append(data.unpack_real())  # vsite.c
@@ -521,8 +592,9 @@ class GromacsMDAnalysisParser(MDAnalysisParser):
                 parameters.append(data.unpack_int())  # cmap.cmapB
             else:
                 raise NotImplementedError(f"unknown functype: {i}")
-            interactions.append(dict(
-                type=tpr_setting.interaction_types[i][1], parameters=parameters))
+            interactions.append(
+                dict(type=tpr_setting.interaction_types[i][1], parameters=parameters)
+            )
 
         return interactions
 
@@ -533,26 +605,46 @@ class GromacsParser(MDParser):
         self.traj_parser = GromacsMDAnalysisParser()
         self.energy_parser = GromacsEDRParser()
         self._gro_energy_units = ureg.kilojoule * MOL
-        self._thermo_ignore_list = ['Time', 'Box-X', 'Box-Y', 'Box-Z']
+        self._thermo_ignore_list = ["Time", "Box-X", "Box-Y", "Box-Z"]
         self._base_calc_map = {
-            'Temperature': ('temperature', ureg.kelvin),
-            'Volume': ('volume', ureg.nm**3),
-            'Density': ('density', ureg.kilogram / ureg.m**3),
-            'Pressure (bar)': ('pressure', ureg.bar),
-            'Pressure': ('pressure', ureg.bar),
-            'Enthalpy': ('enthalpy', self._gro_energy_units)
+            "Temperature": ("temperature", ureg.kelvin),
+            "Volume": ("volume", ureg.nm**3),
+            "Density": ("density", ureg.kilogram / ureg.m**3),
+            "Pressure (bar)": ("pressure", ureg.bar),
+            "Pressure": ("pressure", ureg.bar),
+            "Enthalpy": ("enthalpy", self._gro_energy_units),
         }
-        self._energy_map = {'Potential': 'potential', 'Kinetic En.': 'kinetic', 'Total Energy': 'total', 'pV': 'pressure_volume_work'}
-        self._vdw_map = {'LJ (SR)': 'short_range', 'LJ (LR)': 'long_range', 'Disper. corr.': 'correction'}
-        self._electrostatic_map = {'Coulomb (SR)': 'short_range', 'Coul. recip.': 'long_range'}
-        self._energy_keys_contain = ['bond', 'angle', 'dih.', 'coul-', 'coulomb-', 'lj-', 'en.']
+        self._energy_map = {
+            "Potential": "potential",
+            "Kinetic En.": "kinetic",
+            "Total Energy": "total",
+            "pV": "pressure_volume_work",
+        }
+        self._vdw_map = {
+            "LJ (SR)": "short_range",
+            "LJ (LR)": "long_range",
+            "Disper. corr.": "correction",
+        }
+        self._electrostatic_map = {
+            "Coulomb (SR)": "short_range",
+            "Coul. recip.": "long_range",
+        }
+        self._energy_keys_contain = [
+            "bond",
+            "angle",
+            "dih.",
+            "coul-",
+            "coulomb-",
+            "lj-",
+            "en.",
+        ]
         super().__init__()
 
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
 
         if len(files) == 0:
-            return ''
+            return ""
 
         if len(files) == 1:
             return os.path.join(self._maindir, files[0])
@@ -560,11 +652,11 @@ class GromacsParser(MDParser):
         # we assume that the file has the same basename as the log file e.g.
         # out.log would correspond to out.tpr and out.trr and out.edr
         for f in files:
-            if f.rsplit('.', 1)[0] == self._basename:
+            if f.rsplit(".", 1)[0] == self._basename:
                 return os.path.join(self._maindir, f)
 
         for f in files:
-            if f.rsplit('.', 1)[0].startswith(self._basename):
+            if f.rsplit(".", 1)[0].startswith(self._basename):
                 return os.path.join(self._maindir, f)
 
         # if the files are all named differently, we guess that the one that does not
@@ -576,7 +668,7 @@ class GromacsParser(MDParser):
         for f in files:
             count = 0
             for reff in self._gromacs_files:
-                if f.rsplit('.', 1)[0] == reff.rsplit('.', 1)[0]:
+                if f.rsplit(".", 1)[0] == reff.rsplit(".", 1)[0]:
                     count += 1
             if count == 1:
                 return os.path.join(self._maindir, f)
@@ -587,10 +679,10 @@ class GromacsParser(MDParser):
     def parse_thermodynamic_data(self):
         sec_run = self.archive.run[-1]
 
-        n_frames = self.traj_parser.get('n_frames')
+        n_frames = self.traj_parser.get("n_frames")
 
         # # TODO read also from ene
-        edr_file = self.get_gromacs_file('edr')
+        edr_file = self.get_gromacs_file("edr")
         self.energy_parser.mainfile = edr_file
 
         # get it from edr file
@@ -598,88 +690,117 @@ class GromacsParser(MDParser):
             thermo_data = self.energy_parser
         else:
             # try to get it from log file
-            steps = self.log_parser.get('step', [])
+            steps = self.log_parser.get("step", [])
             thermo_data = dict()
             for n, step in enumerate(steps):
-                n = int(step.get('step_info', {}).get('Step', n))
+                n = int(step.get("step_info", {}).get("Step", n))
                 if step.energies is None:
                     continue
                 keys = step.energies.keys()
                 for key in keys:
                     thermo_data.setdefault(key, [None] * n_frames)
                     thermo_data[key][n] = step.energies.get(key)
-                info = step.get('step_info', {})
-                thermo_data.setdefault('Time', [None] * n_frames)
-                thermo_data['Time'][n] = info.get('Time', None)
+                info = step.get("step_info", {})
+                thermo_data.setdefault("Time", [None] * n_frames)
+                thermo_data["Time"][n] = info.get("Time", None)
 
         if not thermo_data:
             # get it from edr file
             thermo_data = self.energy_parser
 
-        calculation_times = thermo_data.get('Time', [])
-        time_step = self.log_parser.get('input_parameters', {}).get('dt')
+        calculation_times = thermo_data.get("Time", [])
+        time_step = self.log_parser.get("input_parameters", {}).get("dt")
         if time_step is None and len(calculation_times) > 1:
             time_step = calculation_times[1] - calculation_times[0]
-        self.thermodynamics_steps = [int(time / time_step if time_step else 1) for time in calculation_times]
+        self.thermodynamics_steps = [
+            int(time / time_step if time_step else 1) for time in calculation_times
+        ]
 
         for n, step in enumerate(self.thermodynamics_steps):
             data = {
-                'step': step,
-                'time': calculation_times[n] * ureg.picosecond,
-                'method_ref': sec_run.method[-1] if sec_run.method else None,
-                'energy': {}
+                "step": step,
+                "time": calculation_times[n] * ureg.picosecond,
+                "method_ref": sec_run.method[-1] if sec_run.method else None,
+                "energy": {},
             }
             if step in self._trajectory_steps:
-                data['forces'] = dict(total=dict(value=self.traj_parser.get_forces(self._trajectory_steps.index(step))))
+                data["forces"] = dict(
+                    total=dict(
+                        value=self.traj_parser.get_forces(
+                            self._trajectory_steps.index(step)
+                        )
+                    )
+                )
 
             pressure_tensor, virial_tensor = None, None
             for key in thermo_data.keys():
-                if key in self._thermo_ignore_list or (val := thermo_data.get(key)[n]) is None:
+                if (
+                    key in self._thermo_ignore_list
+                    or (val := thermo_data.get(key)[n]) is None
+                ):
                     continue
 
                 # Attributes of BaseCalculation
                 if key in self._base_calc_map:
-                    data[self._base_calc_map[key][0]] = val * self._base_calc_map[key][1]
+                    data[self._base_calc_map[key][0]] = (
+                        val * self._base_calc_map[key][1]
+                    )
 
                 # pressure tensor
-                elif (match := re.match(r'Pres-([XYZ]{2})', key)):
+                elif match := re.match(r"Pres-([XYZ]{2})", key):
                     if pressure_tensor is None:
                         pressure_tensor = np.zeros(shape=(3, 3))
-                    pressure_tensor[tuple('XYZ'.index(n) for n in match.group(1))] = val
+                    pressure_tensor[tuple("XYZ".index(n) for n in match.group(1))] = val
 
                 # virial tensor
-                elif (match := re.match(r'Vir-([XYZ]{2})', key)):
+                elif match := re.match(r"Vir-([XYZ]{2})", key):
                     if virial_tensor is None:
                         virial_tensor = np.zeros(shape=(3, 3))
-                    virial_tensor[tuple('XYZ'.index(n) for n in match.group(1))] = val
+                    virial_tensor[tuple("XYZ".index(n) for n in match.group(1))] = val
 
                 # well-defined, single Energy quantities
                 elif (nomad_key := self._energy_map.get(key)) is not None:
-                    data['energy'][nomad_key] = dict(value=val * self._gro_energy_units)
+                    data["energy"][nomad_key] = dict(value=val * self._gro_energy_units)
                 # well-defined, piecewise energy quantities
                 elif (nomad_key := self._vdw_map.get(key)) is not None:
-                    data['energy'].setdefault('van_der_waals', {'value': 0. * self._gro_energy_units})
-                    data['energy']['van_der_waals'][nomad_key] = val * self._gro_energy_units
-                    data['energy']['van_der_waals']['value'] += val * self._gro_energy_units
+                    data["energy"].setdefault(
+                        "van_der_waals", {"value": 0.0 * self._gro_energy_units}
+                    )
+                    data["energy"]["van_der_waals"][nomad_key] = (
+                        val * self._gro_energy_units
+                    )
+                    data["energy"]["van_der_waals"]["value"] += (
+                        val * self._gro_energy_units
+                    )
                 elif (nomad_key := self._electrostatic_map.get(key)) is not None:
-                    data['energy'].setdefault('electrostatic', {'value': 0. * self._gro_energy_units})
-                    data['energy']['electrostatic'][nomad_key] = val * self._gro_energy_units
-                    data['energy']['electrostatic']['value'] += val * self._gro_energy_units
+                    data["energy"].setdefault(
+                        "electrostatic", {"value": 0.0 * self._gro_energy_units}
+                    )
+                    data["energy"]["electrostatic"][nomad_key] = (
+                        val * self._gro_energy_units
+                    )
+                    data["energy"]["electrostatic"]["value"] += (
+                        val * self._gro_energy_units
+                    )
                 # try to identify other known energy keys to be stored as gromacs-specific
-                elif any(keyword in key.lower() for keyword in self._energy_keys_contain):
-                    data['energy'].setdefault('x_gromacs_energy_contributions', [])
-                    data['energy']['x_gromacs_energy_contributions'].append(dict(
-                        kind=key, value=val * self._gro_energy_units))
+                elif any(
+                    keyword in key.lower() for keyword in self._energy_keys_contain
+                ):
+                    data["energy"].setdefault("x_gromacs_energy_contributions", [])
+                    data["energy"]["x_gromacs_energy_contributions"].append(
+                        dict(kind=key, value=val * self._gro_energy_units)
+                    )
                 else:  # store all other quantities as gromacs-specific under BaseCalculation
-                    data.setdefault('x_gromacs_thermodynamics_contributions', [])
-                    data['x_gromacs_thermodynamics_contributions'].append(dict(
-                        kind=key, value=val))
+                    data.setdefault("x_gromacs_thermodynamics_contributions", [])
+                    data["x_gromacs_thermodynamics_contributions"].append(
+                        dict(kind=key, value=val)
+                    )
 
             if pressure_tensor is not None:
-                data['pressure_tensor'] = pressure_tensor * ureg.bar
+                data["pressure_tensor"] = pressure_tensor * ureg.bar
 
             if virial_tensor is not None:
-                data['virial_tensor'] = virial_tensor * (ureg.bar * ureg.nm ** 3)
+                data["virial_tensor"] = virial_tensor * (ureg.bar * ureg.nm**3)
 
             self.parse_thermodynamics_step(data)
 
@@ -688,11 +809,15 @@ class GromacsParser(MDParser):
 
         def get_composition(children_names):
             children_count_tup = np.unique(children_names, return_counts=True)
-            formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
+            formula = "".join(
+                [f"{name}({count})" for name, count in zip(*children_count_tup)]
+            )
             return formula
 
-        n_frames = self.traj_parser.get('n_frames', 0)
-        traj_sampling_rate = self.log_parser.get('input_parameters', {}).get('nstxout', 1)
+        n_frames = self.traj_parser.get("n_frames", 0)
+        traj_sampling_rate = self.log_parser.get("input_parameters", {}).get(
+            "nstxout", 1
+        )
         self.n_atoms = [self.traj_parser.get_n_atoms(n) for n in range(n_frames)]
         traj_steps = [n * traj_sampling_rate for n in range(n_frames)]
         self.trajectory_steps = traj_steps
@@ -707,35 +832,46 @@ class GromacsParser(MDParser):
 
             bond_list = []
             if n == 0:  # TODO add references to the bond list for other steps
-                bond_list = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
+                bond_list = get_bond_list_from_model_contributions(
+                    sec_run, method_index=-1, model_index=-1
+                )
 
-            self.parse_trajectory_step({
-                'atoms': {
-                    'n_atoms': self.traj_parser.get_n_atoms(n),
-                    'periodic': pbc,
-                    'lattice_vectors': self.traj_parser.get_lattice_vectors(n),
-                    'labels': self.traj_parser.get_atom_labels(n),
-                    'positions': positions,
-                    'velocities': self.traj_parser.get_velocities(n),
-                    'bond_list': bond_list
+            atom_labels = self.traj_parser.get_atom_labels(n)
+            if atom_labels is not None:
+                try:
+                    symbols2numbers(atom_labels)
+                except KeyError:
+                    atom_labels = ["X"] * len(atom_labels)
+
+            self.parse_trajectory_step(
+                {
+                    "atoms": {
+                        "n_atoms": self.traj_parser.get_n_atoms(n),
+                        "periodic": pbc,
+                        "lattice_vectors": self.traj_parser.get_lattice_vectors(n),
+                        "labels": atom_labels,
+                        "positions": positions,
+                        "velocities": self.traj_parser.get_velocities(n),
+                        "bond_list": bond_list,
+                    }
                 }
-            })
+            )
 
         if not sec_run.system:
             return
 
         # parse atomsgroup (segments --> molecules --> residues)
-        atoms_info = self.traj_parser._results['atoms_info']
-        atoms_moltypes = np.array(atoms_info['moltypes'])
-        atoms_molnums = np.array(atoms_info['molnums'])
-        atoms_resids = np.array(atoms_info['resids'])
-        atoms_elements = np.array(atoms_info['elements'])
-        atoms_resnames = np.array(atoms_info['resnames'])
+        atoms_info = self.traj_parser._results["atoms_info"]
+        atoms_moltypes = np.array(atoms_info["moltypes"])
+        atoms_molnums = np.array(atoms_info["molnums"])
+        atoms_resids = np.array(atoms_info["resids"])
+        atoms_elements = np.array(atoms_info["elements"])
+        atoms_resnames = np.array(atoms_info["resnames"])
         for segment in self.traj_parser.universe.segments:
             # we only create atomsgroup in the initial system
             sec_segment = AtomsGroup()
             sec_run.system[0].atoms_group.append(sec_segment)
-            sec_segment.type = 'molecule_group'
+            sec_segment.type = "molecule_group"
             sec_segment.index = int(segment.segindex)
             sec_segment.atom_indices = segment.atoms.ix
             sec_segment.n_atoms = len(sec_segment.atom_indices)
@@ -748,11 +884,15 @@ class GromacsParser(MDParser):
                 # mol_nums is the molecule identifier for each atom
                 mol_nums = atoms_molnums[atom_indices]
                 moltypes_count[moltype] = np.unique(mol_nums).shape[0]
-            formula = ''.join([f'{moltype}({moltypes_count[moltype]})' for moltype in moltypes_count])
+            formula = "".join(
+                [f"{moltype}({moltypes_count[moltype]})" for moltype in moltypes_count]
+            )
             sec_segment.composition_formula = formula
-            sec_segment.label = f'group_{moltypes[0]}'
+            sec_segment.label = f"group_{moltypes[0]}"
 
-            for i_molecule, molecule in enumerate(np.unique(atoms_molnums[sec_segment.atom_indices])):
+            for i_molecule, molecule in enumerate(
+                np.unique(atoms_molnums[sec_segment.atom_indices])
+            ):
                 sec_molecule = AtomsGroup()
                 sec_segment.atoms_group.append(sec_molecule)
                 sec_molecule.index = i_molecule
@@ -761,7 +901,7 @@ class GromacsParser(MDParser):
                 # use first particle to get the moltype
                 # not sure why but this value is being cast to int, cast back to str
                 sec_molecule.label = str(atoms_moltypes[sec_molecule.atom_indices[0]])
-                sec_molecule.type = 'molecule'
+                sec_molecule.type = "molecule"
                 sec_molecule.is_molecule = True
 
                 mol_resids = np.unique(atoms_resids[sec_molecule.atom_indices])
@@ -776,25 +916,33 @@ class GromacsParser(MDParser):
                         sec_monomer_group = AtomsGroup()
                         sec_molecule.atoms_group.append(sec_monomer_group)
                         restype_indices = np.where(atoms_resnames == restype)[0]
-                        sec_monomer_group.label = f'group_{restype}'
-                        sec_monomer_group.type = 'monomer_group'
+                        sec_monomer_group.label = f"group_{restype}"
+                        sec_monomer_group.type = "monomer_group"
                         sec_monomer_group.index = i_restype
-                        sec_monomer_group.atom_indices = np.intersect1d(restype_indices, sec_molecule.atom_indices)
+                        sec_monomer_group.atom_indices = np.intersect1d(
+                            restype_indices, sec_molecule.atom_indices
+                        )
                         sec_monomer_group.n_atoms = len(sec_monomer_group.atom_indices)
                         sec_monomer_group.is_molecule = False
 
-                        restype_resids = np.unique(atoms_resids[sec_monomer_group.atom_indices])
+                        restype_resids = np.unique(
+                            atoms_resids[sec_monomer_group.atom_indices]
+                        )
                         restype_count = restype_resids.shape[0]
-                        sec_monomer_group.composition_formula = f'{restype}({restype_count})'
+                        sec_monomer_group.composition_formula = (
+                            f"{restype}({restype_count})"
+                        )
                         for i_res, res_id in enumerate(restype_resids):
                             sec_residue = AtomsGroup()
                             sec_monomer_group.atoms_group.append(sec_residue)
                             sec_residue.index = i_res
                             atom_indices = np.where(atoms_resids == res_id)[0]
-                            sec_residue.atom_indices = np.intersect1d(atom_indices, sec_monomer_group.atom_indices)
+                            sec_residue.atom_indices = np.intersect1d(
+                                atom_indices, sec_monomer_group.atom_indices
+                            )
                             sec_residue.n_atoms = len(sec_residue.atom_indices)
                             sec_residue.label = str(restype)
-                            sec_residue.type = 'monomer'
+                            sec_residue.type = "monomer"
                             sec_residue.is_molecule = False
                             elements = atoms_elements[sec_residue.atom_indices]
                             sec_residue.composition_formula = get_composition(elements)
@@ -818,166 +966,289 @@ class GromacsParser(MDParser):
         sec_model = Model()
         sec_force_field.model.append(sec_model)
         try:
-            n_atoms = self.traj_parser.get('n_atoms', 0)
+            n_atoms = self.traj_parser.get("n_atoms", 0)
         except Exception:
-            gro_file = self.get_gromacs_file('gro')
+            gro_file = self.get_gromacs_file("gro")
             self.traj_parser.mainfile = gro_file
-            n_atoms = self.traj_parser.get('n_atoms', 0)
+            n_atoms = self.traj_parser.get("n_atoms", 0)
 
-        atoms_info = self.traj_parser.get('atoms_info', {})
+        atoms_info = self.traj_parser.get("atoms_info", {})
         for n in range(n_atoms):
             sec_atom = AtomParameters()
             sec_method.atom_parameters.append(sec_atom)
-            sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
-            sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
-            sec_atom.label = atoms_info.get('names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_name = atoms_info.get('atom_names', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resid = atoms_info.get('resids', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_resname = atoms_info.get('resnames', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_molnum = atoms_info.get('molnums', [None] * (n + 1))[n]
-            sec_atom.x_gromacs_atom_moltype = atoms_info.get('moltypes', [None] * (n + 1))[n]
+            sec_atom.charge = atoms_info.get("charges", [None] * (n + 1))[n]
+            sec_atom.mass = atoms_info.get("masses", [None] * (n + 1))[n]
+            sec_atom.label = atoms_info.get("names", [None] * (n + 1))[n]
+            sec_atom.x_gromacs_atom_name = atoms_info.get(
+                "atom_names", [None] * (n + 1)
+            )[n]
+            sec_atom.x_gromacs_atom_resid = atoms_info.get("resids", [None] * (n + 1))[
+                n
+            ]
+            sec_atom.x_gromacs_atom_resname = atoms_info.get(
+                "resnames", [None] * (n + 1)
+            )[n]
+            sec_atom.x_gromacs_atom_molnum = atoms_info.get(
+                "molnums", [None] * (n + 1)
+            )[n]
+            sec_atom.x_gromacs_atom_moltype = atoms_info.get(
+                "moltypes", [None] * (n + 1)
+            )[n]
 
         if n_atoms == 0:
-            self.logger.error('Error parsing interactions.')
+            self.logger.error("Error parsing interactions.")
 
         interactions = self.traj_parser.get_interactions()
         self.parse_interactions(interactions, sec_model)
 
-        input_parameters = self.log_parser.get('input_parameters', {})
+        input_parameters = self.log_parser.get("input_parameters", {})
         sec_force_calculations = ForceCalculations()
         sec_force_field.force_calculations = sec_force_calculations
         sec_neighbor_searching = NeighborSearching()
         sec_force_calculations.neighbor_searching = sec_neighbor_searching
 
-        nstlist = input_parameters.get('nstlist', None)
-        sec_neighbor_searching.neighbor_update_frequency = int(nstlist) if nstlist else None
-        rlist = input_parameters.get('rlist', None)
-        sec_neighbor_searching.neighbor_update_cutoff = float(rlist) * ureg.nanometer if rlist else None
-        rvdw = input_parameters.get('rvdw', None)
-        sec_force_calculations.vdw_cutoff = float(rvdw) * ureg.nanometer if rvdw else None
-        coulombtype = input_parameters.get('coulombtype', 'no').lower()
-        coulombtype_map = {'cut-off': 'cutoff', 'ewald': 'ewald', 'pme': 'particle_mesh_ewald',
-                           'p3m-ad': 'particle_particle_particle_mesh', 'reaction-field': 'reaction_field',
-                           'shift': 'cutoff', 'switch': 'cutoff', 'user': 'cutoff'}
-        value = coulombtype_map.get(coulombtype, [val for key, val in coulombtype_map.items() if key in coulombtype])
-        value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
+        nstlist = input_parameters.get("nstlist", None)
+        sec_neighbor_searching.neighbor_update_frequency = (
+            int(nstlist) if nstlist else None
+        )
+        rlist = input_parameters.get("rlist", None)
+        sec_neighbor_searching.neighbor_update_cutoff = (
+            float(rlist) * ureg.nanometer if rlist else None
+        )
+        rvdw = input_parameters.get("rvdw", None)
+        sec_force_calculations.vdw_cutoff = (
+            float(rvdw) * ureg.nanometer if rvdw else None
+        )
+        coulombtype = input_parameters.get("coulombtype", "no").lower()
+        coulombtype_map = {
+            "cut-off": "cutoff",
+            "ewald": "ewald",
+            "pme": "particle_mesh_ewald",
+            "p3m-ad": "particle_particle_particle_mesh",
+            "reaction-field": "reaction_field",
+            "shift": "cutoff",
+            "switch": "cutoff",
+            "user": "cutoff",
+        }
+        value = coulombtype_map.get(
+            coulombtype,
+            [val for key, val in coulombtype_map.items() if key in coulombtype],
+        )
+        value = (
+            value
+            if not isinstance(value, list)
+            else value[0]
+            if len(value) != 0
+            else None
+        )
         sec_force_calculations.coulomb_type = value
-        rcoulomb = input_parameters.get('rcoulomb', None)
+        rcoulomb = input_parameters.get("rcoulomb", None)
         sec_force_calculations.coulomb_cutoff = float(rcoulomb) if rcoulomb else None
 
     def parse_workflow(self):
-
         sec_run = self.archive.run[-1]
-        sec_calc = sec_run.get('calculation')
-        input_parameters = self.log_parser.get('input_parameters', {})
+        sec_calc = sec_run.get("calculation")
+        input_parameters = self.log_parser.get("input_parameters", {})
 
         workflow = None
-        integrator = input_parameters.get('integrator', 'md').lower()
-        if integrator in ['l-bfgs', 'cg', 'steep']:
+        integrator = input_parameters.get("integrator", "md").lower()
+        if integrator in ["l-bfgs", "cg", "steep"]:
             workflow = GeometryOptimization(
-                method=GeometryOptimizationMethod(), results=GeometryOptimizationResults())
-            workflow.method.type = 'atomic'
-            integrator_map = {'steep': 'steepest_descent', 'cg': 'conjugant_gradient',
-                              'l-bfgs': 'low_memory_broyden_fletcher_goldfarb_shanno'}
-            value = integrator_map.get(integrator, [val for key, val in integrator_map.items() if key in integrator])
-            value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
+                method=GeometryOptimizationMethod(),
+                results=GeometryOptimizationResults(),
+            )
+            workflow.method.type = "atomic"
+            integrator_map = {
+                "steep": "steepest_descent",
+                "cg": "conjugant_gradient",
+                "l-bfgs": "low_memory_broyden_fletcher_goldfarb_shanno",
+            }
+            value = integrator_map.get(
+                integrator,
+                [val for key, val in integrator_map.items() if key in integrator],
+            )
+            value = (
+                value
+                if not isinstance(value, list)
+                else value[0]
+                if len(value) != 0
+                else None
+            )
             workflow.method.method = value
-            nsteps = input_parameters.get('nsteps', None)
+            nsteps = input_parameters.get("nsteps", None)
             workflow.method.optimization_steps_maximum = int(nsteps) if nsteps else None
-            nstenergy = input_parameters.get('nstenergy', None)
+            nstenergy = input_parameters.get("nstenergy", None)
             workflow.method.save_frequency = int(nstenergy) if nstenergy else None
 
-            force_maximum = input_parameters.get('emtol', None)
-            force_conversion = ureg.convert(1.0, ureg.kilojoule * ureg.avogadro_number / ureg.nanometer, ureg.newton)
-            workflow.method.convergence_tolerance_force_maximum = float(force_maximum) * force_conversion if force_maximum else None
+            force_maximum = input_parameters.get("emtol", None)
+            force_conversion = ureg.convert(
+                1.0, ureg.kilojoule * ureg.avogadro_number / ureg.nanometer, ureg.newton
+            )
+            workflow.method.convergence_tolerance_force_maximum = (
+                float(force_maximum) * force_conversion if force_maximum else None
+            )
 
             energies = []
             steps = []
             for calc in sec_calc:
-                val = calc.get('energy')
-                energy = val.get('potential') if val else None
+                val = calc.get("energy")
+                energy = val.get("potential") if val else None
                 if energy:
                     energies.append(energy.value.magnitude)
-                    step = calc.get('step')
+                    step = calc.get("step")
                     steps.append(step)
             workflow.results.energies = energies
             workflow.results.steps = steps
             workflow.results.optimization_steps = len(energies) + 1
 
-            final_force_maximum = self.log_parser.get('maximum_force')
-            final_force_maximum = float(re.split('=|\n', final_force_maximum)[1]) if final_force_maximum else None
-            workflow.results.final_force_maximum = float(final_force_maximum) * force_conversion if final_force_maximum else None
+            final_force_maximum = self.log_parser.get("maximum_force")
+            final_force_maximum = (
+                float(re.split("=|\n", final_force_maximum)[1])
+                if final_force_maximum
+                else None
+            )
+            workflow.results.final_force_maximum = (
+                float(final_force_maximum) * force_conversion
+                if final_force_maximum
+                else None
+            )
             self.archive.workflow2 = workflow
         else:
             method, results = {}, {}
-            nsteps = input_parameters.get('nsteps', None)
-            method['n_steps'] = int(nsteps) if nsteps else None
-            nstxout = input_parameters.get('nstxout', None)
-            method['coordinate_save_frequency'] = int(nstxout) if nstxout else None
-            nstvout = input_parameters.get('nstvout', None)
-            method['velocity_save_frequency'] = int(nstvout) if nstvout else None
-            nstfout = input_parameters.get('nstfout', None)
-            method['force_save_frequency'] = int(nstfout) if nstfout else None
-            nstenergy = input_parameters.get('nstenergy', None)
-            method['thermodynamics_save_frequency'] = int(nstenergy) if nstenergy else None
+            nsteps = input_parameters.get("nsteps", None)
+            method["n_steps"] = int(nsteps) if nsteps else None
+            nstxout = input_parameters.get("nstxout", None)
+            method["coordinate_save_frequency"] = int(nstxout) if nstxout else None
+            nstvout = input_parameters.get("nstvout", None)
+            method["velocity_save_frequency"] = int(nstvout) if nstvout else None
+            nstfout = input_parameters.get("nstfout", None)
+            method["force_save_frequency"] = int(nstfout) if nstfout else None
+            nstenergy = input_parameters.get("nstenergy", None)
+            method["thermodynamics_save_frequency"] = (
+                int(nstenergy) if nstenergy else None
+            )
 
-            integrator_map = {'md': 'leap_frog', 'md-vv': 'velocity_verlet', 'sd': 'langevin_goga',
-                              'bd': 'brownian'}
-            value = integrator_map.get(integrator, [val for key, val in integrator_map.items() if key in integrator])
-            value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
-            method['integrator_type'] = value
-            timestep = input_parameters.get('dt', None)
-            method['integration_timestep'] = float(timestep) * ureg.picosecond if timestep else None
+            integrator_map = {
+                "md": "leap_frog",
+                "md-vv": "velocity_verlet",
+                "sd": "langevin_goga",
+                "bd": "brownian",
+            }
+            value = integrator_map.get(
+                integrator,
+                [val for key, val in integrator_map.items() if key in integrator],
+            )
+            value = (
+                value
+                if not isinstance(value, list)
+                else value[0]
+                if len(value) != 0
+                else None
+            )
+            method["integrator_type"] = value
+            timestep = input_parameters.get("dt", None)
+            method["integration_timestep"] = (
+                float(timestep) * ureg.picosecond if timestep else None
+            )
 
-            thermostat = input_parameters.get('tcoupl', 'no').lower()
-            thermostat_map = {'berendsen': 'berendsen', 'v-rescale': 'velocity_rescaling',
-                              'nose-hoover': 'nose_hoover', 'andersen': 'andersen'}
-            value = thermostat_map.get(thermostat, [val for key, val in thermostat_map.items() if key in thermostat])
-            value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
+            thermostat = input_parameters.get("tcoupl", "no").lower()
+            thermostat_map = {
+                "berendsen": "berendsen",
+                "v-rescale": "velocity_rescaling",
+                "nose-hoover": "nose_hoover",
+                "andersen": "andersen",
+            }
+            value = thermostat_map.get(
+                thermostat,
+                [val for key, val in thermostat_map.items() if key in thermostat],
+            )
+            value = (
+                value
+                if not isinstance(value, list)
+                else value[0]
+                if len(value) != 0
+                else None
+            )
             thermostat_parameters = {}
-            thermostat_parameters['thermostat_type'] = value
-            if 'sd' in integrator:
-                thermostat_parameters['thermostat_type'] = 'langevin_goga'
-            if thermostat_parameters['thermostat_type']:
-                reference_temperature = input_parameters.get('ref-t', None)
+            thermostat_parameters["thermostat_type"] = value
+            if "sd" in integrator:
+                thermostat_parameters["thermostat_type"] = "langevin_goga"
+            if thermostat_parameters["thermostat_type"]:
+                reference_temperature = input_parameters.get("ref-t", None)
                 if isinstance(reference_temperature, str):
                     reference_temperature = float(reference_temperature.split()[0])
                 reference_temperature *= ureg.kelvin if reference_temperature else None
-                thermostat_parameters['reference_temperature'] = reference_temperature
-                coupling_constant = input_parameters.get('tau-t', None)
+                thermostat_parameters["reference_temperature"] = reference_temperature
+                coupling_constant = input_parameters.get("tau-t", None)
                 if isinstance(coupling_constant, str):
                     coupling_constant = float(coupling_constant.split()[0])
                 coupling_constant *= ureg.picosecond if coupling_constant else None
-                thermostat_parameters['coupling_constant'] = coupling_constant
-            method['thermostat_parameters'] = thermostat_parameters
+                thermostat_parameters["coupling_constant"] = coupling_constant
+            method["thermostat_parameters"] = thermostat_parameters
 
-            barostat = input_parameters.get('pcoupl', 'no').lower()
-            barostat_map = {'berendsen': 'berendsen', 'parrinello-rahman': 'parrinello_rahman',
-                            'mttk': 'martyna_tuckerman_tobias_klein', 'c-rescale': 'stochastic_cell_rescaling'}
-            value = barostat_map.get(barostat, [val for key, val in barostat_map.items() if key in barostat])
-            value = value if not isinstance(value, list) else value[0] if len(value) != 0 else None
+            barostat = input_parameters.get("pcoupl", "no").lower()
+            barostat_map = {
+                "berendsen": "berendsen",
+                "parrinello-rahman": "parrinello_rahman",
+                "mttk": "martyna_tuckerman_tobias_klein",
+                "c-rescale": "stochastic_cell_rescaling",
+            }
+            value = barostat_map.get(
+                barostat, [val for key, val in barostat_map.items() if key in barostat]
+            )
+            value = (
+                value
+                if not isinstance(value, list)
+                else value[0]
+                if len(value) != 0
+                else None
+            )
             barostat_parameters = {}
-            barostat_parameters['barostat_type'] = value
-            if barostat_parameters['barostat_type']:
-                couplingtype = input_parameters.get('pcoupltype', None).lower()
-                couplingtype_map = {'isotropic': 'isotropic', 'semiisotropic': 'semi_isotropic',
-                                    'anisotropic': 'anisotropic'}
-                value = couplingtype_map.get(couplingtype, [val for key, val in couplingtype_map.items() if key in couplingtype])
-                barostat_parameters['coupling_type'] = value[0] if isinstance(value, list) else value
-                taup = input_parameters.get('tau-p', None)
-                barostat_parameters['coupling_constant'] = np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond if taup else None
-                refp = input_parameters.get('ref-p', None)
-                barostat_parameters['reference_pressure'] = refp * ureg.bar if refp is not None else None
-                compressibility = input_parameters.get('compressibility', None)
-                barostat_parameters['compressibility'] = compressibility * (1. / ureg.bar) if compressibility is not None else None
-            method['barostat_parameters'] = barostat_parameters
+            barostat_parameters["barostat_type"] = value
+            if barostat_parameters["barostat_type"]:
+                couplingtype = input_parameters.get("pcoupltype", None).lower()
+                couplingtype_map = {
+                    "isotropic": "isotropic",
+                    "semiisotropic": "semi_isotropic",
+                    "anisotropic": "anisotropic",
+                }
+                value = couplingtype_map.get(
+                    couplingtype,
+                    [
+                        val
+                        for key, val in couplingtype_map.items()
+                        if key in couplingtype
+                    ],
+                )
+                barostat_parameters["coupling_type"] = (
+                    value[0] if isinstance(value, list) else value
+                )
+                taup = input_parameters.get("tau-p", None)
+                barostat_parameters["coupling_constant"] = (
+                    np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond
+                    if taup
+                    else None
+                )
+                refp = input_parameters.get("ref-p", None)
+                barostat_parameters["reference_pressure"] = (
+                    refp * ureg.bar if refp is not None else None
+                )
+                compressibility = input_parameters.get("compressibility", None)
+                barostat_parameters["compressibility"] = (
+                    compressibility * (1.0 / ureg.bar)
+                    if compressibility is not None
+                    else None
+                )
+            method["barostat_parameters"] = barostat_parameters
 
-            if thermostat_parameters.get('thermostat_type'):
-                method['thermodynamic_ensemble'] = 'NPT' if barostat_parameters.get('barostat_type') else 'NVT'
-            elif barostat_parameters.get('barostat_type'):
-                method['thermodynamic_ensemble'] = 'NPH'
+            if thermostat_parameters.get("thermostat_type"):
+                method["thermodynamic_ensemble"] = (
+                    "NPT" if barostat_parameters.get("barostat_type") else "NVT"
+                )
+            elif barostat_parameters.get("barostat_type"):
+                method["thermodynamic_ensemble"] = "NPH"
             else:
-                method['thermodynamic_ensemble'] = 'NVE'
+                method["thermodynamic_ensemble"] = "NVE"
 
             self.parse_md_workflow(dict(method=method, results=results))
 
@@ -987,9 +1258,9 @@ class GromacsParser(MDParser):
         sec_run.x_gromacs_section_input_output_files = sec_input_output_files
 
         topology_file = os.path.basename(self.traj_parser.mainfile)
-        if topology_file.endswith('tpr'):
+        if topology_file.endswith("tpr"):
             sec_input_output_files.x_gromacs_inout_file_topoltpr = topology_file
-        elif topology_file.endswith('gro'):
+        elif topology_file.endswith("gro"):
             sec_input_output_files.x_gromacs_inout_file_confoutgro = topology_file
 
         trajectory_file = os.path.basename(self.traj_parser.auxilliary_files[0])
@@ -1000,10 +1271,13 @@ class GromacsParser(MDParser):
 
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
-        input_parameters = self.log_parser.get('input_parameters', {})
-        input_parameters.update(self.log_parser.get('header', {}))
+        input_parameters = self.log_parser.get("input_parameters", {})
+        input_parameters.update(self.log_parser.get("header", {}))
         for key, val in input_parameters.items():
-            key = 'x_gromacs_inout_control_%s' % key.replace('-', '').replace(' ', '_').lower()
+            key = (
+                "x_gromacs_inout_control_%s"
+                % key.replace("-", "").replace(" ", "_").lower()
+            )
             if hasattr(sec_control_parameters, key):
                 val = str(val) if not isinstance(val, np.ndarray) else val
                 setattr(sec_control_parameters, key, val)
@@ -1024,43 +1298,50 @@ class GromacsParser(MDParser):
         self.logger = logging.getLogger(__name__) if logger is None else logger
         self._maindir = os.path.dirname(self.filepath)
         self._gromacs_files = os.listdir(self._maindir)
-        self._basename = os.path.basename(filepath).rsplit('.', 1)[0]
+        self._basename = os.path.basename(filepath).rsplit(".", 1)[0]
 
         self.init_parser()
 
         sec_run = Run()
         self.archive.run.append(sec_run)
 
-        header = self.log_parser.get('header', {})
+        header = self.log_parser.get("header", {})
 
         sec_run.program = Program(
-            name='GROMACS', version=str(header.get('version', 'unknown')).lstrip('VERSION '))
+            name="GROMACS",
+            version=str(header.get("version", "unknown")).lstrip("VERSION "),
+        )
 
         sec_time_run = TimeRun()
         sec_run.time_run = sec_time_run
-        for key in ['start', 'end']:
-            time = self.log_parser.get('time_%s' % key)
+        for key in ["start", "end"]:
+            time = self.log_parser.get("time_%s" % key)
             if time is None:
                 continue
-            setattr(sec_time_run, 'date_%s' % key, datetime.datetime.strptime(
-                time, '%a %b %d %H:%M:%S %Y').timestamp())
+            setattr(
+                sec_time_run,
+                "date_%s" % key,
+                datetime.datetime.strptime(time, "%a %b %d %H:%M:%S %Y").timestamp(),
+            )
 
-        host_info = self.log_parser.get('host_info')
+        host_info = self.log_parser.get("host_info")
         if host_info is not None:
             sec_run.x_gromacs_program_execution_host = host_info[0]
             sec_run.x_gromacs_parallel_task_nr = host_info[1]
             sec_run.x_gromacs_number_of_tasks = host_info[2]
 
-        topology_file = self.get_gromacs_file('tpr')
+        topology_file = self.get_gromacs_file("tpr")
         # I have no idea if output trajectory file can be specified in input
-        trr_file = self.get_gromacs_file('trr')
-        trr_file_nopath = trr_file.rsplit('.', 1)[0]
-        trr_file_nopath = trr_file_nopath.rsplit('/')[-1]
-        xtc_file = self.get_gromacs_file('xtc')
-        xtc_file_nopath = xtc_file.rsplit('.', 1)[0]
-        xtc_file_nopath = xtc_file_nopath.rsplit('/')[-1]
+        trr_file = self.get_gromacs_file("trr")
+        trr_file_nopath = trr_file.rsplit(".", 1)[0]
+        trr_file_nopath = trr_file_nopath.rsplit("/")[-1]
+        xtc_file = self.get_gromacs_file("xtc")
+        xtc_file_nopath = xtc_file.rsplit(".", 1)[0]
+        xtc_file_nopath = xtc_file_nopath.rsplit("/")[-1]
         if not trr_file_nopath.startswith(self._basename):
-            trajectory_file = xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
+            trajectory_file = (
+                xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
+            )
         else:
             trajectory_file = trr_file
 
@@ -1069,8 +1350,8 @@ class GromacsParser(MDParser):
         # check to see if the trr file can be read properly (and has positions), otherwise try xtc file instead
         positions = None
         if (universe := self.traj_parser.universe) is not None:
-            atoms = getattr(universe, 'atoms', None)
-            positions = getattr(atoms, 'positions', None)
+            atoms = getattr(universe, "atoms", None)
+            positions = getattr(atoms, "positions", None)
         if positions is None:
             self.traj_parser.auxilliary_files = [xtc_file] if xtc_file else [trr_file]
 

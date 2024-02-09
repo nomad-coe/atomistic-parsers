@@ -1250,6 +1250,27 @@ class GromacsParser(MDParser):
             else:
                 method["thermodynamic_ensemble"] = "NVE"
 
+            # Free energy calculations
+            gromacs_FE_parameters = [
+                "free-energy",
+                "sc-power",
+                "sc-alpha",
+                "sc-r-power",
+                "init-lambda-state",
+                "vdw-lambdas",
+                "delta-lamda",
+                "calc-lambda-neighbors",
+                "nstdhdl",
+                "dhdl-print-energy",
+                "couple-moltype",
+                "couple-lambda0",
+                "couple-lambda1",
+                "couple-intramol",
+            ]
+            FE_dict = {
+                input_parameters.get(param, None) for param in gromacs_FE_parameters
+            }
+            print(FE_dict)
             self.parse_md_workflow(dict(method=method, results=results))
 
     def parse_input(self):

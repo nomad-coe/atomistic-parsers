@@ -1252,23 +1252,46 @@ class GromacsParser(MDParser):
 
             # Free energy calculations
             gromacs_FE_parameters = [
-                "free-energy",
-                "sc-power",
+                "free-energy",  # yes if interpolating between topologies, no??
+                "expanded",  # for jumping between models...do not support?
+                "init-lambda",  # default -1
+                "delta-lamda",  # default 0
+                "init-lambda-state",  # ??
+                # various scalings for interaction types
+                "fep-lambdas",
+                "coul-lambdas",
+                "vdw-lambdas",
+                "bonded-lambdas",
+                "restraint-lambdas",
+                "mass-lambdas",
+                "temperature-lambdas",
+                "calc-lambda-neighbors",
+                # scaling function parameters, needed?
+                "sc-function",
                 "sc-alpha",
                 "sc-r-power",
-                "init-lambda-state",
-                "vdw-lambdas",
-                "delta-lamda",
-                "calc-lambda-neighbors",
-                "nstdhdl",
-                "dhdl-print-energy",
+                "sc-coul",
+                "sc-power",
+                "sc-sigma",
+                "sc-gapsys-scale-linpoint-lj",
+                "sc-gapsys-scale-linpoint-q",
+                "sc-gapsys-sigma-lj",
                 "couple-moltype",
                 "couple-lambda0",
                 "couple-lambda1",
                 "couple-intramol",
+                "nstdhdl",
+                "dhdl-derivatives",
+                "dhdl-print-energy",
+                "separate-dhdl-file",
+                "dh-hist-size",
+                "dh-hist-spacing",
+                # where are the output FEs?
+                # naming? Alchemical trans? FE calc?
             ]
             FE_dict = {
-                input_parameters.get(param, None) for param in gromacs_FE_parameters
+                param: input_parameters.get(param, None)
+                for param in gromacs_FE_parameters
             }
             print(FE_dict)
             self.parse_md_workflow(dict(method=method, results=results))

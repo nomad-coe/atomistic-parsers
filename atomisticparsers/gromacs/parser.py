@@ -1250,50 +1250,83 @@ class GromacsParser(MDParser):
             else:
                 method["thermodynamic_ensemble"] = "NVE"
 
-            # Free energy calculations
-            gromacs_FE_parameters = [
-                "free-energy",  # yes if interpolating between topologies, no??
-                "expanded",  # for jumping between models...do not support?
-                "init-lambda",  # default -1
-                "delta-lamda",  # default 0
-                "init-lambda-state",  # ??
-                # various scalings for interaction types
-                "fep-lambdas",
-                "coul-lambdas",
-                "vdw-lambdas",
-                "bonded-lambdas",
-                "restraint-lambdas",
-                "mass-lambdas",
-                "temperature-lambdas",
-                "calc-lambda-neighbors",
-                # scaling function parameters, needed?
-                "sc-function",
-                "sc-alpha",
-                "sc-r-power",
-                "sc-coul",
-                "sc-power",
-                "sc-sigma",
-                "sc-gapsys-scale-linpoint-lj",
-                "sc-gapsys-scale-linpoint-q",
-                "sc-gapsys-sigma-lj",
-                "couple-moltype",
-                "couple-lambda0",
-                "couple-lambda1",
-                "couple-intramol",
-                "nstdhdl",
-                "dhdl-derivatives",
-                "dhdl-print-energy",
-                "separate-dhdl-file",
-                "dh-hist-size",
-                "dh-hist-spacing",
-                # where are the output FEs?
-                # naming? Alchemical trans? FE calc?
-            ]
-            FE_dict = {
-                param: input_parameters.get(param, None)
-                for param in gromacs_FE_parameters
-            }
-            print(FE_dict)
+            free_energy = input_parameters.get("free-energy", "")
+            free_energy = free_energy.lower() if free_energy else ""
+            expanded = input_parameters.get("expanded", "")
+            expanded = expanded.lower() if expanded else ""
+            delta_lambda = int(input_parameters.get("delta-lamda", -1))
+            if free_energy == "yes" and expanded == "yes":
+                self.logger.warning(
+                    "storage of expanded ensemble simulation data not supported, skipping storage of free energy perturbation parameters"
+                )
+            elif free_energy == "yes" and delta_lambda == "no":
+                self.logger.warning(
+                    "Only fixed state free energy perturbation calculations are explicitly supported, skipping storage of free energy perturbation parameters."
+                )
+            elif free_energy == "yes":
+                lambda_key_map = {
+                    "fep": "output",
+                    "coul": "coulomb",
+                    "vdw": "vdw",
+                    "bonded": "bonded",
+                    "restraint": "restraint",
+                    "mass": "mass",
+                    "temperature": "temperature",
+                }
+                lambdas = {
+                    key: input_parameters.get(f"{key}-lambdas", [])
+                    for key in lambda_key_map.keys()
+                }
+                free_energy["lambdas"] = [
+                    {"kind": nomad_key, "value": lambdas[gromacs_key]}
+                    for gromacs_key, nomad_key in lambda_key_map.items()
+                    if lambdas[gromacs_key]
+                ]
+
+                atoms_info = self.traj_parser._results["atoms_info"]
+                atoms_moltypes = np.array(atoms_info["moltypes"])
+                couple_moltype = input_parameters.get(
+                    "couple-moltype", ""
+                )  ## TODO generalize to multiple moltypes
+                n_atoms = len(atoms_moltypes)
+                indices = [
+                    index
+                    for index in range(n_atoms)
+                    if atoms_moltypes[index] == couple_moltype
+                ]
+                indices = (
+                    range(n_atoms) if couple_moltype.lower() == "system" else indices
+                )
+                free_energy["indices"] = indices
+
+                couple_vdw_map = {"vdw-q": "on", "vdw": "on", "q": "off", "none": "off"}
+                couple_coloumb_map = {
+                    "vdw-q": "on",
+                    "vdw": "off",
+                    "q": "on",
+                    "none": "off",
+                }
+                couple_initial = input_parameters.get("couple-lambda0", "").lower()
+                couple_final = input_parameters.get("couple-lambda1", "").lower()
+                free_energy["initial_state_vdw"] = couple_vdw_map[couple_initial]
+                free_energy["final_state_vdw"] = couple_vdw_map[couple_final]
+                free_energy["initial_state_coloumb"] = couple_coloumb_map[
+                    couple_initial
+                ]
+                free_energy["final_state_coloumb"] = couple_coloumb_map[couple_final]
+
+                couple_intramolecular = input_parameters.get(
+                    "couple-intramol", ""
+                ).lower()
+                free_energy["final_state_bonded"] = "on"
+                free_energy["initial_state_bonded"] = (
+                    "off" if couple_intramolecular == "yes" else "no"
+                )
+
+                method["free_energy_perturbation_parameters"] = free_energy_parameters
+
+                # TODO add the reading of free energies from xvg file
+
             self.parse_md_workflow(dict(method=method, results=results))
 
     def parse_input(self):

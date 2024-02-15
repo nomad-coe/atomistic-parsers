@@ -1250,6 +1250,8 @@ class GromacsParser(MDParser):
             else:
                 method["thermodynamic_ensemble"] = "NVE"
 
+            # Free Energy Perturbation Calculations
+            free_energy_parameters = {}
             free_energy = input_parameters.get("free-energy", "")
             free_energy = free_energy.lower() if free_energy else ""
             expanded = input_parameters.get("expanded", "")
@@ -1274,10 +1276,13 @@ class GromacsParser(MDParser):
                     "temperature": "temperature",
                 }
                 lambdas = {
-                    key: input_parameters.get(f"{key}-lambdas", [])
+                    key: input_parameters.get(f"{key}-lambdas", "")
                     for key in lambda_key_map.keys()
                 }
-                free_energy["lambdas"] = [
+                lambdas = {
+                    key: [float(i) for i in val.split()] for key, val in lambdas.items()
+                }
+                free_energy_parameters["lambdas"] = [
                     {"kind": nomad_key, "value": lambdas[gromacs_key]}
                     for gromacs_key, nomad_key in lambda_key_map.items()
                     if lambdas[gromacs_key]
@@ -1297,7 +1302,7 @@ class GromacsParser(MDParser):
                 indices = (
                     range(n_atoms) if couple_moltype.lower() == "system" else indices
                 )
-                free_energy["indices"] = indices
+                free_energy_parameters["indices"] = indices
 
                 couple_vdw_map = {"vdw-q": "on", "vdw": "on", "q": "off", "none": "off"}
                 couple_coloumb_map = {
@@ -1306,21 +1311,26 @@ class GromacsParser(MDParser):
                     "q": "on",
                     "none": "off",
                 }
-                couple_initial = input_parameters.get("couple-lambda0", "").lower()
-                couple_final = input_parameters.get("couple-lambda1", "").lower()
-                free_energy["initial_state_vdw"] = couple_vdw_map[couple_initial]
-                free_energy["final_state_vdw"] = couple_vdw_map[couple_final]
-                free_energy["initial_state_coloumb"] = couple_coloumb_map[
+                couple_initial = input_parameters.get("couple-lambda0", "none").lower()
+                couple_final = input_parameters.get("couple-lambda1", "vdw-q").lower()
+
+                free_energy_parameters["initial_state_vdw"] = couple_vdw_map[
                     couple_initial
                 ]
-                free_energy["final_state_coloumb"] = couple_coloumb_map[couple_final]
+                free_energy_parameters["final_state_vdw"] = couple_vdw_map[couple_final]
+                free_energy_parameters["initial_state_coloumb"] = couple_coloumb_map[
+                    couple_initial
+                ]
+                free_energy_parameters["final_state_coloumb"] = couple_coloumb_map[
+                    couple_final
+                ]
 
                 couple_intramolecular = input_parameters.get(
-                    "couple-intramol", ""
+                    "couple-intramol", "on"
                 ).lower()
-                free_energy["final_state_bonded"] = "on"
-                free_energy["initial_state_bonded"] = (
-                    "off" if couple_intramolecular == "yes" else "no"
+                free_energy_parameters["final_state_bonded"] = "on"
+                free_energy_parameters["initial_state_bonded"] = (
+                    "off" if couple_intramolecular == "yes" else "on"
                 )
 
                 method["free_energy_perturbation_parameters"] = free_energy_parameters

@@ -1282,16 +1282,30 @@ class GromacsParser(MDParser):
                 lambdas = {
                     key: [float(i) for i in val.split()] for key, val in lambdas.items()
                 }
-                # free_energy_parameters["lambdas"] = [
-                #     {"kind": nomad_key, "value": lambdas[gromacs_key]}
-                #     for gromacs_key, nomad_key in lambda_key_map.items()
-                #     if lambdas[gromacs_key]
-                # ]
                 free_energy_parameters["lambdas"] = [
                     {"kind": nomad_key, "value": lambdas[gromacs_key]}
                     for gromacs_key, nomad_key in lambda_key_map.items()
                     if lambdas[gromacs_key]
                 ]
+
+                # atoms_info = self.traj_parser._results["atoms_info"]
+                # atoms_moltypes = np.array(atoms_info["moltypes"])
+                # couple_moltype = input_parameters.get("couple-moltype", "")
+                # print(couple_moltype)
+                # ## TODO generalize to multiple moltypes -- now test this
+                # n_atoms = len(atoms_moltypes)
+                # indices = []
+                # if len(couple_moltype) == 1 and couple_moltype.lower() == "system":
+                #     indices.append(range(n_atoms))
+                # else:
+                #     for moltype in couple_moltype:
+                #         indices.append(
+                #             [
+                #                 index
+                #                 for index in range(n_atoms)
+                #                 if atoms_moltypes[index] == moltype
+                #             ]
+                #         )
 
                 atoms_info = self.traj_parser._results["atoms_info"]
                 atoms_moltypes = np.array(atoms_info["moltypes"])

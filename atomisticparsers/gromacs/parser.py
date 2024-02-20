@@ -180,72 +180,72 @@ class GromacsLogParser(TextParser):
             Quantity("time_end", r"Finished \S+ on rank \d+ (.+)", flatten=False),
         ]
 
-    def get_pbc(self):
-        pbc = self.get("input_parameters", {}).get("pbc", "xyz")
-        return ["x" in pbc, "y" in pbc, "z" in pbc]
+    # def get_pbc(self):
+    #     pbc = self.get("input_parameters", {}).get("pbc", "xyz")
+    #     return ["x" in pbc, "y" in pbc, "z" in pbc]
 
-    def get_sampling_settings(self):
-        input_parameters = self.get("input_parameters", {})
-        integrator = input_parameters.get("integrator", "md").lower()
-        if integrator in ["l-bfgs", "cg", "steep"]:
-            sampling_method = "geometry_optimization"
-        elif integrator in ["bd"]:
-            sampling_method = "langevin_dynamics"
-        else:
-            sampling_method = "molecular_dynamics"
+    # def get_sampling_settings(self):
+    #     input_parameters = self.get("input_parameters", {})
+    #     integrator = input_parameters.get("integrator", "md").lower()
+    #     if integrator in ["l-bfgs", "cg", "steep"]:
+    #         sampling_method = "geometry_optimization"
+    #     elif integrator in ["bd"]:
+    #         sampling_method = "langevin_dynamics"
+    #     else:
+    #         sampling_method = "molecular_dynamics"
 
-        ensemble_type = "NVE" if sampling_method == "molecular_dynamics" else None
-        tcoupl = input_parameters.get("tcoupl", "no").lower()
-        if tcoupl != "no":
-            ensemble_type = "NVT"
-            pcoupl = input_parameters.get("pcoupl", "no").lower()
-            if pcoupl != "no":
-                ensemble_type = "NPT"
+    #     ensemble_type = "NVE" if sampling_method == "molecular_dynamics" else None
+    #     tcoupl = input_parameters.get("tcoupl", "no").lower()
+    #     if tcoupl != "no":
+    #         ensemble_type = "NVT"
+    #         pcoupl = input_parameters.get("pcoupl", "no").lower()
+    #         if pcoupl != "no":
+    #             ensemble_type = "NPT"
 
-        return dict(
-            sampling_method=sampling_method,
-            integrator_type=integrator,
-            ensemble_type=ensemble_type,
-        )
+    #     return dict(
+    #         sampling_method=sampling_method,
+    #         integrator_type=integrator,
+    #         ensemble_type=ensemble_type,
+    #     )
 
-    def get_tpstat_settings(self):
-        input_parameters = self.get("input_parameters", {})
-        target_t = input_parameters.get("ref-t", 0) * ureg.kelvin
+    # def get_tpstat_settings(self):
+    #     input_parameters = self.get("input_parameters", {})
+    #     target_t = input_parameters.get("ref-t", 0) * ureg.kelvin
 
-        thermostat_type = None
-        tcoupl = input_parameters.get("tcoupl", "no").lower()
-        if tcoupl != "no":
-            thermostat_type = (
-                "Velocity Rescaling" if tcoupl == "v-rescale" else tcoupl.title()
-            )
+    #     thermostat_type = None
+    #     tcoupl = input_parameters.get("tcoupl", "no").lower()
+    #     if tcoupl != "no":
+    #         thermostat_type = (
+    #             "Velocity Rescaling" if tcoupl == "v-rescale" else tcoupl.title()
+    #         )
 
-        thermostat_tau = input_parameters.get("tau-t", 0) * ureg.ps
+    #     thermostat_tau = input_parameters.get("tau-t", 0) * ureg.ps
 
-        # TODO infer langevin_gamma [s] from bd_fric
-        # bd_fric = self.get('bd-fric', 0, unit='amu/ps')
-        langevin_gamma = None
+    #     # TODO infer langevin_gamma [s] from bd_fric
+    #     # bd_fric = self.get('bd-fric', 0, unit='amu/ps')
+    #     langevin_gamma = None
 
-        target_p = input_parameters.get("ref-p", 0) * ureg.bar
-        # if P is array e.g. for non-isotropic pressures, get average since metainfo is float
-        if hasattr(target_p, "shape"):
-            target_p = np.average(target_p)
+    #     target_p = input_parameters.get("ref-p", 0) * ureg.bar
+    #     # if P is array e.g. for non-isotropic pressures, get average since metainfo is float
+    #     if hasattr(target_p, "shape"):
+    #         target_p = np.average(target_p)
 
-        barostat_type = None
-        pcoupl = input_parameters.get("pcoupl", "no").lower()
-        if pcoupl != "no":
-            barostat_type = pcoupl.title()
+    #     barostat_type = None
+    #     pcoupl = input_parameters.get("pcoupl", "no").lower()
+    #     if pcoupl != "no":
+    #         barostat_type = pcoupl.title()
 
-        barostat_tau = input_parameters.get("tau-p", 0) * ureg.ps
+    #     barostat_tau = input_parameters.get("tau-p", 0) * ureg.ps
 
-        return dict(
-            target_t=target_t,
-            thermostat_type=thermostat_type,
-            thermostat_tau=thermostat_tau,
-            target_p=target_p,
-            barostat_type=barostat_type,
-            barostat_tau=barostat_tau,
-            langevin_gamma=langevin_gamma,
-        )
+    #     return dict(
+    #         target_t=target_t,
+    #         thermostat_type=thermostat_type,
+    #         thermostat_tau=thermostat_tau,
+    #         target_p=target_p,
+    #         barostat_type=barostat_type,
+    #         barostat_tau=barostat_tau,
+    #         langevin_gamma=langevin_gamma,
+    #     )
 
 
 class GromacsMdpParser(TextParser):
@@ -679,71 +679,71 @@ class GromacsParser(MDParser):
         super().__init__()
 
     def get_pbc(self):
-        pbc = self.get("input_parameters", {}).get("pbc", "xyz")
+        pbc = self.input_parameters.get("pbc", "xyz")
         return ["x" in pbc, "y" in pbc, "z" in pbc]
 
-    def get_sampling_settings(self):
-        input_parameters = self.get("input_parameters", {})
-        integrator = input_parameters.get("integrator", "md").lower()
-        if integrator in ["l-bfgs", "cg", "steep"]:
-            sampling_method = "geometry_optimization"
-        elif integrator in ["bd"]:
-            sampling_method = "langevin_dynamics"
-        else:
-            sampling_method = "molecular_dynamics"
+    # def get_sampling_settings(self):
+    #     input_parameters = self.get("input_parameters", {})
+    #     integrator = input_parameters.get("integrator", "md").lower()
+    #     if integrator in ["l-bfgs", "cg", "steep"]:
+    #         sampling_method = "geometry_optimization"
+    #     elif integrator in ["bd"]:
+    #         sampling_method = "langevin_dynamics"
+    #     else:
+    #         sampling_method = "molecular_dynamics"
 
-        ensemble_type = "NVE" if sampling_method == "molecular_dynamics" else None
-        tcoupl = input_parameters.get("tcoupl", "no").lower()
-        if tcoupl != "no":
-            ensemble_type = "NVT"
-            pcoupl = input_parameters.get("pcoupl", "no").lower()
-            if pcoupl != "no":
-                ensemble_type = "NPT"
+    #     ensemble_type = "NVE" if sampling_method == "molecular_dynamics" else None
+    #     tcoupl = input_parameters.get("tcoupl", "no").lower()
+    #     if tcoupl != "no":
+    #         ensemble_type = "NVT"
+    #         pcoupl = input_parameters.get("pcoupl", "no").lower()
+    #         if pcoupl != "no":
+    #             ensemble_type = "NPT"
 
-        return dict(
-            sampling_method=sampling_method,
-            integrator_type=integrator,
-            ensemble_type=ensemble_type,
-        )
+    #     return dict(
+    #         sampling_method=sampling_method,
+    #         integrator_type=integrator,
+    #         ensemble_type=ensemble_type,
+    #     )
 
-    def get_tpstat_settings(self):
-        input_parameters = self.get("input_parameters", {})
-        target_t = input_parameters.get("ref-t", 0) * ureg.kelvin
+    # def get_tpstat_settings(self):
+    #     input_parameters = self.get("input_parameters", {})
+    #     target_t = input_parameters.get("ref-t", 0) * ureg.kelvin
 
-        thermostat_type = None
-        tcoupl = input_parameters.get("tcoupl", "no").lower()
-        if tcoupl != "no":
-            thermostat_type = (
-                "Velocity Rescaling" if tcoupl == "v-rescale" else tcoupl.title()
-            )
+    #     thermostat_type = None
+    #     tcoupl = input_parameters.get("tcoupl", "no").lower()
+    #     if tcoupl != "no":
+    #         thermostat_type = (
+    #             "Velocity Rescaling" if tcoupl == "v-rescale" else tcoupl.title()
+    #         )
 
-        thermostat_tau = input_parameters.get("tau-t", 0) * ureg.ps
+    #     thermostat_tau = input_parameters.get("tau-t", 0) * ureg.ps
 
-        # TODO infer langevin_gamma [s] from bd_fric
-        # bd_fric = self.get('bd-fric', 0, unit='amu/ps')
-        langevin_gamma = None
+    #     # TODO infer langevin_gamma [s] from bd_fric
+    #     # bd_fric = self.get('bd-fric', 0, unit='amu/ps')
+    #     langevin_gamma = None
 
-        target_p = input_parameters.get("ref-p", 0) * ureg.bar
-        # if P is array e.g. for non-isotropic pressures, get average since metainfo is float
-        if hasattr(target_p, "shape"):
-            target_p = np.average(target_p)
+    #     target_p = input_parameters.get("ref-p", 0) * ureg.bar
+    #     # if P is array e.g. for non-isotropic pressures, get average since metainfo is float
+    #     if hasattr(target_p, "shape"):
+    #         target_p = np.average(target_p)
 
-        barostat_type = None
-        pcoupl = input_parameters.get("pcoupl", "no").lower()
-        if pcoupl != "no":
-            barostat_type = pcoupl.title()
+    #     barostat_type = None
+    #     pcoupl = input_parameters.get("pcoupl", "no").lower()
+    #     if pcoupl != "no":
+    #         barostat_type = pcoupl.title()
 
-        barostat_tau = input_parameters.get("tau-p", 0) * ureg.ps
+    #     barostat_tau = input_parameters.get("tau-p", 0) * ureg.ps
 
-        return dict(
-            target_t=target_t,
-            thermostat_type=thermostat_type,
-            thermostat_tau=thermostat_tau,
-            target_p=target_p,
-            barostat_type=barostat_type,
-            barostat_tau=barostat_tau,
-            langevin_gamma=langevin_gamma,
-        )
+    #     return dict(
+    #         target_t=target_t,
+    #         thermostat_type=thermostat_type,
+    #         thermostat_tau=thermostat_tau,
+    #         target_p=target_p,
+    #         barostat_type=barostat_type,
+    #         barostat_tau=barostat_tau,
+    #         langevin_gamma=langevin_gamma,
+    #     )
 
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
@@ -795,7 +795,7 @@ class GromacsParser(MDParser):
             thermo_data = self.energy_parser
         else:
             # try to get it from log file
-            steps = self.log_parser.get("step", [])
+            steps = self.input_parameters.get("step", [])
             thermo_data = dict()
             for n, step in enumerate(steps):
                 n = int(step.get("step_info", {}).get("Step", n))
@@ -814,7 +814,7 @@ class GromacsParser(MDParser):
             thermo_data = self.energy_parser
 
         calculation_times = thermo_data.get("Time", [])
-        time_step = self.log_parser.get("input_parameters", {}).get("dt")
+        time_step = self.input_parameters.get("dt")
         if time_step is None and len(calculation_times) > 1:
             time_step = calculation_times[1] - calculation_times[0]
         self.thermodynamics_steps = [
@@ -920,9 +920,7 @@ class GromacsParser(MDParser):
             return formula
 
         n_frames = self.traj_parser.get("n_frames", 0)
-        traj_sampling_rate = self.log_parser.get("input_parameters", {}).get(
-            "nstxout", 1
-        )
+        traj_sampling_rate = self.input_parameters.get("nstxout", 1)
         self.n_atoms = [self.traj_parser.get_n_atoms(n) for n in range(n_frames)]
         traj_steps = [n * traj_sampling_rate for n in range(n_frames)]
         self.trajectory_steps = traj_steps
@@ -1106,7 +1104,7 @@ class GromacsParser(MDParser):
         interactions = self.traj_parser.get_interactions()
         self.parse_interactions(interactions, sec_model)
 
-        input_parameters = self.log_parser.get("input_parameters", {})
+        input_parameters = self.input_parameters
         sec_force_calculations = ForceCalculations()
         sec_force_field.force_calculations = sec_force_calculations
         sec_neighbor_searching = NeighborSearching()
@@ -1153,7 +1151,7 @@ class GromacsParser(MDParser):
     def parse_workflow(self):
         sec_run = self.archive.run[-1]
         sec_calc = sec_run.get("calculation")
-        input_parameters = self.log_parser.get("input_parameters", {})
+        input_parameters = self.input_parameters
 
         workflow = None
         integrator = input_parameters.get("integrator", "md").lower()
@@ -1482,7 +1480,7 @@ class GromacsParser(MDParser):
 
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
-        input_parameters = self.log_parser.get("input_parameters", {})
+        input_parameters = self.input_parameters
         input_parameters.update(self.get("header", {}))
         for key, val in input_parameters.items():
             key = (
@@ -1541,11 +1539,11 @@ class GromacsParser(MDParser):
             sec_run.x_gromacs_parallel_task_nr = host_info[1]
             sec_run.x_gromacs_number_of_tasks = host_info[2]
 
-        # parser the input parameters
-        # self.mdp_parser.mainfile = self.get_gromacs_file(
-        #     "mdp"
-        # )  # TODO we should really look for mdout.mdp as default
-        # self.input_parameters = self.mdp_parser.get("input_parameters", {})
+        # parse the input parameters
+        self.mdp_parser.mainfile = self.get_gromacs_file(
+            "mdp"
+        )  # TODO we should really look for mdout.mdp as default
+        self.input_parameters = self.mdp_parser.get("input_parameters", {})
         self.input_parameters = {}
         for key, param in self.log_parser.get("input_parameters", {}).items():
             if key not in self.input_parameters:

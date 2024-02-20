@@ -248,6 +248,42 @@ class GromacsLogParser(TextParser):
         )
 
 
+class GromacsMdpParser(TextParser):
+    def __init__(self):
+        super().__init__(None)
+
+    def init_quantities(self):
+        def str_to_input_parameters(val_in):
+            re_array = re.compile(r"\s*([\w\-]+)\[[\d ]+\]\s*=\s*\{*(.+)")
+            re_scalar = re.compile(r"\s*([\w\-]+)\s*[=:]\s*(.+)")
+            parameters = dict()
+            val = val_in.split("\n")
+            val = [line.strip() for line in val]
+            for val_n in val:
+                val_scalar = re_scalar.match(val_n)
+                if val_scalar:
+                    parameters[val_scalar.group(1)] = val_scalar.group(2)
+                    continue
+                val_array = re_array.match(val_n)
+                if val_array:
+                    parameters.setdefault(val_array.group(1), [])
+                    value = [
+                        float(v) for v in val_array.group(2).rstrip("}").split(",")
+                    ]
+                    parameters[val_array.group(1)].append(
+                        value[0] if len(value) == 1 else value
+                    )
+            return parameters
+
+        self._quantities = [
+            Quantity(
+                "input_parameters",
+                r"([\s\S]+)",
+                str_operation=str_to_input_parameters,
+            ),
+        ]
+
+
 class GromacsEDRParser(FileParser):
     def __init__(self):
         super().__init__(None)
@@ -604,6 +640,8 @@ class GromacsParser(MDParser):
         self.log_parser = GromacsLogParser()
         self.traj_parser = GromacsMDAnalysisParser()
         self.energy_parser = GromacsEDRParser()
+        self.mdp_parser = GromacsMdpParser()
+        self.input_parameters = {}
         self._gro_energy_units = ureg.kilojoule * MOL
         self._thermo_ignore_list = ["Time", "Box-X", "Box-Y", "Box-Z"]
         self._base_calc_map = {
@@ -639,6 +677,73 @@ class GromacsParser(MDParser):
             "en.",
         ]
         super().__init__()
+
+    def get_pbc(self):
+        pbc = self.get("input_parameters", {}).get("pbc", "xyz")
+        return ["x" in pbc, "y" in pbc, "z" in pbc]
+
+    def get_sampling_settings(self):
+        input_parameters = self.get("input_parameters", {})
+        integrator = input_parameters.get("integrator", "md").lower()
+        if integrator in ["l-bfgs", "cg", "steep"]:
+            sampling_method = "geometry_optimization"
+        elif integrator in ["bd"]:
+            sampling_method = "langevin_dynamics"
+        else:
+            sampling_method = "molecular_dynamics"
+
+        ensemble_type = "NVE" if sampling_method == "molecular_dynamics" else None
+        tcoupl = input_parameters.get("tcoupl", "no").lower()
+        if tcoupl != "no":
+            ensemble_type = "NVT"
+            pcoupl = input_parameters.get("pcoupl", "no").lower()
+            if pcoupl != "no":
+                ensemble_type = "NPT"
+
+        return dict(
+            sampling_method=sampling_method,
+            integrator_type=integrator,
+            ensemble_type=ensemble_type,
+        )
+
+    def get_tpstat_settings(self):
+        input_parameters = self.get("input_parameters", {})
+        target_t = input_parameters.get("ref-t", 0) * ureg.kelvin
+
+        thermostat_type = None
+        tcoupl = input_parameters.get("tcoupl", "no").lower()
+        if tcoupl != "no":
+            thermostat_type = (
+                "Velocity Rescaling" if tcoupl == "v-rescale" else tcoupl.title()
+            )
+
+        thermostat_tau = input_parameters.get("tau-t", 0) * ureg.ps
+
+        # TODO infer langevin_gamma [s] from bd_fric
+        # bd_fric = self.get('bd-fric', 0, unit='amu/ps')
+        langevin_gamma = None
+
+        target_p = input_parameters.get("ref-p", 0) * ureg.bar
+        # if P is array e.g. for non-isotropic pressures, get average since metainfo is float
+        if hasattr(target_p, "shape"):
+            target_p = np.average(target_p)
+
+        barostat_type = None
+        pcoupl = input_parameters.get("pcoupl", "no").lower()
+        if pcoupl != "no":
+            barostat_type = pcoupl.title()
+
+        barostat_tau = input_parameters.get("tau-p", 0) * ureg.ps
+
+        return dict(
+            target_t=target_t,
+            thermostat_type=thermostat_type,
+            thermostat_tau=thermostat_tau,
+            target_p=target_p,
+            barostat_type=barostat_type,
+            barostat_tau=barostat_tau,
+            langevin_gamma=langevin_gamma,
+        )
 
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
@@ -822,7 +927,7 @@ class GromacsParser(MDParser):
         traj_steps = [n * traj_sampling_rate for n in range(n_frames)]
         self.trajectory_steps = traj_steps
 
-        pbc = self.log_parser.get_pbc()
+        pbc = self.get_pbc()
         self._system_time_map = {}
         for step in self.trajectory_steps:
             n = traj_steps.index(step)
@@ -1378,7 +1483,7 @@ class GromacsParser(MDParser):
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
         input_parameters = self.log_parser.get("input_parameters", {})
-        input_parameters.update(self.log_parser.get("header", {}))
+        input_parameters.update(self.get("header", {}))
         for key, val in input_parameters.items():
             key = (
                 "x_gromacs_inout_control_%s"
@@ -1435,6 +1540,16 @@ class GromacsParser(MDParser):
             sec_run.x_gromacs_program_execution_host = host_info[0]
             sec_run.x_gromacs_parallel_task_nr = host_info[1]
             sec_run.x_gromacs_number_of_tasks = host_info[2]
+
+        # parser the input parameters
+        # self.mdp_parser.mainfile = self.get_gromacs_file(
+        #     "mdp"
+        # )  # TODO we should really look for mdout.mdp as default
+        # self.input_parameters = self.mdp_parser.get("input_parameters", {})
+        self.input_parameters = {}
+        for key, param in self.log_parser.get("input_parameters", {}).items():
+            if key not in self.input_parameters:
+                self.input_parameters[key] = param
 
         topology_file = self.get_gromacs_file("tpr")
         # I have no idea if output trajectory file can be specified in input

@@ -745,6 +745,38 @@ class GromacsParser(MDParser):
     #         langevin_gamma=langevin_gamma,
     #     )
 
+    def get_mdp_file(self):
+        """
+        Tries to find the mdp input parameters (ext = mdp) that match the mainfile calculation.
+        Priority is as follows:
+            1. output mdp file containing both the matching mainfile name and the standard
+            gromacs name `mdout`
+            2. file containing the standard gromacs name `mdout`
+            3. input mdp file matching the mainfile name (as usual)
+            4. any `.mdp` file within the directory (as usual)
+        """
+        ext = "mdp"
+        std_filename = "mdout"
+        files = [d for d in self._gromacs_files if d.endswith(ext)]
+
+        if len(files) == 0:
+            return ""
+
+        if len(files) == 1:
+            return os.path.join(self._maindir, files[0])
+
+        for f in files:
+            filename = f.rsplit(".", 1)[0]
+            if self._basename in filename and std_filename in filename:
+                return os.path.join(self._maindir, f)
+
+        for f in files:
+            filename = f.rsplit(".", 1)[0]
+            if std_filename in filename:
+                return os.path.join(self._maindir, f)
+
+        return self.get_gromacs_file(ext)
+
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
 
@@ -1539,13 +1571,10 @@ class GromacsParser(MDParser):
             sec_run.x_gromacs_parallel_task_nr = host_info[1]
             sec_run.x_gromacs_number_of_tasks = host_info[2]
 
-        # parse the input parameters
-        self.mdp_parser.mainfile = self.get_gromacs_file(
-            "mdp"
-        )  # TODO we should really look for mdout.mdp as default
-        self.input_parameters = self.mdp_parser.get("input_parameters", {})
-        self.input_parameters = {}
-        for key, param in self.log_parser.get("input_parameters", {}).items():
+        # parse the input parameters using log file as default and mdp output or input as supplementary
+        self.input_parameters = self.log_parser.get("input_parameters", {})
+        self.mdp_parser.mainfile = self.get_mdp_file()
+        for key, param in self.mdp_parser.get("input_parameters", {}).items():
             if key not in self.input_parameters:
                 self.input_parameters[key] = param
 

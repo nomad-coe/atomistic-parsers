@@ -180,73 +180,6 @@ class GromacsLogParser(TextParser):
             Quantity("time_end", r"Finished \S+ on rank \d+ (.+)", flatten=False),
         ]
 
-    # def get_pbc(self):
-    #     pbc = self.get("input_parameters", {}).get("pbc", "xyz")
-    #     return ["x" in pbc, "y" in pbc, "z" in pbc]
-
-    # def get_sampling_settings(self):
-    #     input_parameters = self.get("input_parameters", {})
-    #     integrator = input_parameters.get("integrator", "md").lower()
-    #     if integrator in ["l-bfgs", "cg", "steep"]:
-    #         sampling_method = "geometry_optimization"
-    #     elif integrator in ["bd"]:
-    #         sampling_method = "langevin_dynamics"
-    #     else:
-    #         sampling_method = "molecular_dynamics"
-
-    #     ensemble_type = "NVE" if sampling_method == "molecular_dynamics" else None
-    #     tcoupl = input_parameters.get("tcoupl", "no").lower()
-    #     if tcoupl != "no":
-    #         ensemble_type = "NVT"
-    #         pcoupl = input_parameters.get("pcoupl", "no").lower()
-    #         if pcoupl != "no":
-    #             ensemble_type = "NPT"
-
-    #     return dict(
-    #         sampling_method=sampling_method,
-    #         integrator_type=integrator,
-    #         ensemble_type=ensemble_type,
-    #     )
-
-    # def get_tpstat_settings(self):
-    #     input_parameters = self.get("input_parameters", {})
-    #     target_t = input_parameters.get("ref-t", 0) * ureg.kelvin
-
-    #     thermostat_type = None
-    #     tcoupl = input_parameters.get("tcoupl", "no").lower()
-    #     if tcoupl != "no":
-    #         thermostat_type = (
-    #             "Velocity Rescaling" if tcoupl == "v-rescale" else tcoupl.title()
-    #         )
-
-    #     thermostat_tau = input_parameters.get("tau-t", 0) * ureg.ps
-
-    #     # TODO infer langevin_gamma [s] from bd_fric
-    #     # bd_fric = self.get('bd-fric', 0, unit='amu/ps')
-    #     langevin_gamma = None
-
-    #     target_p = input_parameters.get("ref-p", 0) * ureg.bar
-    #     # if P is array e.g. for non-isotropic pressures, get average since metainfo is float
-    #     if hasattr(target_p, "shape"):
-    #         target_p = np.average(target_p)
-
-    #     barostat_type = None
-    #     pcoupl = input_parameters.get("pcoupl", "no").lower()
-    #     if pcoupl != "no":
-    #         barostat_type = pcoupl.title()
-
-    #     barostat_tau = input_parameters.get("tau-p", 0) * ureg.ps
-
-    #     return dict(
-    #         target_t=target_t,
-    #         thermostat_type=thermostat_type,
-    #         thermostat_tau=thermostat_tau,
-    #         target_p=target_p,
-    #         barostat_type=barostat_type,
-    #         barostat_tau=barostat_tau,
-    #         langevin_gamma=langevin_gamma,
-    #     )
-
 
 class GromacsMdpParser(TextParser):
     def __init__(self):
@@ -280,6 +213,66 @@ class GromacsMdpParser(TextParser):
                 "input_parameters",
                 r"([\s\S]+)",
                 str_operation=str_to_input_parameters,
+            ),
+        ]
+
+
+class GromacsXvgParser(TextParser):
+    def __init__(self):
+        super().__init__(None)
+
+        def str_to_results(val_in):
+            results = {
+                "vals": None,
+                "title": "",
+                "xaxis": "",
+                "yaxis": "",
+                "columns": [],
+            }
+            re_columns = re.compile(r"@\s*s\d{1,2}\s*legend\s*\".*\"")
+            re_title = re.compile(r"@\s*title.*")
+            re_xaxis = re.compile(r"@\s*xaxis.*")
+            re_yaxis = re.compile(r"@\s*yaxis.*")
+            re_comment = re.compile(r"^[@#]")
+            re_quotes = re.compile(r"\"(.*)\"")
+            val = val_in.strip().split("\n")
+            val = [line.strip() for line in val]
+            for val_n in val:
+                val_title = re_yaxis.match(val_n)
+                val_xaxis = re_title.match(val_n)
+                val_yaxis = re_xaxis.match(val_n)
+                val_legend = re_columns.match(val_n)
+                val_comment = re_comment.match(val_n)
+                if val_title:
+                    title = val_title.group()
+                    title = re_quotes.findall(title)
+                    results["title"] = title[0] if title else None
+                elif val_xaxis:
+                    xaxis = val_xaxis.group()
+                    xaxis = re_quotes.findall(xaxis)
+                    results["xaxis"] = xaxis[0] if xaxis else None
+                elif val_yaxis:
+                    yaxis = val_yaxis.group()
+                    yaxis = re_quotes.findall(yaxis)
+                    results["yaxis"] = xaxis[0] if xaxis else None
+                elif val_legend:  # TODO convert out of xmgrace notation
+                    column = val_legend.group()
+                    column = re_quotes.findall(column)
+                    column = column[0] if column else None
+                    results["columns"].append(column)
+                elif not val_comment:
+                    results["vals"] = (
+                        np.vstack((results["vals"], [val_n.split()]))
+                        if results["vals"] is not None
+                        else [val_n.split()]
+                    )
+            return results
+
+        self._quantities = [
+            Quantity(
+                "results",
+                r"([\s\S]+)",
+                str_operation=str_to_results,
             ),
         ]
 
@@ -641,6 +634,7 @@ class GromacsParser(MDParser):
         self.traj_parser = GromacsMDAnalysisParser()
         self.energy_parser = GromacsEDRParser()
         self.mdp_parser = GromacsMdpParser()
+        self.xvg_parser = GromacsXvgParser()
         self.input_parameters = {}
         self._gro_energy_units = ureg.kilojoule * MOL
         self._thermo_ignore_list = ["Time", "Box-X", "Box-Y", "Box-Z"]
@@ -1476,6 +1470,8 @@ class GromacsParser(MDParser):
             ] = self.get_free_energy_calculation_parameters()
 
             # TODO add the reading of free energies from xvg file
+            self.xvg_parser.mainfile = self.get_gromacs_file("xvg")
+            results["free_energy_perturbation"] = self.xvg_parser.get("results")
 
             self.parse_md_workflow(dict(method=method, results=results))
 

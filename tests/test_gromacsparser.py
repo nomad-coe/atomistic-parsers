@@ -39,7 +39,7 @@ def test_md_verbose(parser):
     sec_run = archive.run[0]
     assert sec_run.program.version == "5.1.4"
     sec_control = sec_run.x_gromacs_section_control_parameters
-    assert sec_control.x_gromacs_inout_control_coulombtype == "PME"
+    assert sec_control.x_gromacs_inout_control_coulombtype == "pme"
     assert np.shape(sec_control.x_gromacs_inout_control_deform) == (3, 3)
 
     sec_workflow = archive.workflow2

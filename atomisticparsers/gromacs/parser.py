@@ -1423,40 +1423,23 @@ class GromacsParser(MDParser):
                     if lambdas[gromacs_key]
                 ]
 
-                # atoms_info = self.traj_parser._results["atoms_info"]
-                # atoms_moltypes = np.array(atoms_info["moltypes"])
-                # couple_moltype = input_parameters.get("couple-moltype", "")
-                # print(couple_moltype)
-                # ## TODO generalize to multiple moltypes -- now test this
-                # n_atoms = len(atoms_moltypes)
-                # indices = []
-                # if len(couple_moltype) == 1 and couple_moltype.lower() == "system":
-                #     indices.append(range(n_atoms))
-                # else:
-                #     for moltype in couple_moltype:
-                #         indices.append(
-                #             [
-                #                 index
-                #                 for index in range(n_atoms)
-                #                 if atoms_moltypes[index] == moltype
-                #             ]
-                #         )
-
                 atoms_info = self.traj_parser._results["atoms_info"]
                 atoms_moltypes = np.array(atoms_info["moltypes"])
-                couple_moltype = input_parameters.get(
-                    "couple-moltype", ""
-                )  ## TODO generalize to multiple moltypes
+                couple_moltype = input_parameters.get("couple-moltype", "").split()
                 n_atoms = len(atoms_moltypes)
-                indices = [
-                    index
-                    for index in range(n_atoms)
-                    if atoms_moltypes[index] == couple_moltype
-                ]
-                indices = (
-                    range(n_atoms) if couple_moltype.lower() == "system" else indices
-                )
-                free_energy_parameters["indices"] = indices
+                indices = []
+                if len(couple_moltype) == 1 and couple_moltype[0].lower() == "system":
+                    indices.extend(range(n_atoms))
+                else:
+                    for moltype in couple_moltype:
+                        indices.extend(
+                            [
+                                index
+                                for index in range(n_atoms)
+                                if atoms_moltypes[index] == moltype
+                            ]
+                        )
+                free_energy_parameters["atom_indices"] = indices
 
                 couple_vdw_map = {"vdw-q": "on", "vdw": "on", "q": "off", "none": "off"}
                 couple_coloumb_map = {
@@ -1572,11 +1555,17 @@ class GromacsParser(MDParser):
             sec_run.x_gromacs_number_of_tasks = host_info[2]
 
         # parse the input parameters using log file as default and mdp output or input as supplementary
-        self.input_parameters = self.log_parser.get("input_parameters", {})
+        self.input_parameters = {
+            key.replace("_", "-"): val.lower() if isinstance(val, str) else val
+            for key, val in self.log_parser.get("input_parameters", {}).items()
+        }
         self.mdp_parser.mainfile = self.get_mdp_file()
         for key, param in self.mdp_parser.get("input_parameters", {}).items():
-            if key not in self.input_parameters:
-                self.input_parameters[key] = param
+            new_key = key.replace("_", "-")
+            if new_key not in self.input_parameters:
+                self.input_parameters[new_key] = (
+                    param.lower() if isinstance(param, str) else param
+                )
 
         topology_file = self.get_gromacs_file("tpr")
         # I have no idea if output trajectory file can be specified in input

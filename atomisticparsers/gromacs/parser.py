@@ -1180,6 +1180,177 @@ class GromacsParser(MDParser):
         rcoulomb = input_parameters.get("rcoulomb", None)
         sec_force_calculations.coulomb_cutoff = float(rcoulomb) if rcoulomb else None
 
+    def get_thermostat_parameters(self, integrator: str = ""):
+        thermostat = self.input_parameters.get("tcoupl", "no").lower()
+        thermostat_map = {
+            "berendsen": "berendsen",
+            "v-rescale": "velocity_rescaling",
+            "nose-hoover": "nose_hoover",
+            "andersen": "andersen",
+        }
+        value = thermostat_map.get(
+            thermostat,
+            [val for key, val in thermostat_map.items() if key in thermostat],
+        )
+        value = (
+            value
+            if not isinstance(value, list)
+            else value[0]
+            if len(value) != 0
+            else None
+        )
+        thermostat_parameters = {}
+        thermostat_parameters["thermostat_type"] = value
+        if "sd" in integrator:
+            thermostat_parameters["thermostat_type"] = "langevin_goga"
+        if thermostat_parameters["thermostat_type"]:
+            reference_temperature = self.input_parameters.get("ref-t", None)
+            if isinstance(reference_temperature, str):
+                reference_temperature = float(reference_temperature.split()[0])
+            reference_temperature *= ureg.kelvin if reference_temperature else None
+            thermostat_parameters["reference_temperature"] = reference_temperature
+            coupling_constant = self.input_parameters.get("tau-t", None)
+            if isinstance(coupling_constant, str):
+                coupling_constant = float(coupling_constant.split()[0])
+            coupling_constant *= ureg.picosecond if coupling_constant else None
+            thermostat_parameters["coupling_constant"] = coupling_constant
+
+        return thermostat_parameters
+
+    def get_barostat_parameters(self):
+        barostat_parameters = {}
+        barostat_map = {
+            "berendsen": "berendsen",
+            "parrinello-rahman": "parrinello_rahman",
+            "mttk": "martyna_tuckerman_tobias_klein",
+            "c-rescale": "stochastic_cell_rescaling",
+        }
+        barostat = self.input_parameters.get("pcoupl", "no").lower()
+        value = barostat_map.get(
+            barostat, [val for key, val in barostat_map.items() if key in barostat]
+        )
+        value = (
+            value
+            if not isinstance(value, list)
+            else value[0]
+            if len(value) != 0
+            else None
+        )
+        barostat_parameters["barostat_type"] = value
+        if barostat_parameters["barostat_type"]:
+            couplingtype = self.input_parameters.get("pcoupltype", None).lower()
+            couplingtype_map = {
+                "isotropic": "isotropic",
+                "semiisotropic": "semi_isotropic",
+                "anisotropic": "anisotropic",
+            }
+            value = couplingtype_map.get(
+                couplingtype,
+                [val for key, val in couplingtype_map.items() if key in couplingtype],
+            )
+            barostat_parameters["coupling_type"] = (
+                value[0] if isinstance(value, list) else value
+            )
+            taup = self.input_parameters.get("tau-p", None)
+            barostat_parameters["coupling_constant"] = (
+                np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond if taup else None
+            )
+            refp = self.input_parameters.get("ref-p", None)
+            barostat_parameters["reference_pressure"] = (
+                refp * ureg.bar if refp is not None else None
+            )
+            compressibility = self.input_parameters.get("compressibility", None)
+            barostat_parameters["compressibility"] = (
+                compressibility * (1.0 / ureg.bar)
+                if compressibility is not None
+                else None
+            )
+        return barostat_parameters
+
+    def get_free_energy_calculation_parameters(self):
+        free_energy_parameters = {}
+        free_energy = self.input_parameters.get("free-energy", "")
+        free_energy = free_energy.lower() if free_energy else ""
+        expanded = self.input_parameters.get("expanded", "")
+        expanded = expanded.lower() if expanded else ""
+        delta_lambda = int(self.input_parameters.get("delta-lamda", -1))
+        if free_energy == "yes" and expanded == "yes":
+            self.logger.warning(
+                "storage of expanded ensemble simulation data not supported, skipping storage of free energy perturbation parameters"
+            )
+        elif free_energy == "yes" and delta_lambda == "no":
+            self.logger.warning(
+                "Only fixed state free energy perturbation calculations are explicitly supported, skipping storage of free energy perturbation parameters."
+            )
+        elif free_energy == "yes":
+            lambda_key_map = {
+                "fep": "output",
+                "coul": "coulomb",
+                "vdw": "vdw",
+                "bonded": "bonded",
+                "restraint": "restraint",
+                "mass": "mass",
+                "temperature": "temperature",
+            }
+            lambdas = {
+                key: self.input_parameters.get(f"{key}-lambdas", "")
+                for key in lambda_key_map.keys()
+            }
+            lambdas = {
+                key: [float(i) for i in val.split()] for key, val in lambdas.items()
+            }
+            free_energy_parameters["lambdas"] = [
+                {"kind": nomad_key, "value": lambdas[gromacs_key]}
+                for gromacs_key, nomad_key in lambda_key_map.items()
+                if lambdas[gromacs_key]
+            ]
+
+            atoms_info = self.traj_parser._results["atoms_info"]
+            atoms_moltypes = np.array(atoms_info["moltypes"])
+            couple_moltype = self.input_parameters.get("couple-moltype", "").split()
+            n_atoms = len(atoms_moltypes)
+            indices = []
+            if len(couple_moltype) == 1 and couple_moltype[0].lower() == "system":
+                indices.extend(range(n_atoms))
+            else:
+                for moltype in couple_moltype:
+                    indices.extend(
+                        [
+                            index
+                            for index in range(n_atoms)
+                            if atoms_moltypes[index] == moltype
+                        ]
+                    )
+            free_energy_parameters["atom_indices"] = indices
+
+            couple_vdw_map = {"vdw-q": "on", "vdw": "on", "q": "off", "none": "off"}
+            couple_coloumb_map = {
+                "vdw-q": "on",
+                "vdw": "off",
+                "q": "on",
+                "none": "off",
+            }
+            couple_initial = self.input_parameters.get("couple-lambda0", "none").lower()
+            couple_final = self.input_parameters.get("couple-lambda1", "vdw-q").lower()
+
+            free_energy_parameters["initial_state_vdw"] = couple_vdw_map[couple_initial]
+            free_energy_parameters["final_state_vdw"] = couple_vdw_map[couple_final]
+            free_energy_parameters["initial_state_coloumb"] = couple_coloumb_map[
+                couple_initial
+            ]
+            free_energy_parameters["final_state_coloumb"] = couple_coloumb_map[
+                couple_final
+            ]
+
+            couple_intramolecular = self.input_parameters.get(
+                "couple-intramol", "on"
+            ).lower()
+            free_energy_parameters["final_state_bonded"] = "on"
+            free_energy_parameters["initial_state_bonded"] = (
+                "off" if couple_intramolecular == "yes" else "on"
+            )
+        return free_energy_parameters
+
     def parse_workflow(self):
         sec_run = self.archive.run[-1]
         sec_calc = sec_run.get("calculation")
@@ -1286,94 +1457,9 @@ class GromacsParser(MDParser):
                 float(timestep) * ureg.picosecond if timestep else None
             )
 
-            thermostat = input_parameters.get("tcoupl", "no").lower()
-            thermostat_map = {
-                "berendsen": "berendsen",
-                "v-rescale": "velocity_rescaling",
-                "nose-hoover": "nose_hoover",
-                "andersen": "andersen",
-            }
-            value = thermostat_map.get(
-                thermostat,
-                [val for key, val in thermostat_map.items() if key in thermostat],
-            )
-            value = (
-                value
-                if not isinstance(value, list)
-                else value[0]
-                if len(value) != 0
-                else None
-            )
-            thermostat_parameters = {}
-            thermostat_parameters["thermostat_type"] = value
-            if "sd" in integrator:
-                thermostat_parameters["thermostat_type"] = "langevin_goga"
-            if thermostat_parameters["thermostat_type"]:
-                reference_temperature = input_parameters.get("ref-t", None)
-                if isinstance(reference_temperature, str):
-                    reference_temperature = float(reference_temperature.split()[0])
-                reference_temperature *= ureg.kelvin if reference_temperature else None
-                thermostat_parameters["reference_temperature"] = reference_temperature
-                coupling_constant = input_parameters.get("tau-t", None)
-                if isinstance(coupling_constant, str):
-                    coupling_constant = float(coupling_constant.split()[0])
-                coupling_constant *= ureg.picosecond if coupling_constant else None
-                thermostat_parameters["coupling_constant"] = coupling_constant
+            thermostat_parameters = self.get_thermostat_parameters(integrator)
             method["thermostat_parameters"] = thermostat_parameters
-
-            barostat = input_parameters.get("pcoupl", "no").lower()
-            barostat_map = {
-                "berendsen": "berendsen",
-                "parrinello-rahman": "parrinello_rahman",
-                "mttk": "martyna_tuckerman_tobias_klein",
-                "c-rescale": "stochastic_cell_rescaling",
-            }
-            value = barostat_map.get(
-                barostat, [val for key, val in barostat_map.items() if key in barostat]
-            )
-            value = (
-                value
-                if not isinstance(value, list)
-                else value[0]
-                if len(value) != 0
-                else None
-            )
-            barostat_parameters = {}
-            barostat_parameters["barostat_type"] = value
-            if barostat_parameters["barostat_type"]:
-                couplingtype = input_parameters.get("pcoupltype", None).lower()
-                couplingtype_map = {
-                    "isotropic": "isotropic",
-                    "semiisotropic": "semi_isotropic",
-                    "anisotropic": "anisotropic",
-                }
-                value = couplingtype_map.get(
-                    couplingtype,
-                    [
-                        val
-                        for key, val in couplingtype_map.items()
-                        if key in couplingtype
-                    ],
-                )
-                barostat_parameters["coupling_type"] = (
-                    value[0] if isinstance(value, list) else value
-                )
-                taup = input_parameters.get("tau-p", None)
-                barostat_parameters["coupling_constant"] = (
-                    np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond
-                    if taup
-                    else None
-                )
-                refp = input_parameters.get("ref-p", None)
-                barostat_parameters["reference_pressure"] = (
-                    refp * ureg.bar if refp is not None else None
-                )
-                compressibility = input_parameters.get("compressibility", None)
-                barostat_parameters["compressibility"] = (
-                    compressibility * (1.0 / ureg.bar)
-                    if compressibility is not None
-                    else None
-                )
+            barostat_parameters = self.get_barostat_parameters()
             method["barostat_parameters"] = barostat_parameters
 
             if thermostat_parameters.get("thermostat_type"):
@@ -1385,94 +1471,11 @@ class GromacsParser(MDParser):
             else:
                 method["thermodynamic_ensemble"] = "NVE"
 
-            # Free Energy Perturbation Calculations
-            free_energy_parameters = {}
-            free_energy = input_parameters.get("free-energy", "")
-            free_energy = free_energy.lower() if free_energy else ""
-            expanded = input_parameters.get("expanded", "")
-            expanded = expanded.lower() if expanded else ""
-            delta_lambda = int(input_parameters.get("delta-lamda", -1))
-            if free_energy == "yes" and expanded == "yes":
-                self.logger.warning(
-                    "storage of expanded ensemble simulation data not supported, skipping storage of free energy perturbation parameters"
-                )
-            elif free_energy == "yes" and delta_lambda == "no":
-                self.logger.warning(
-                    "Only fixed state free energy perturbation calculations are explicitly supported, skipping storage of free energy perturbation parameters."
-                )
-            elif free_energy == "yes":
-                lambda_key_map = {
-                    "fep": "output",
-                    "coul": "coulomb",
-                    "vdw": "vdw",
-                    "bonded": "bonded",
-                    "restraint": "restraint",
-                    "mass": "mass",
-                    "temperature": "temperature",
-                }
-                lambdas = {
-                    key: input_parameters.get(f"{key}-lambdas", "")
-                    for key in lambda_key_map.keys()
-                }
-                lambdas = {
-                    key: [float(i) for i in val.split()] for key, val in lambdas.items()
-                }
-                free_energy_parameters["lambdas"] = [
-                    {"kind": nomad_key, "value": lambdas[gromacs_key]}
-                    for gromacs_key, nomad_key in lambda_key_map.items()
-                    if lambdas[gromacs_key]
-                ]
+            method[
+                "free_energy_perturbation_parameters"
+            ] = self.get_free_energy_calculation_parameters()
 
-                atoms_info = self.traj_parser._results["atoms_info"]
-                atoms_moltypes = np.array(atoms_info["moltypes"])
-                couple_moltype = input_parameters.get("couple-moltype", "").split()
-                n_atoms = len(atoms_moltypes)
-                indices = []
-                if len(couple_moltype) == 1 and couple_moltype[0].lower() == "system":
-                    indices.extend(range(n_atoms))
-                else:
-                    for moltype in couple_moltype:
-                        indices.extend(
-                            [
-                                index
-                                for index in range(n_atoms)
-                                if atoms_moltypes[index] == moltype
-                            ]
-                        )
-                free_energy_parameters["atom_indices"] = indices
-
-                couple_vdw_map = {"vdw-q": "on", "vdw": "on", "q": "off", "none": "off"}
-                couple_coloumb_map = {
-                    "vdw-q": "on",
-                    "vdw": "off",
-                    "q": "on",
-                    "none": "off",
-                }
-                couple_initial = input_parameters.get("couple-lambda0", "none").lower()
-                couple_final = input_parameters.get("couple-lambda1", "vdw-q").lower()
-
-                free_energy_parameters["initial_state_vdw"] = couple_vdw_map[
-                    couple_initial
-                ]
-                free_energy_parameters["final_state_vdw"] = couple_vdw_map[couple_final]
-                free_energy_parameters["initial_state_coloumb"] = couple_coloumb_map[
-                    couple_initial
-                ]
-                free_energy_parameters["final_state_coloumb"] = couple_coloumb_map[
-                    couple_final
-                ]
-
-                couple_intramolecular = input_parameters.get(
-                    "couple-intramol", "on"
-                ).lower()
-                free_energy_parameters["final_state_bonded"] = "on"
-                free_energy_parameters["initial_state_bonded"] = (
-                    "off" if couple_intramolecular == "yes" else "on"
-                )
-
-                method["free_energy_perturbation_parameters"] = free_energy_parameters
-
-                # TODO add the reading of free energies from xvg file
+            # TODO add the reading of free energies from xvg file
 
             self.parse_md_workflow(dict(method=method, results=results))
 

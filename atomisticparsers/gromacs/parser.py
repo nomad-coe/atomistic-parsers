@@ -54,6 +54,7 @@ from .metainfo.gromacs import (
 )
 from atomisticparsers.utils import MDAnalysisParser, MDParser
 from nomad.atomutils import get_bond_list_from_model_contributions
+from nomad.parsing.parser import to_hdf5
 
 re_float = r"[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?"
 re_n = r"[\n\r]"
@@ -1469,9 +1470,30 @@ class GromacsParser(MDParser):
                 "free_energy_perturbation_parameters"
             ] = self.get_free_energy_calculation_parameters()
 
-            # TODO add the reading of free energies from xvg file
             self.xvg_parser.mainfile = self.get_gromacs_file("xvg")
-            results["free_energy_perturbation"] = self.xvg_parser.get("results")
+            free_energies = self.xvg_parser.get("results")
+            title = free_energies.get("title", "")
+            if r"dH/d\xl\f{}" in title or r"\xD\f{}H" in title:
+                filename = os.path.join(
+                    os.path.dirname(self.filepath.split("/raw/")[-1]),
+                    f"{os.path.basename(self.filepath)}.archive.hdf5",
+                )
+                farg = (
+                    "r+b"
+                    if os.path.isfile(
+                        os.path.join(os.path.dirname(self.filepath), filename)
+                    )
+                    else "wb"
+                )
+                if self.archive.m_context:
+                    with self.archive.m_context.raw_file(filename, farg) as f:
+                        workflow2sectionhere.value_hdf5 = to_hdf5(
+                            valuehere,
+                            f,
+                            f"{workflow2sectionhere.m_path()}/value_hdf5",
+                        )
+
+                results["free_energy_perturbation"] = free_energies
 
             self.parse_md_workflow(dict(method=method, results=results))
 

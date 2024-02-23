@@ -224,11 +224,11 @@ class GromacsXvgParser(TextParser):
 
         def str_to_results(val_in):
             results = {
-                "vals": None,
+                "column_vals": None,
                 "title": "",
                 "xaxis": "",
                 "yaxis": "",
-                "columns": [],
+                "column_headers": [],
             }
             re_columns = re.compile(r"@\s*s\d{1,2}\s*legend\s*\".*\"")
             re_title = re.compile(r"@\s*title.*")
@@ -260,13 +260,14 @@ class GromacsXvgParser(TextParser):
                     column = val_legend.group()
                     column = re_quotes.findall(column)
                     column = column[0] if column else None
-                    results["columns"].append(column)
+                    results["column_headers"].append(column)
                 elif not val_comment:
-                    results["vals"] = (
-                        np.vstack((results["vals"], [val_n.split()]))
-                        if results["vals"] is not None
+                    results["column_vals"] = (
+                        np.vstack((results["column_vals"], [val_n.split()]))
+                        if results["column_vals"] is not None
                         else [val_n.split()]
                     )
+            print(results)
             return results
 
         self._quantities = [
@@ -1472,28 +1473,37 @@ class GromacsParser(MDParser):
 
             self.xvg_parser.mainfile = self.get_gromacs_file("xvg")
             free_energies = self.xvg_parser.get("results")
+
             title = free_energies.get("title", "")
             if r"dH/d\xl\f{}" in title or r"\xD\f{}H" in title:
-                filename = os.path.join(
-                    os.path.dirname(self.filepath.split("/raw/")[-1]),
-                    f"{os.path.basename(self.filepath)}.archive.hdf5",
-                )
-                farg = (
-                    "r+b"
-                    if os.path.isfile(
-                        os.path.join(os.path.dirname(self.filepath), filename)
-                    )
-                    else "wb"
-                )
-                if self.archive.m_context:
-                    with self.archive.m_context.raw_file(filename, farg) as f:
-                        workflow2sectionhere.value_hdf5 = to_hdf5(
-                            valuehere,
-                            f,
-                            f"{workflow2sectionhere.m_path()}/value_hdf5",
-                        )
+                results_key = "free_energies_instantaneous_infinitesimal"
+                results[results_key] = {}
+                columns = free_energies.get("column_vals")
+                results[results_key]["n_frames"] = len(columns)
+                results[results_key]["n_states"] = len(columns[0])
+                results[results_key]["times"] = columns[:, 0] * ureg.ps
+                columns = columns[:, 1:] * self._gro_energy_units.magnitude
+                results[results_key]["value_unit"] = str(self._gro_energy_units.units)
+                # filename = os.path.join(
+                #     os.path.dirname(self.filepath.split("/raw/")[-1]),
+                #     f"{os.path.basename(self.filepath)}.archive.hdf5",
+                # )
+                # farg = (
+                #     "r+b"
+                #     if os.path.isfile(
+                #         os.path.join(os.path.dirname(self.filepath), filename)
+                #     )
+                #     else "wb"
+                # )
+                # if self.archive.m_context:
+                #     with self.archive.m_context.raw_file(filename, farg) as f:
+                #         workflow2sectionhere.value_hdf5 = to_hdf5(
+                #             valuehere,
+                #             f,
+                #             f"{workflow2sectionhere.m_path()}/value_hdf5",
+                #         )
 
-                results["free_energy_perturbation"] = free_energies
+            # results["free_energies_instantaneous_infinitesimal"] = free_energies
 
             self.parse_md_workflow(dict(method=method, results=results))
 

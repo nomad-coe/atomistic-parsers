@@ -1475,7 +1475,7 @@ class GromacsParser(MDParser):
             self.xvg_parser.mainfile = self.get_gromacs_file("xvg")
             free_energies = self.xvg_parser.get("results")
 
-            title = free_energies.get("title", "")
+            title = free_energies.get("title", "") if free_energies is not None else ""
             flag_FE = False
             if r"dH/d\xl\f{}" in title and r"\xD\f{}H" in title:
                 flag_FE = True

@@ -677,69 +677,6 @@ class GromacsParser(MDParser):
         pbc = self.input_parameters.get("pbc", "xyz")
         return ["x" in pbc, "y" in pbc, "z" in pbc]
 
-    # def get_sampling_settings(self):
-    #     input_parameters = self.get("input_parameters", {})
-    #     integrator = input_parameters.get("integrator", "md").lower()
-    #     if integrator in ["l-bfgs", "cg", "steep"]:
-    #         sampling_method = "geometry_optimization"
-    #     elif integrator in ["bd"]:
-    #         sampling_method = "langevin_dynamics"
-    #     else:
-    #         sampling_method = "molecular_dynamics"
-
-    #     ensemble_type = "NVE" if sampling_method == "molecular_dynamics" else None
-    #     tcoupl = input_parameters.get("tcoupl", "no").lower()
-    #     if tcoupl != "no":
-    #         ensemble_type = "NVT"
-    #         pcoupl = input_parameters.get("pcoupl", "no").lower()
-    #         if pcoupl != "no":
-    #             ensemble_type = "NPT"
-
-    #     return dict(
-    #         sampling_method=sampling_method,
-    #         integrator_type=integrator,
-    #         ensemble_type=ensemble_type,
-    #     )
-
-    # def get_tpstat_settings(self):
-    #     input_parameters = self.get("input_parameters", {})
-    #     target_t = input_parameters.get("ref-t", 0) * ureg.kelvin
-
-    #     thermostat_type = None
-    #     tcoupl = input_parameters.get("tcoupl", "no").lower()
-    #     if tcoupl != "no":
-    #         thermostat_type = (
-    #             "Velocity Rescaling" if tcoupl == "v-rescale" else tcoupl.title()
-    #         )
-
-    #     thermostat_tau = input_parameters.get("tau-t", 0) * ureg.ps
-
-    #     # TODO infer langevin_gamma [s] from bd_fric
-    #     # bd_fric = self.get('bd-fric', 0, unit='amu/ps')
-    #     langevin_gamma = None
-
-    #     target_p = input_parameters.get("ref-p", 0) * ureg.bar
-    #     # if P is array e.g. for non-isotropic pressures, get average since metainfo is float
-    #     if hasattr(target_p, "shape"):
-    #         target_p = np.average(target_p)
-
-    #     barostat_type = None
-    #     pcoupl = input_parameters.get("pcoupl", "no").lower()
-    #     if pcoupl != "no":
-    #         barostat_type = pcoupl.title()
-
-    #     barostat_tau = input_parameters.get("tau-p", 0) * ureg.ps
-
-    #     return dict(
-    #         target_t=target_t,
-    #         thermostat_type=thermostat_type,
-    #         thermostat_tau=thermostat_tau,
-    #         target_p=target_p,
-    #         barostat_type=barostat_type,
-    #         barostat_tau=barostat_tau,
-    #         langevin_gamma=langevin_gamma,
-    #     )
-
     def get_mdp_file(self):
         """
         Tries to find the mdp input parameters (ext = mdp) that match the mainfile calculation.

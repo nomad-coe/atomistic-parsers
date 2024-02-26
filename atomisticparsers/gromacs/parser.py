@@ -267,7 +267,6 @@ class GromacsXvgParser(TextParser):
                         if results["column_vals"] is not None
                         else [val_n.split()]
                     )
-            print(results)
             return results
 
         self._quantities = [
@@ -1272,11 +1271,11 @@ class GromacsParser(MDParser):
         delta_lambda = int(self.input_parameters.get("delta-lamda", -1))
         if free_energy == "yes" and expanded == "yes":
             self.logger.warning(
-                "storage of expanded ensemble simulation data not supported, skipping storage of free energy perturbation parameters"
+                "storage of expanded ensemble simulation data not supported, skipping storage of free energy calculation parameters"
             )
         elif free_energy == "yes" and delta_lambda == "no":
             self.logger.warning(
-                "Only fixed state free energy perturbation calculations are explicitly supported, skipping storage of free energy perturbation parameters."
+                "Only fixed state free energy calculation calculations are explicitly supported, skipping storage of free energy calculation parameters."
             )
         elif free_energy == "yes":
             lambda_key_map = {
@@ -1300,6 +1299,9 @@ class GromacsParser(MDParser):
                 for gromacs_key, nomad_key in lambda_key_map.items()
                 if lambdas[gromacs_key]
             ]
+            free_energy_parameters["lambda_index"] = self.input_parameters.get(
+                "init-lambda-state", ""
+            )
 
             atoms_info = self.traj_parser._results["atoms_info"]
             atoms_moltypes = np.array(atoms_info["moltypes"])
@@ -1467,45 +1469,79 @@ class GromacsParser(MDParser):
             else:
                 method["thermodynamic_ensemble"] = "NVE"
 
-            method[
-                "free_energy_perturbation_parameters"
-            ] = self.get_free_energy_calculation_parameters()
+            params_key = "free_energy_calculation_parameters"
+            method[params_key] = self.get_free_energy_calculation_parameters()
 
             self.xvg_parser.mainfile = self.get_gromacs_file("xvg")
             free_energies = self.xvg_parser.get("results")
 
             title = free_energies.get("title", "")
-            if r"dH/d\xl\f{}" in title or r"\xD\f{}H" in title:
-                results_key = "free_energies_instantaneous_infinitesimal"
+            flag_FE = False
+            if r"dH/d\xl\f{}" in title and r"\xD\f{}H" in title:
+                flag_FE = True
+                results_key = "free_energy_calculations"
                 results[results_key] = {}
                 columns = free_energies.get("column_vals")
                 results[results_key]["n_frames"] = len(columns)
-                results[results_key]["n_states"] = len(columns[0])
+                results[results_key]["n_states"] = len(
+                    method[params_key].get("lambdas", [])
+                )
+                results[results_key]["lambda_index"] = method[params_key].get(
+                    "lambda_index", None
+                )
                 results[results_key]["times"] = columns[:, 0] * ureg.ps
                 columns = columns[:, 1:] * self._gro_energy_units.magnitude
                 results[results_key]["value_unit"] = str(self._gro_energy_units.units)
-                # filename = os.path.join(
-                #     os.path.dirname(self.filepath.split("/raw/")[-1]),
-                #     f"{os.path.basename(self.filepath)}.archive.hdf5",
-                # )
-                # farg = (
-                #     "r+b"
-                #     if os.path.isfile(
-                #         os.path.join(os.path.dirname(self.filepath), filename)
-                #     )
-                #     else "wb"
-                # )
-                # if self.archive.m_context:
-                #     with self.archive.m_context.raw_file(filename, farg) as f:
-                #         workflow2sectionhere.value_hdf5 = to_hdf5(
-                #             valuehere,
-                #             f,
-                #             f"{workflow2sectionhere.m_path()}/value_hdf5",
-                #         )
-
-            # results["free_energies_instantaneous_infinitesimal"] = free_energies
 
             self.parse_md_workflow(dict(method=method, results=results))
+
+            if flag_FE:
+                filename = os.path.join(
+                    os.path.dirname(self.filepath.split("/raw/")[-1]),
+                    f"{os.path.basename(self.filepath)}.archive.hdf5",
+                )
+                if not os.path.isfile(
+                    os.path.join(os.path.dirname(self.filepath), filename)
+                ):
+                    if self.archive.m_context:
+                        with self.archive.m_context.raw_file(filename, "wb") as f:
+                            pass
+                sec_FE_parameters = (
+                    self.archive.workflow2.method.free_energy_calculation_parameters[0]
+                )
+                sec_FE = self.archive.workflow2.results.free_energy_calculations[0]
+                sec_FE.method_ref = sec_FE_parameters
+                if self.archive.m_context:
+                    with self.archive.m_context.raw_file(filename, "r+b") as f:
+                        # The expected columns of the xvg file are:
+                        # Total Energy
+                        # dH/dlambda current lambda
+                        # Delta H between each lambda and current lambda (n_lambda columns)
+                        # PV Energy
+                        if columns[:, 2:-1].shape[1] != sec_FE.n_states:
+                            self.logger.warning(
+                                "Unexpected format of xvg file. Not storing free energy calculation results."
+                            )
+                        sec_FE.value_total_energy_magnitude = to_hdf5(
+                            columns[:, 0],
+                            f,
+                            f"{sec_FE.m_path()}/value_total_energy_magnitude",
+                        )
+                        sec_FE.value_total_energy_derivative_magnitude = to_hdf5(
+                            columns[:, 1],
+                            f,
+                            f"{sec_FE.m_path()}/value_total_energy_derivative_magnitude",
+                        )
+                        sec_FE.value_total_energy_differences_magnitude = to_hdf5(
+                            columns[:, 2:-1],
+                            f,
+                            f"{sec_FE.m_path()}/value_total_energy_differences_magnitude",
+                        )
+                        sec_FE.value_PV_energy_magnitude = to_hdf5(
+                            columns[:, -1],
+                            f,
+                            f"{sec_FE.m_path()}/value_PV_energy_magnitude",
+                        )
 
     def parse_input(self):
         sec_run = self.archive.run[-1]

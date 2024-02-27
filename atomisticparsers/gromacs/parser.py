@@ -1215,6 +1215,7 @@ class GromacsParser(MDParser):
                 "Only fixed state free energy calculation calculations are explicitly supported, skipping storage of free energy calculation parameters."
             )
         elif free_energy == "yes":
+            free_energy_parameters["type"] = "alchemical"
             lambda_key_map = {
                 "fep": "output",
                 "coul": "coulomb",
@@ -1253,7 +1254,7 @@ class GromacsParser(MDParser):
                         [
                             index
                             for index in range(n_atoms)
-                            if atoms_moltypes[index] == moltype
+                            if atoms_moltypes[index].lower() == moltype
                         ]
                     )
             free_energy_parameters["atom_indices"] = indices

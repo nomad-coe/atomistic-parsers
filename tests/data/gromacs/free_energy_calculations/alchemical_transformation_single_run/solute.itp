@@ -1,0 +1,8 @@
+;;;;;; P6 bead
+[moleculetype]
+; molname       nrexcl
+  P6	1
+
+[atoms]
+; id    type    resnr   residu  atom    cgnr    charge
+  1	P6	1	P6	A	1	0.0

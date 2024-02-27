@@ -1,0 +1,10 @@
+#include "../../../martini_v300/martini_v3.0.0.itp"
+#include "../../../martini_v300/martini_v3.0.0_solvents_v1.itp"
+#include "solute.itp"
+
+[ system ]
+P6 system in water
+
+[ molecules ]
+P6                  1
+W                   1561

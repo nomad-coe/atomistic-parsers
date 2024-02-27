@@ -22,7 +22,7 @@ import h5py
 
 from nomad.datamodel import EntryArchive
 from atomisticparsers.gromacs import GromacsParser
-# from simulationworkflowschema.MolecularDynamics import FreeEnergyCalculationParameters
+from simulationworkflowschema.molecular_dynamics import FreeEnergyCalculationParameters
 
 
 def approx(value, abs=0, rel=1e-6):
@@ -503,4 +503,5 @@ def test_free_energy_calculations(parser):
     assert len(sec_results.times) == 5001
     assert sec_results.times.to("ps")[10].magnitude == approx(2.0)
     assert sec_results.value_unit == "kilojoule"
-    # assert isinstance(sec_results.method_ref, FreeEnergyCalculationParameters())
+    assert isinstance(sec_results.method_ref, FreeEnergyCalculationParameters)
+    # TODO add testing of hdf5 references in sec_results ('value_total_energy_magnitude', 'value_total_energy_derivative_magnitude', 'value_total_energy_differences_magnitude', 'value_PV_energy_magnitude') to NOMAD testing

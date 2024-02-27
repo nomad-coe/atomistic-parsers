@@ -1073,14 +1073,12 @@ class GromacsParser(MDParser):
         sec_neighbor_searching.neighbor_update_frequency = (
             int(nstlist) if nstlist else None
         )
-        rlist = input_parameters.get("rlist", None)
+        rlist = to_float(input_parameters.get("rlist", None))
         sec_neighbor_searching.neighbor_update_cutoff = (
-            to_float(rlist) * ureg.nanometer if to_float(rlist) else None
+            rlist * ureg.nanometer if rlist else None
         )
-        rvdw = input_parameters.get("rvdw", None)
-        sec_force_calculations.vdw_cutoff = (
-            to_float(rvdw) * ureg.nanometer if to_float(rvdw) else None
-        )
+        rvdw = to_float(input_parameters.get("rvdw", None))
+        sec_force_calculations.vdw_cutoff = rvdw * ureg.nanometer if rvdw else None
         coulombtype = input_parameters.get("coulombtype", "no").lower()
         coulombtype_map = {
             "cut-off": "cutoff",
@@ -1105,9 +1103,7 @@ class GromacsParser(MDParser):
         )
         sec_force_calculations.coulomb_type = value
         rcoulomb = input_parameters.get("rcoulomb", None)
-        sec_force_calculations.coulomb_cutoff = (
-            to_float(rcoulomb) if to_float(rcoulomb) else None
-        )
+        sec_force_calculations.coulomb_cutoff = to_float(rcoulomb)
 
     def get_thermostat_parameters(self, integrator: str = ""):
         thermostat = self.input_parameters.get("tcoupl", "no").lower()
@@ -1184,11 +1180,9 @@ class GromacsParser(MDParser):
             barostat_parameters["coupling_type"] = (
                 value[0] if isinstance(value, list) else value
             )
-            taup = self.input_parameters.get("tau-p", None)
+            taup = to_float(self.input_parameters.get("tau-p", None))
             barostat_parameters["coupling_constant"] = (
-                np.ones(shape=(3, 3)) * to_float(taup) * ureg.picosecond
-                if to_float(taup)
-                else None
+                np.ones(shape=(3, 3)) * taup * ureg.picosecond if taup else None
             )
             refp = self.input_parameters.get("ref-p", None)
             barostat_parameters["reference_pressure"] = (
@@ -1325,14 +1319,12 @@ class GromacsParser(MDParser):
             nstenergy = input_parameters.get("nstenergy", None)
             workflow.method.save_frequency = int(nstenergy) if nstenergy else None
 
-            force_maximum = input_parameters.get("emtol", None)
+            force_maximum = to_float(input_parameters.get("emtol", None))
             force_conversion = ureg.convert(
                 1.0, ureg.kilojoule * ureg.avogadro_number / ureg.nanometer, ureg.newton
             )
             workflow.method.convergence_tolerance_force_maximum = (
-                to_float(force_maximum) * force_conversion
-                if to_float(force_maximum)
-                else None
+                force_maximum * force_conversion if force_maximum else None
             )
 
             energies = []
@@ -1349,16 +1341,13 @@ class GromacsParser(MDParser):
             workflow.results.optimization_steps = len(energies) + 1
 
             final_force_maximum = self.log_parser.get("maximum_force")
-            final_force_maximum = (
+            final_force_maximum = to_float(
                 re.split("=|\n", final_force_maximum)[1]
                 if final_force_maximum
                 else None
             )
-            final_force_maximum = to_float(final_force_maximum)
             workflow.results.final_force_maximum = (
-                to_float(final_force_maximum) * force_conversion
-                if to_float(final_force_maximum)
-                else None
+                final_force_maximum * force_conversion if final_force_maximum else None
             )
             self.archive.workflow2 = workflow
         else:
@@ -1394,9 +1383,9 @@ class GromacsParser(MDParser):
                 else None
             )
             method["integrator_type"] = value
-            timestep = input_parameters.get("dt", None)
+            timestep = to_float(input_parameters.get("dt", None))
             method["integration_timestep"] = (
-                to_float(timestep) * ureg.picosecond if to_float(timestep) else None
+                timestep * ureg.picosecond if timestep else None
             )
 
             thermostat_parameters = self.get_thermostat_parameters(integrator)

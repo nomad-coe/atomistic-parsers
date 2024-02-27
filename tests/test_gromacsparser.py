@@ -498,7 +498,7 @@ def test_free_energy_calculations(parser):
     assert sec_method.final_state_bonded == "on"
 
     assert sec_results.n_frames == 5001
-    assert sec_results.n_states == 7
+    assert sec_results.n_states == 11
     assert sec_results.lambda_index == 7
     assert len(sec_results.times) == 5001
     assert sec_results.times.to("ps")[10].magnitude == approx(2.0)

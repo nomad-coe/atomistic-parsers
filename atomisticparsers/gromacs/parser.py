@@ -68,14 +68,14 @@ class GromacsLogParser(TextParser):
 
     def init_quantities(self):
         def str_to_header(val_in):
-            val = [v.split(":", 1) for v in val_in.strip().split("\n")]
+            val = [v.split(":", 1) for v in val_in.strip().splitlines()]
             return {v[0].strip(): v[1].strip() for v in val if len(v) == 2}
 
         def str_to_input_parameters(val_in):
             re_array = re.compile(r"\s*([\w\-]+)\[[\d ]+\]\s*=\s*\{*(.+)")
             re_scalar = re.compile(r"\s*([\w\-]+)\s*[=:]\s*(.+)")
             parameters = dict()
-            val = val_in.strip().split("\n")
+            val = val_in.strip().splitlines()
             for val_n in val:
                 val_scalar = re_scalar.match(val_n)
                 if val_scalar:
@@ -119,7 +119,7 @@ class GromacsLogParser(TextParser):
             return energies
 
         def str_to_step_info(val_in):
-            val = val_in.strip().split("\n")
+            val = val_in.strip().splitlines()
             keys = val[0].split()
             values = [float(v) for v in val[1].split()]
             return {key: values[n] for n, key in enumerate(keys)}
@@ -191,7 +191,7 @@ class GromacsMdpParser(TextParser):
             re_array = re.compile(r"\s*([\w\-]+)\[[\d ]+\]\s*=\s*\{*(.+)")
             re_scalar = re.compile(r"\s*([\w\-]+)\s*[=:]\s*(.+)")
             parameters = dict()
-            val = val_in.split("\n")
+            val = val_in.splitlines()
             val = [line.strip() for line in val]
             for val_n in val:
                 val_scalar = re_scalar.match(val_n)

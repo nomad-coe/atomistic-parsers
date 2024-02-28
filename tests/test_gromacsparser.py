@@ -490,12 +490,12 @@ def test_free_energy_calculations(parser):
     assert sec_method.lambda_index == 7
     assert sec_method.atom_indices.shape == (1,)
     assert sec_method.atom_indices[0] == 0
-    assert sec_method.initial_state_vdw == "on"
-    assert sec_method.final_state_vdw == "off"
-    assert sec_method.initial_state_coloumb == "off"
-    assert sec_method.final_state_coloumb == "off"
-    assert sec_method.initial_state_bonded == "on"
-    assert sec_method.final_state_bonded == "on"
+    assert sec_method.initial_state_vdw == True
+    assert sec_method.final_state_vdw == False
+    assert sec_method.initial_state_coloumb == False
+    assert sec_method.final_state_coloumb == False
+    assert sec_method.initial_state_bonded == True
+    assert sec_method.final_state_bonded == True
 
     assert sec_results.n_frames == 5001
     assert sec_results.n_states == 11

@@ -1256,12 +1256,12 @@ class GromacsParser(MDParser):
                     )
             free_energy_parameters["atom_indices"] = indices
 
-            couple_vdw_map = {"vdw-q": "on", "vdw": "on", "q": "off", "none": "off"}
+            couple_vdw_map = {"vdw-q": True, "vdw": True, "q": False, "none": False}
             couple_coloumb_map = {
-                "vdw-q": "on",
-                "vdw": "off",
-                "q": "on",
-                "none": "off",
+                "vdw-q": True,
+                "vdw": False,
+                "q": True,
+                "none": False,
             }
             couple_initial = self.input_parameters.get("couple-lambda0", "none").lower()
             couple_final = self.input_parameters.get("couple-lambda1", "vdw-q").lower()

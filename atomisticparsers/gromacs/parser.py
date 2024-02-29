@@ -1230,7 +1230,7 @@ class GromacsParser(MDParser):
                 key: [to_float(i) for i in val.split()] for key, val in lambdas.items()
             }
             free_energy_parameters["lambdas"] = [
-                {"kind": nomad_key, "value": lambdas[gromacs_key]}
+                {"type": nomad_key, "value": lambdas[gromacs_key]}
                 for gromacs_key, nomad_key in lambda_key_map.items()
                 if lambdas[gromacs_key]
             ]

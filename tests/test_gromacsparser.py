@@ -483,9 +483,9 @@ def test_free_energy_calculations(parser):
     assert sec_method.type == "alchemical"
     sec_lambdas = sec_method.lambdas
     assert len(sec_lambdas) == 7
-    assert sec_lambdas[2].kind == "vdw"
+    assert sec_lambdas[2].type == "vdw"
     assert sec_lambdas[2].value[2] == 0.2
-    assert sec_lambdas[-1].kind == "temperature"
+    assert sec_lambdas[-1].type == "temperature"
     assert sec_lambdas[-1].value[2] == 0.0
     assert sec_method.lambda_index == 7
     assert sec_method.atom_indices.shape == (1,)

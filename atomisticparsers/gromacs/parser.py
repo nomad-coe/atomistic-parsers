@@ -54,11 +54,20 @@ from .metainfo.gromacs import (
 )
 from atomisticparsers.utils import MDAnalysisParser, MDParser
 from nomad.atomutils import get_bond_list_from_model_contributions
+from nomad.parsing.parser import to_hdf5
 
 re_float = r"[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?"
 re_n = r"[\n\r]"
 
 MOL = 6.022140857e23
+
+
+def to_float(string):
+    try:
+        value = float(string)
+    except ValueError:
+        value = None
+    return value
 
 
 class GromacsLogParser(TextParser):
@@ -67,14 +76,14 @@ class GromacsLogParser(TextParser):
 
     def init_quantities(self):
         def str_to_header(val_in):
-            val = [v.split(":", 1) for v in val_in.strip().split("\n")]
+            val = [v.split(":", 1) for v in val_in.strip().splitlines()]
             return {v[0].strip(): v[1].strip() for v in val if len(v) == 2}
 
         def str_to_input_parameters(val_in):
             re_array = re.compile(r"\s*([\w\-]+)\[[\d ]+\]\s*=\s*\{*(.+)")
             re_scalar = re.compile(r"\s*([\w\-]+)\s*[=:]\s*(.+)")
             parameters = dict()
-            val = val_in.strip().split("\n")
+            val = val_in.strip().splitlines()
             for val_n in val:
                 val_scalar = re_scalar.match(val_n)
                 if val_scalar:
@@ -113,14 +122,14 @@ class GromacsLogParser(TextParser):
                 while pointer < len(rows[n]):
                     key = rows[n][pointer : pointer + n_chars_val].strip()
                     value = rows[n + 1][pointer : pointer + n_chars_val]
-                    energies[key] = float(value)
+                    energies[key] = to_float(value)
                     pointer += n_chars_val
             return energies
 
         def str_to_step_info(val_in):
-            val = val_in.strip().split("\n")
+            val = val_in.strip().splitlines()
             keys = val[0].split()
-            values = [float(v) for v in val[1].split()]
+            values = [to_float(v) for v in val[1].split()]
             return {key: values[n] for n, key in enumerate(keys)}
 
         thermo_quantities = [
@@ -180,72 +189,88 @@ class GromacsLogParser(TextParser):
             Quantity("time_end", r"Finished \S+ on rank \d+ (.+)", flatten=False),
         ]
 
-    def get_pbc(self):
-        pbc = self.get("input_parameters", {}).get("pbc", "xyz")
-        return ["x" in pbc, "y" in pbc, "z" in pbc]
 
-    def get_sampling_settings(self):
-        input_parameters = self.get("input_parameters", {})
-        integrator = input_parameters.get("integrator", "md").lower()
-        if integrator in ["l-bfgs", "cg", "steep"]:
-            sampling_method = "geometry_optimization"
-        elif integrator in ["bd"]:
-            sampling_method = "langevin_dynamics"
-        else:
-            sampling_method = "molecular_dynamics"
+class GromacsMdpParser(TextParser):
+    def __init__(self):
+        super().__init__(None)
 
-        ensemble_type = "NVE" if sampling_method == "molecular_dynamics" else None
-        tcoupl = input_parameters.get("tcoupl", "no").lower()
-        if tcoupl != "no":
-            ensemble_type = "NVT"
-            pcoupl = input_parameters.get("pcoupl", "no").lower()
-            if pcoupl != "no":
-                ensemble_type = "NPT"
+    def init_quantities(self):
+        def str_to_input_parameters(val_in):
+            re_array = re.compile(r"\s*([\w\-]+)\[[\d ]+\]\s*=\s*\{*(.+)")
+            re_scalar = re.compile(r"\s*([\w\-]+)\s*[=:]\s*(.+)")
+            parameters = dict()
+            val = [line.strip() for line in val_in.splitlines()]
+            for val_n in val:
+                val_scalar = re_scalar.match(val_n)
+                if val_scalar:
+                    parameters[val_scalar.group(1)] = val_scalar.group(2)
+                    continue
+                val_array = re_array.match(val_n)
+                if val_array:
+                    parameters.setdefault(val_array.group(1), [])
+                    value = [
+                        to_float(v) for v in val_array.group(2).rstrip("}").split(",")
+                    ]
+                    parameters[val_array.group(1)].append(
+                        value[0] if len(value) == 1 else value
+                    )
+            return parameters
 
-        return dict(
-            sampling_method=sampling_method,
-            integrator_type=integrator,
-            ensemble_type=ensemble_type,
-        )
+        self._quantities = [
+            Quantity(
+                "input_parameters",
+                r"([\s\S]+)",
+                str_operation=str_to_input_parameters,
+            ),
+        ]
 
-    def get_tpstat_settings(self):
-        input_parameters = self.get("input_parameters", {})
-        target_t = input_parameters.get("ref-t", 0) * ureg.kelvin
 
-        thermostat_type = None
-        tcoupl = input_parameters.get("tcoupl", "no").lower()
-        if tcoupl != "no":
-            thermostat_type = (
-                "Velocity Rescaling" if tcoupl == "v-rescale" else tcoupl.title()
-            )
+class GromacsXvgParser(TextParser):
+    def __init__(self):
+        super().__init__(None)
+        self.re_columns = re.compile(r"@\s*s\d{1,2}\s*legend\s*\".*\"")
+        self.re_comment = re.compile(r"^[@#]")
+        self.re_quotes = re.compile(r"\"(.*)\"")
+        self.re_label = re.compile(r'@\s*(title|xaxis|yaxis)\s*(?: label)?\s*"(.*)"')
 
-        thermostat_tau = input_parameters.get("tau-t", 0) * ureg.ps
+        def str_to_results(val_in):
+            results = {
+                "column_vals": None,
+                "title": "",
+                "xaxis": "",
+                "yaxis": "",
+                "column_headers": [],
+            }
 
-        # TODO infer langevin_gamma [s] from bd_fric
-        # bd_fric = self.get('bd-fric', 0, unit='amu/ps')
-        langevin_gamma = None
+            val = val_in.strip().splitlines()
+            val = [line.strip() for line in val]
+            for val_n in val:
+                val_label = self.re_label.match(val_n)
+                val_legend = self.re_columns.match(val_n)
+                val_comment = self.re_comment.match(val_n)
+                if val_label:
+                    key, label = val_label.groups()
+                    results[key] = label
+                elif val_legend:  # TODO convert out of xmgrace notation
+                    column = val_legend.group()
+                    column = self.re_quotes.findall(column)
+                    column = column[0] if column else None
+                    results["column_headers"].append(column)
+                elif not val_comment:
+                    results["column_vals"] = (
+                        np.vstack((results["column_vals"], [val_n.split()]))
+                        if results["column_vals"] is not None
+                        else [val_n.split()]
+                    )
+            return results
 
-        target_p = input_parameters.get("ref-p", 0) * ureg.bar
-        # if P is array e.g. for non-isotropic pressures, get average since metainfo is float
-        if hasattr(target_p, "shape"):
-            target_p = np.average(target_p)
-
-        barostat_type = None
-        pcoupl = input_parameters.get("pcoupl", "no").lower()
-        if pcoupl != "no":
-            barostat_type = pcoupl.title()
-
-        barostat_tau = input_parameters.get("tau-p", 0) * ureg.ps
-
-        return dict(
-            target_t=target_t,
-            thermostat_type=thermostat_type,
-            thermostat_tau=thermostat_tau,
-            target_p=target_p,
-            barostat_type=barostat_type,
-            barostat_tau=barostat_tau,
-            langevin_gamma=langevin_gamma,
-        )
+        self._quantities = [
+            Quantity(
+                "results",
+                r"([\s\S]+)",
+                str_operation=str_to_results,
+            ),
+        ]
 
 
 class GromacsEDRParser(FileParser):
@@ -604,6 +629,11 @@ class GromacsParser(MDParser):
         self.log_parser = GromacsLogParser()
         self.traj_parser = GromacsMDAnalysisParser()
         self.energy_parser = GromacsEDRParser()
+        self.mdp_parser = GromacsMdpParser()
+        self.mdp_ext = "mdp"
+        self.mdp_std_filename = "mdout"
+        self.xvg_parser = GromacsXvgParser()
+        self.input_parameters = {}
         self._gro_energy_units = ureg.kilojoule * MOL
         self._thermo_ignore_list = ["Time", "Box-X", "Box-Y", "Box-Z"]
         self._base_calc_map = {
@@ -639,6 +669,40 @@ class GromacsParser(MDParser):
             "en.",
         ]
         super().__init__()
+
+    def get_pbc(self):
+        pbc = self.input_parameters.get("pbc", "xyz")
+        return ["x" in pbc, "y" in pbc, "z" in pbc]
+
+    def get_mdp_file(self):
+        """
+        Tries to find the mdp input parameters (ext = mdp) that match the mainfile calculation.
+        Priority is as follows:
+            1. output mdp file containing both the matching mainfile name and the standard
+            gromacs name `mdout`
+            2. file containing the standard gromacs name `mdout`
+            3. input mdp file matching the mainfile name (as usual)
+            4. any `.mdp` file within the directory (as usual)
+        """
+        files = [d for d in self._gromacs_files if d.endswith(self.mdp_ext)]
+
+        if len(files) == 0:
+            return ""
+
+        if len(files) == 1:
+            return os.path.join(self._maindir, files[0])
+
+        for f in files:
+            filename = f.rsplit(".", 1)[0]
+            if self._basename in filename and self.mdp_std_filename in filename:
+                return os.path.join(self._maindir, f)
+
+        for f in files:
+            filename = f.rsplit(".", 1)[0]
+            if self.mdp_std_filename in filename:
+                return os.path.join(self._maindir, f)
+
+        return self.get_gromacs_file(self.mdp_ext)
 
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
@@ -690,7 +754,7 @@ class GromacsParser(MDParser):
             thermo_data = self.energy_parser
         else:
             # try to get it from log file
-            steps = self.log_parser.get("step", [])
+            steps = self.input_parameters.get("step", [])
             thermo_data = dict()
             for n, step in enumerate(steps):
                 n = int(step.get("step_info", {}).get("Step", n))
@@ -709,7 +773,7 @@ class GromacsParser(MDParser):
             thermo_data = self.energy_parser
 
         calculation_times = thermo_data.get("Time", [])
-        time_step = self.log_parser.get("input_parameters", {}).get("dt")
+        time_step = self.input_parameters.get("dt")
         if time_step is None and len(calculation_times) > 1:
             time_step = calculation_times[1] - calculation_times[0]
         self.thermodynamics_steps = [
@@ -815,14 +879,12 @@ class GromacsParser(MDParser):
             return formula
 
         n_frames = self.traj_parser.get("n_frames", 0)
-        traj_sampling_rate = self.log_parser.get("input_parameters", {}).get(
-            "nstxout", 1
-        )
+        traj_sampling_rate = self.input_parameters.get("nstxout", 1)
         self.n_atoms = [self.traj_parser.get_n_atoms(n) for n in range(n_frames)]
         traj_steps = [n * traj_sampling_rate for n in range(n_frames)]
         self.trajectory_steps = traj_steps
 
-        pbc = self.log_parser.get_pbc()
+        pbc = self.get_pbc()
         self._system_time_map = {}
         for step in self.trajectory_steps:
             n = traj_steps.index(step)
@@ -1001,7 +1063,7 @@ class GromacsParser(MDParser):
         interactions = self.traj_parser.get_interactions()
         self.parse_interactions(interactions, sec_model)
 
-        input_parameters = self.log_parser.get("input_parameters", {})
+        input_parameters = self.input_parameters
         sec_force_calculations = ForceCalculations()
         sec_force_field.force_calculations = sec_force_calculations
         sec_neighbor_searching = NeighborSearching()
@@ -1011,14 +1073,12 @@ class GromacsParser(MDParser):
         sec_neighbor_searching.neighbor_update_frequency = (
             int(nstlist) if nstlist else None
         )
-        rlist = input_parameters.get("rlist", None)
+        rlist = to_float(input_parameters.get("rlist", None))
         sec_neighbor_searching.neighbor_update_cutoff = (
-            float(rlist) * ureg.nanometer if rlist else None
+            rlist * ureg.nanometer if rlist else None
         )
-        rvdw = input_parameters.get("rvdw", None)
-        sec_force_calculations.vdw_cutoff = (
-            float(rvdw) * ureg.nanometer if rvdw else None
-        )
+        rvdw = to_float(input_parameters.get("rvdw", None))
+        sec_force_calculations.vdw_cutoff = rvdw * ureg.nanometer if rvdw else None
         coulombtype = input_parameters.get("coulombtype", "no").lower()
         coulombtype_map = {
             "cut-off": "cutoff",
@@ -1043,12 +1103,191 @@ class GromacsParser(MDParser):
         )
         sec_force_calculations.coulomb_type = value
         rcoulomb = input_parameters.get("rcoulomb", None)
-        sec_force_calculations.coulomb_cutoff = float(rcoulomb) if rcoulomb else None
+        sec_force_calculations.coulomb_cutoff = to_float(rcoulomb)
+
+    def get_thermostat_parameters(self, integrator: str = ""):
+        thermostat = self.input_parameters.get("tcoupl", "no").lower()
+        thermostat_map = {
+            "berendsen": "berendsen",
+            "v-rescale": "velocity_rescaling",
+            "nose-hoover": "nose_hoover",
+            "andersen": "andersen",
+        }
+        value = thermostat_map.get(
+            thermostat,
+            [val for key, val in thermostat_map.items() if key in thermostat],
+        )
+        value = (
+            value
+            if not isinstance(value, list)
+            else value[0]
+            if len(value) != 0
+            else None
+        )
+        thermostat_parameters = {}
+        thermostat_parameters["thermostat_type"] = value
+        if "sd" in integrator:
+            thermostat_parameters["thermostat_type"] = "langevin_goga"
+        if thermostat_parameters["thermostat_type"]:
+            reference_temperature = self.input_parameters.get("ref-t", None)
+            if isinstance(reference_temperature, str):
+                reference_temperature = to_float(
+                    reference_temperature.split()[0]
+                )  # ! simulated annealing protocols not supported
+            reference_temperature *= ureg.kelvin if reference_temperature else None
+            thermostat_parameters["reference_temperature"] = reference_temperature
+            coupling_constant = self.input_parameters.get("tau-t", None)
+            if isinstance(coupling_constant, str):
+                coupling_constant = to_float(
+                    coupling_constant.split()[0]
+                )  # ! simulated annealing protocols not supported
+            coupling_constant *= ureg.picosecond if coupling_constant else None
+            thermostat_parameters["coupling_constant"] = coupling_constant
+
+        return thermostat_parameters
+
+    def get_barostat_parameters(self):
+        barostat_parameters = {}
+        barostat_map = {
+            "berendsen": "berendsen",
+            "parrinello-rahman": "parrinello_rahman",
+            "mttk": "martyna_tuckerman_tobias_klein",
+            "c-rescale": "stochastic_cell_rescaling",
+        }
+        barostat = self.input_parameters.get("pcoupl", "no").lower()
+        value = barostat_map.get(
+            barostat, [val for key, val in barostat_map.items() if key in barostat]
+        )
+        value = (
+            value
+            if not isinstance(value, list)
+            else value[0]
+            if len(value) != 0
+            else None
+        )
+        barostat_parameters["barostat_type"] = value
+        if barostat_parameters["barostat_type"]:
+            couplingtype = self.input_parameters.get("pcoupltype", None).lower()
+            couplingtype_map = {
+                "isotropic": "isotropic",
+                "semiisotropic": "semi_isotropic",
+                "anisotropic": "anisotropic",
+            }
+            value = couplingtype_map.get(
+                couplingtype,
+                [val for key, val in couplingtype_map.items() if key in couplingtype],
+            )
+            barostat_parameters["coupling_type"] = (
+                value[0] if isinstance(value, list) else value
+            )
+            taup = to_float(self.input_parameters.get("tau-p", None))
+            barostat_parameters["coupling_constant"] = (
+                np.ones(shape=(3, 3)) * taup * ureg.picosecond if taup else None
+            )
+            refp = self.input_parameters.get("ref-p", None)
+            barostat_parameters["reference_pressure"] = (
+                refp * ureg.bar if refp is not None else None
+            )
+            compressibility = self.input_parameters.get("compressibility", None)
+            barostat_parameters["compressibility"] = (
+                compressibility * (1.0 / ureg.bar)
+                if compressibility is not None
+                else None
+            )
+        return barostat_parameters
+
+    def get_free_energy_calculation_parameters(self):
+        free_energy_parameters = {}
+        free_energy = self.input_parameters.get("free-energy", "")
+        free_energy = free_energy.lower() if free_energy else ""
+        expanded = self.input_parameters.get("expanded", "")
+        expanded = expanded.lower() if expanded else ""
+        delta_lambda = int(self.input_parameters.get("delta-lamda", -1))
+        if free_energy == "yes" and expanded == "yes":
+            self.logger.warning(
+                "storage of expanded ensemble simulation data not supported, skipping storage of free energy calculation parameters"
+            )
+        elif free_energy == "yes" and delta_lambda == "no":
+            self.logger.warning(
+                "Only fixed state free energy calculation calculations are explicitly supported, skipping storage of free energy calculation parameters."
+            )
+        elif free_energy == "yes":
+            free_energy_parameters["type"] = "alchemical"
+            lambda_key_map = {
+                "fep": "output",
+                "coul": "coulomb",
+                "vdw": "vdw",
+                "bonded": "bonded",
+                "restraint": "restraint",
+                "mass": "mass",
+                "temperature": "temperature",
+            }
+            lambdas = {
+                key: self.input_parameters.get(f"{key}-lambdas", "")
+                for key in lambda_key_map.keys()
+            }
+            lambdas = {
+                key: [to_float(i) for i in val.split()] for key, val in lambdas.items()
+            }
+            free_energy_parameters["lambdas"] = [
+                {"type": nomad_key, "value": lambdas[gromacs_key]}
+                for gromacs_key, nomad_key in lambda_key_map.items()
+                if lambdas[gromacs_key]
+            ]
+            free_energy_parameters["lambda_index"] = self.input_parameters.get(
+                "init-lambda-state", ""
+            )
+
+            atoms_info = self.traj_parser._results["atoms_info"]
+            atoms_moltypes = np.array(atoms_info["moltypes"])
+            couple_moltype = self.input_parameters.get("couple-moltype", "").split()
+            n_atoms = len(atoms_moltypes)
+            indices = []
+            if len(couple_moltype) == 1 and couple_moltype[0].lower() == "system":
+                indices.extend(range(n_atoms))
+            else:
+                for moltype in couple_moltype:
+                    indices.extend(
+                        [
+                            index
+                            for index in range(n_atoms)
+                            if atoms_moltypes[index].lower() == moltype
+                        ]
+                    )
+            free_energy_parameters["atom_indices"] = indices
+
+            couple_vdw_map = {"vdw-q": True, "vdw": True, "q": False, "none": False}
+            couple_coloumb_map = {
+                "vdw-q": True,
+                "vdw": False,
+                "q": True,
+                "none": False,
+            }
+            couple_initial = self.input_parameters.get("couple-lambda0", "none").lower()
+            couple_final = self.input_parameters.get("couple-lambda1", "vdw-q").lower()
+
+            free_energy_parameters["initial_state_vdw"] = couple_vdw_map[couple_initial]
+            free_energy_parameters["final_state_vdw"] = couple_vdw_map[couple_final]
+            free_energy_parameters["initial_state_coloumb"] = couple_coloumb_map[
+                couple_initial
+            ]
+            free_energy_parameters["final_state_coloumb"] = couple_coloumb_map[
+                couple_final
+            ]
+
+            couple_intramolecular = self.input_parameters.get(
+                "couple-intramol", "on"
+            ).lower()
+            free_energy_parameters["final_state_bonded"] = "on"
+            free_energy_parameters["initial_state_bonded"] = (
+                "off" if couple_intramolecular == "yes" else "on"
+            )
+        return free_energy_parameters
 
     def parse_workflow(self):
         sec_run = self.archive.run[-1]
         sec_calc = sec_run.get("calculation")
-        input_parameters = self.log_parser.get("input_parameters", {})
+        input_parameters = self.input_parameters
 
         workflow = None
         integrator = input_parameters.get("integrator", "md").lower()
@@ -1080,12 +1319,12 @@ class GromacsParser(MDParser):
             nstenergy = input_parameters.get("nstenergy", None)
             workflow.method.save_frequency = int(nstenergy) if nstenergy else None
 
-            force_maximum = input_parameters.get("emtol", None)
+            force_maximum = to_float(input_parameters.get("emtol", None))
             force_conversion = ureg.convert(
                 1.0, ureg.kilojoule * ureg.avogadro_number / ureg.nanometer, ureg.newton
             )
             workflow.method.convergence_tolerance_force_maximum = (
-                float(force_maximum) * force_conversion if force_maximum else None
+                force_maximum * force_conversion if force_maximum else None
             )
 
             energies = []
@@ -1102,15 +1341,13 @@ class GromacsParser(MDParser):
             workflow.results.optimization_steps = len(energies) + 1
 
             final_force_maximum = self.log_parser.get("maximum_force")
-            final_force_maximum = (
-                float(re.split("=|\n", final_force_maximum)[1])
+            final_force_maximum = to_float(
+                re.split("=|\n", final_force_maximum)[1]
                 if final_force_maximum
                 else None
             )
             workflow.results.final_force_maximum = (
-                float(final_force_maximum) * force_conversion
-                if final_force_maximum
-                else None
+                final_force_maximum * force_conversion if final_force_maximum else None
             )
             self.archive.workflow2 = workflow
         else:
@@ -1146,99 +1383,14 @@ class GromacsParser(MDParser):
                 else None
             )
             method["integrator_type"] = value
-            timestep = input_parameters.get("dt", None)
+            timestep = to_float(input_parameters.get("dt", None))
             method["integration_timestep"] = (
-                float(timestep) * ureg.picosecond if timestep else None
+                timestep * ureg.picosecond if timestep else None
             )
 
-            thermostat = input_parameters.get("tcoupl", "no").lower()
-            thermostat_map = {
-                "berendsen": "berendsen",
-                "v-rescale": "velocity_rescaling",
-                "nose-hoover": "nose_hoover",
-                "andersen": "andersen",
-            }
-            value = thermostat_map.get(
-                thermostat,
-                [val for key, val in thermostat_map.items() if key in thermostat],
-            )
-            value = (
-                value
-                if not isinstance(value, list)
-                else value[0]
-                if len(value) != 0
-                else None
-            )
-            thermostat_parameters = {}
-            thermostat_parameters["thermostat_type"] = value
-            if "sd" in integrator:
-                thermostat_parameters["thermostat_type"] = "langevin_goga"
-            if thermostat_parameters["thermostat_type"]:
-                reference_temperature = input_parameters.get("ref-t", None)
-                if isinstance(reference_temperature, str):
-                    reference_temperature = float(reference_temperature.split()[0])
-                reference_temperature *= ureg.kelvin if reference_temperature else None
-                thermostat_parameters["reference_temperature"] = reference_temperature
-                coupling_constant = input_parameters.get("tau-t", None)
-                if isinstance(coupling_constant, str):
-                    coupling_constant = float(coupling_constant.split()[0])
-                coupling_constant *= ureg.picosecond if coupling_constant else None
-                thermostat_parameters["coupling_constant"] = coupling_constant
+            thermostat_parameters = self.get_thermostat_parameters(integrator)
             method["thermostat_parameters"] = thermostat_parameters
-
-            barostat = input_parameters.get("pcoupl", "no").lower()
-            barostat_map = {
-                "berendsen": "berendsen",
-                "parrinello-rahman": "parrinello_rahman",
-                "mttk": "martyna_tuckerman_tobias_klein",
-                "c-rescale": "stochastic_cell_rescaling",
-            }
-            value = barostat_map.get(
-                barostat, [val for key, val in barostat_map.items() if key in barostat]
-            )
-            value = (
-                value
-                if not isinstance(value, list)
-                else value[0]
-                if len(value) != 0
-                else None
-            )
-            barostat_parameters = {}
-            barostat_parameters["barostat_type"] = value
-            if barostat_parameters["barostat_type"]:
-                couplingtype = input_parameters.get("pcoupltype", None).lower()
-                couplingtype_map = {
-                    "isotropic": "isotropic",
-                    "semiisotropic": "semi_isotropic",
-                    "anisotropic": "anisotropic",
-                }
-                value = couplingtype_map.get(
-                    couplingtype,
-                    [
-                        val
-                        for key, val in couplingtype_map.items()
-                        if key in couplingtype
-                    ],
-                )
-                barostat_parameters["coupling_type"] = (
-                    value[0] if isinstance(value, list) else value
-                )
-                taup = input_parameters.get("tau-p", None)
-                barostat_parameters["coupling_constant"] = (
-                    np.ones(shape=(3, 3)) * float(taup) * ureg.picosecond
-                    if taup
-                    else None
-                )
-                refp = input_parameters.get("ref-p", None)
-                barostat_parameters["reference_pressure"] = (
-                    refp * ureg.bar if refp is not None else None
-                )
-                compressibility = input_parameters.get("compressibility", None)
-                barostat_parameters["compressibility"] = (
-                    compressibility * (1.0 / ureg.bar)
-                    if compressibility is not None
-                    else None
-                )
+            barostat_parameters = self.get_barostat_parameters()
             method["barostat_parameters"] = barostat_parameters
 
             if thermostat_parameters.get("thermostat_type"):
@@ -1250,7 +1402,88 @@ class GromacsParser(MDParser):
             else:
                 method["thermodynamic_ensemble"] = "NVE"
 
+            params_key = "free_energy_calculation_parameters"
+            method[params_key] = self.get_free_energy_calculation_parameters()
+
+            self.xvg_parser.mainfile = self.get_gromacs_file("xvg")
+            free_energies = self.xvg_parser.get("results")
+
+            title = free_energies.get("title", "") if free_energies is not None else ""
+            flag_fe = False
+            if (
+                r"dH/d\xl\f{}" in title and r"\xD\f{}H" in title
+            ):  # TODO incorporate x and y axis labels into the checks
+                flag_fe = True
+                results_key = "free_energy_calculations"
+                results[results_key] = {}
+                columns = free_energies.get("column_vals")
+                results[results_key]["n_frames"] = len(columns)
+                lambdas = method[params_key].get("lambdas", None)
+                results[results_key]["n_states"] = (
+                    len(lambdas[0].get("value", [])) if lambdas is not None else None
+                )
+                results[results_key]["lambda_index"] = method[params_key].get(
+                    "lambda_index", None
+                )
+                results[results_key]["value_unit"] = str(self._gro_energy_units.units)
+                xaxis = free_energies.get("xaxis", "").lower()
+                # The expected columns of the xvg file are:
+                # Total Energy
+                # dH/dlambda current lambda
+                # Delta H between each lambda and current lambda (n_lambda columns)
+                # PV Energy
+                if (
+                    "time" in xaxis
+                    and columns[:, 3:-1].shape[1] == results[results_key]["n_states"]
+                ):
+                    results[results_key]["times"] = columns[:, 0] * ureg.ps
+                    columns = columns[:, 1:] * self._gro_energy_units.magnitude
+                else:
+                    self.logger.warning(
+                        "Unexpected format of xvg file. Not storing free energy calculation results."
+                    )
+                    flag_fe = False
+
             self.parse_md_workflow(dict(method=method, results=results))
+
+            if flag_fe:
+                filename = os.path.join(
+                    os.path.dirname(self.filepath.split("/raw/")[-1]),
+                    f"{os.path.basename(self.filepath)}.archive.hdf5",
+                )
+                if not os.path.isfile(
+                    os.path.join(os.path.dirname(self.filepath), filename)
+                ):
+                    if self.archive.m_context:
+                        with self.archive.m_context.raw_file(filename, "wb") as f:
+                            pass
+                sec_fe_parameters = (
+                    self.archive.workflow2.method.free_energy_calculation_parameters[0]
+                )
+                sec_fe = self.archive.workflow2.results.free_energy_calculations[0]
+                sec_fe.method_ref = sec_fe_parameters
+                if self.archive.m_context:
+                    with self.archive.m_context.raw_file(filename, "r+b") as f:
+                        sec_fe.value_total_energy_magnitude = to_hdf5(
+                            columns[:, 0],
+                            f,
+                            f"{sec_fe.m_path()}/value_total_energy_magnitude",
+                        )
+                        sec_fe.value_total_energy_derivative_magnitude = to_hdf5(
+                            columns[:, 1],
+                            f,
+                            f"{sec_fe.m_path()}/value_total_energy_derivative_magnitude",
+                        )
+                        sec_fe.value_total_energy_differences_magnitude = to_hdf5(
+                            columns[:, 2:-1],
+                            f,
+                            f"{sec_fe.m_path()}/value_total_energy_differences_magnitude",
+                        )
+                        sec_fe.value_PV_energy_magnitude = to_hdf5(
+                            columns[:, -1],
+                            f,
+                            f"{sec_fe.m_path()}/value_PV_energy_magnitude",
+                        )
 
     def parse_input(self):
         sec_run = self.archive.run[-1]
@@ -1271,8 +1504,8 @@ class GromacsParser(MDParser):
 
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
-        input_parameters = self.log_parser.get("input_parameters", {})
-        input_parameters.update(self.log_parser.get("header", {}))
+        input_parameters = self.input_parameters
+        input_parameters.update(self.get("header", {}))
         for key, val in input_parameters.items():
             key = (
                 "x_gromacs_inout_control_%s"
@@ -1329,6 +1562,19 @@ class GromacsParser(MDParser):
             sec_run.x_gromacs_program_execution_host = host_info[0]
             sec_run.x_gromacs_parallel_task_nr = host_info[1]
             sec_run.x_gromacs_number_of_tasks = host_info[2]
+
+        # parse the input parameters using log file as default and mdp output or input as supplementary
+        self.input_parameters = {
+            key.replace("_", "-"): val.lower() if isinstance(val, str) else val
+            for key, val in self.log_parser.get("input_parameters", {}).items()
+        }
+        self.mdp_parser.mainfile = self.get_mdp_file()
+        for key, param in self.mdp_parser.get("input_parameters", {}).items():
+            new_key = key.replace("_", "-")
+            if new_key not in self.input_parameters:
+                self.input_parameters[new_key] = (
+                    param.lower() if isinstance(param, str) else param
+                )
 
         topology_file = self.get_gromacs_file("tpr")
         # I have no idea if output trajectory file can be specified in input

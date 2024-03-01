@@ -300,14 +300,17 @@ class H5MDParser(MDParser):
             path = f"{self._path_group_particles_all}.box.{self._nomad_to_box_group_map[box_key]}"
             value = self._data_parser.get(path)
             values_dict["system"][box_key] = get_value(value, steps, path=path)
-
         # populate the dictionary
         for i_step, step in enumerate(steps):
             self._system_info["system"][step] = {
-                key: val[i_step] for key, val in values_dict["system"].items()
+                key: val[i_step]
+                for key, val in values_dict["system"].items()
+                if val is not None
             }
             self._system_info["calculation"][step] = {
-                key: val[i_step] for key, val in values_dict["calculation"].items()
+                key: val[i_step]
+                for key, val in values_dict["calculation"].items()
+                if val is not None
             }
 
     def parse_observable_info(self):

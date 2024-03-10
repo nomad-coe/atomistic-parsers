@@ -813,14 +813,11 @@ class H5MDParser(MDParser):
             dict(method=workflow_parameters, results=workflow_results)
         )
 
-    def parse(self, filepath, archive: EntryArchive, logger):
-        self.filepath = os.path.abspath(filepath)
-        self.archive = archive
-        self.logger = logging.getLogger(__name__) if logger is None else logger
-        self._maindir = os.path.dirname(self.filepath)
+    def write_to_archive(self) -> None:
+        self._maindir = os.path.dirname(self.mainfile)
         self._h5md_files = os.listdir(self._maindir)
-        self._basename = os.path.basename(filepath).rsplit(".", 1)[0]
-        self._data_parser.mainfile = self.filepath
+        self._basename = os.path.basename(self.mainfile).rsplit(".", 1)[0]
+        self._data_parser.mainfile = self.mainfile
         if self._data_parser.filehdf5 is None:
             self.logger.warning("hdf5 file missing in H5MD Parser.")
             return

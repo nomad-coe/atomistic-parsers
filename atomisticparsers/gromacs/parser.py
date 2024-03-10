@@ -1449,11 +1449,11 @@ class GromacsParser(MDParser):
 
             if flag_fe:
                 filename = os.path.join(
-                    os.path.dirname(self.filepath.split("/raw/")[-1]),
-                    f"{os.path.basename(self.filepath)}.archive.hdf5",
+                    os.path.dirname(self.mainfile.split("/raw/")[-1]),
+                    f"{os.path.basename(self.mainfile)}.archive.hdf5",
                 )
                 if not os.path.isfile(
-                    os.path.join(os.path.dirname(self.filepath), filename)
+                    os.path.join(os.path.dirname(self.mainfile), filename)
                 ):
                     if self.archive.m_context:
                         with self.archive.m_context.raw_file(filename, "wb") as f:
@@ -1506,7 +1506,7 @@ class GromacsParser(MDParser):
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
         input_parameters = self.input_parameters
-        input_parameters.update(self.get("header", {}))
+        input_parameters.update(self.info.get("header", {}))
         for key, val in input_parameters.items():
             key = (
                 "x_gromacs_inout_control_%s"

@@ -17,10 +17,10 @@
 # limitations under the License.
 #
 
-import logging
 import os
 import numpy as np
 import fnmatch
+from typing import List
 
 from nomad.parsing.file_parser.text_parser import Quantity, TextParser
 from nomad.units import ureg
@@ -479,7 +479,7 @@ class TinkerParser(MDParser):
 
         self.maindir = os.path.dirname(self.mainfile)
 
-        workflows = []
+        workflows: List[str] = []
 
         def get_reference_filename(program):
             # resolves the filename as provided in the cli command for the program
@@ -589,7 +589,7 @@ class TinkerParser(MDParser):
                     if trajectory is not None:
                         traj_steps.append(value.step)
                         n_atoms.append(len(trajectory))
-                self.n_atoms = n_atoms
+                self.n_atoms = max(n_atoms)
                 self.trajectory_steps = traj_steps
                 self.thermodynamics_steps = thermo_steps
 

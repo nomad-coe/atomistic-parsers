@@ -113,9 +113,9 @@ class AsapParser(MDParser):
         self.parse_method()
 
         # set up md parser
-        self.n_atoms = [
-            traj.get_global_number_of_atoms() for traj in self.traj_parser.traj
-        ]
+        self.n_atoms = max(
+            [traj.get_global_number_of_atoms() for traj in self.traj_parser.traj]
+        )
         steps = [
             (traj.description if hasattr(traj, "description") else dict()).get(
                 "interval", 1

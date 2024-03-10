@@ -18,8 +18,8 @@
 #
 
 import os
-import logging
 import numpy as np
+from typing import Dict, Any
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity
@@ -700,7 +700,7 @@ class DLPolyParser(MDParser):
         unit_conversion = {"m": 60, "f": 0.001, "s": 1, "p": 1}
         for step in self.thermodynamics_steps:
             data = {}
-            energy = {"contributions": []}
+            energy: Dict[str, Any] = {"contributions": []}
             instantaneous = properties.get("instantaneous")[
                 self.thermodynamics_steps.index(step)
             ]
@@ -709,9 +709,9 @@ class DLPolyParser(MDParser):
             # previous parsing run. Convert them manually here
             for n, val in enumerate(instantaneous):
                 try:
-                    if isinstance(val, str) and val[-1] in unit_conversion:
+                    if isinstance(val, str):
                         instantaneous[n] = float(val[:-1]) * unit_conversion.get(
-                            val[-1]
+                            val[-1], 1.0
                         )
                     else:
                         instantaneous[n] = float(val)

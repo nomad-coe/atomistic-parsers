@@ -17,9 +17,8 @@
 # limitations under the License.
 #
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 import numpy as np
-import inspect
 from collections.abc import Iterable
 
 from nomad.utils import get_logger
@@ -91,7 +90,7 @@ class MDParser(Parser):
         return np.amax(self.info.get("n_atoms", [0]))
 
     @n_atoms.setter
-    def n_atoms(self, value):
+    def n_atoms(self, value: Union[Iterable, int]):
         self.info["n_atoms"] = [value] if not isinstance(value, Iterable) else value
 
     @property

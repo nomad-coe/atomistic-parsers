@@ -251,3 +251,4 @@ env/
 
 # gromacs files created on run
 .*.npz
+.*.lock

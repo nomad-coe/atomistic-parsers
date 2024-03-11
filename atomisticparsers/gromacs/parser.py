@@ -31,6 +31,7 @@ except Exception:
     logging.warning("Required module MDAnalysis not found.")
     MDAnalysis = False
 from ase.symbols import symbols2numbers
+from nomad.datamodel import EntryArchive
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from runschema.run import Run, Program, TimeRun
@@ -1389,9 +1390,9 @@ class GromacsParser(MDParser):
             )
 
             thermostat_parameters = self.get_thermostat_parameters(integrator)
-            method["thermostat_parameters"] = thermostat_parameters
+            method["thermostat_parameters"] = [thermostat_parameters]
             barostat_parameters = self.get_barostat_parameters()
-            method["barostat_parameters"] = barostat_parameters
+            method["barostat_parameters"] = [barostat_parameters]
 
             if thermostat_parameters.get("thermostat_type"):
                 method["thermodynamic_ensemble"] = (
@@ -1448,11 +1449,11 @@ class GromacsParser(MDParser):
 
             if flag_fe:
                 filename = os.path.join(
-                    os.path.dirname(self.filepath.split("/raw/")[-1]),
-                    f"{os.path.basename(self.filepath)}.archive.hdf5",
+                    os.path.dirname(self.mainfile.split("/raw/")[-1]),
+                    f"{os.path.basename(self.mainfile)}.archive.hdf5",
                 )
                 if not os.path.isfile(
-                    os.path.join(os.path.dirname(self.filepath), filename)
+                    os.path.join(os.path.dirname(self.mainfile), filename)
                 ):
                     if self.archive.m_context:
                         with self.archive.m_context.raw_file(filename, "wb") as f:
@@ -1505,7 +1506,7 @@ class GromacsParser(MDParser):
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
         input_parameters = self.input_parameters
-        input_parameters.update(self.get("header", {}))
+        input_parameters.update(self.info.get("header", {}))
         for key, val in input_parameters.items():
             key = (
                 "x_gromacs_inout_control_%s"
@@ -1515,25 +1516,15 @@ class GromacsParser(MDParser):
                 val = str(val) if not isinstance(val, np.ndarray) else val
                 setattr(sec_control_parameters, key, val)
 
-    def init_parser(self):
-        self.log_parser.mainfile = self.filepath
+    def write_to_archive(self):
+        self._maindir = os.path.dirname(self.mainfile)
+        self._gromacs_files = os.listdir(self._maindir)
+        self._basename = os.path.basename(self.mainfile).rsplit(".", 1)[0]
+        self.log_parser.mainfile = self.mainfile
         self.log_parser.logger = self.logger
         self.traj_parser.logger = self.logger
         self.energy_parser.logger = self.logger
         self._frame_rate = None
-
-    def reuse_parser(self, parser):
-        self.log_parser.quantities = parser.log_parser.quantities
-
-    def parse(self, filepath, archive, logger):
-        self.filepath = os.path.abspath(filepath)
-        self.archive = archive
-        self.logger = logging.getLogger(__name__) if logger is None else logger
-        self._maindir = os.path.dirname(self.filepath)
-        self._gromacs_files = os.listdir(self._maindir)
-        self._basename = os.path.basename(filepath).rsplit(".", 1)[0]
-
-        self.init_parser()
 
         sec_run = Run()
         self.archive.run.append(sec_run)

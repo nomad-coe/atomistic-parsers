@@ -1634,8 +1634,8 @@ class LammpsParser(MDParser):
                     val = " ".join([str(v) for v in val])
                 setattr(sec_control_parameters, key, str(val))
 
-    def init_parser(self):
-        self.log_parser.mainfile = self.filepath
+    def write_to_archive(self):
+        self.log_parser.mainfile = self.mainfile
         self.log_parser.logger = self.logger
         self._traj_parser.logger = self.logger
         self._mdanalysistraj_parser.logger = self.logger
@@ -1645,13 +1645,6 @@ class LammpsParser(MDParser):
         self.aux_log_parser.logger = self.logger
         self.log_parser._units = None
         self._traj_parser._chemical_symbols = None
-
-    def parse(self, filepath, archive, logger):
-        self.filepath = filepath
-        self.archive = archive
-        self.logger = logger if logger is not None else logging
-
-        self.init_parser()
 
         sec_run = Run()
         self.archive.run.append(sec_run)

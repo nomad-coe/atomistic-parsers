@@ -3,21 +3,21 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = 'atomisticparsers'
-version = '1.0'
-description = 'Collection of NOMAD parsers for atomistic codes.'
+name = "atomisticparsers"
+version = "1.0"
+description = "Collection of NOMAD parsers for atomistic codes."
 readme = "README.md"
 authors = [{ name = "The NOMAD Authors" }]
 license = { file = "LICENSE" }
 dependencies = [
-    'nomad-lab[infrastructure]@git+https://github.com/nomad-coe/nomad.git@develop',
+    "nomad-lab>=1.2.0",
     "nomad-schema-plugin-simulation-workflow@git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@develop",
     "nomad-schema-plugin-run@git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@develop",
     "simulationparsers@git+https://github.com/nomad-coe/simulation-parsers.git@develop",
-    'lxml==4.7.1',
-    'MDAnalysis',
-    'panedr==0.2',
-    'scipy>=1.7.1',
+    "lxml==4.7.1",
+    "MDAnalysis",
+    "panedr==0.2",
+    "scipy>=1.7.1",
 ]
 
 [project.urls]
@@ -25,16 +25,16 @@ homepage = "https://github.com/nomad-coe/atomistic-parsers"
 
 [project.optional-dependencies]
 dev = [
-    'mypy==1.0.1',
-    'pylint==2.13.9',
-    'pylint_plugin_utils==0.7',
-    'pycodestyle==2.8.0',
-    'pytest>= 5.3.0, <= 8.0.2',
-    'pytest-timeout==1.4.2',
-    'pytest-cov==2.7.1',
-    'astroid>=2.5.1',
-    'typing-extensions==4.4.0',
-    'ruff==0.1.8'
+    "mypy==1.0.1",
+    "pylint==2.13.9",
+    "pylint_plugin_utils==0.7",
+    "pycodestyle==2.8.0",
+    "pytest>= 5.3.0, <= 8.0.2",
+    "pytest-timeout==1.4.2",
+    "pytest-cov==2.7.1",
+    "astroid>=2.5.1",
+    "typing-extensions==4.4.0",
+    "ruff==0.1.8"
 ]
 
 [tool.ruff]
@@ -67,4 +67,4 @@ include = [
 ] # package names should match these glob patterns (["*"] by default)
 
 [tool.setuptools.package-data]
-atomisticparsers = ['*/metadata.yaml', '*/README.md']
+atomisticparsers = ["*/metadata.yaml", "*/README.md"]

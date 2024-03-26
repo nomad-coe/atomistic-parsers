@@ -666,7 +666,7 @@ class LogParser(TextParser):
         self._quantities = [
             Quantity(
                 name,
-                r"\n\s*%s\s+([\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*" % name,
+                r"\n\s*%s\s+(?!.*\$\{)([${}\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*" % name,
                 str_operation=str_op,
                 comment="#",
                 repeats=True,

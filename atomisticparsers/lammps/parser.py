@@ -658,6 +658,8 @@ class LogParser(TextParser):
 
     def init_quantities(self):
         def str_op(val):
+            if "${" in val:
+                return None
             val = val.split("#")[0]
             val = val.replace("&\n", " ").split()
             val = val if len(val) > 1 else val[0]
@@ -666,7 +668,7 @@ class LogParser(TextParser):
         self._quantities = [
             Quantity(
                 name,
-                r"\n\s*%s\s+([\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*" % name,
+                r"\n\s*%s\s+(?!.*\$\{)([${}\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*" % name,
                 str_operation=str_op,
                 comment="#",
                 repeats=True,

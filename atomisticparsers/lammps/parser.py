@@ -949,6 +949,12 @@ class LammpsParser(MDParser):
             "poteng": "potential",
         }
 
+    def apply_unit(self, value, unit):
+        units = self.log_parser.units
+        if not hasattr(value, "units"):
+            value = value * units.get(unit, 1)
+        return value
+
     def get_time_step(self):
         time_unit = self.log_parser.units.get("time", None)
         time_step = self.log_parser.get("timestep", [0], unit=time_unit)[0]
@@ -1161,6 +1167,54 @@ class LammpsParser(MDParser):
                 method["integrator_type"] = "velocity_verlet"
             integration_timestep = self.get_time_step()
             method["integration_timestep"] = integration_timestep
+
+            val = self.log_parser.get("velocity", None)
+            try:
+                val = (
+                    [val_i for val_i in val if val_i[1] == "create"]
+                    if val is not None
+                    else None
+                )
+                val = val[len(val) - 1] if val is not None else None
+            except Exception:
+                self.logger.warning("Velocity command/s missing expected parameters.")
+                val = None
+
+            if val is not None:
+                initialization_parameters = {}
+                if val[0] != "all":
+                    self.logger.warning(
+                        "Velocity generation was not performed for all particles, details not stored."
+                    )
+                initialization_parameters["temperature"] = (
+                    val[2] if len(val) > 1 else None
+                )
+                initialization_parameters["velocity_distribution_seed"] = (
+                    val[3] if len(val) > 2 and isinstance(val[3], int) else None
+                )
+                for i_val in range(3, len(val)):
+                    if val[i_val] == "dist":
+                        initialization_parameters["velocity_distribution"] = val[
+                            i_val + 1
+                        ]
+                        if val[i_val + 1] == "uniform":
+                            initialization_parameters["velocity_distribution_min"] = (
+                                self.apply_unit(val[i_val + 2], "velocity")
+                                if len(val) > i_val + 2
+                                else None
+                            )
+                            initialization_parameters["velocity_distribution_max"] = (
+                                self.apply_unit(val[i_val + 3], "velocity")
+                                if len(val) > i_val + 3
+                                else None
+                            )
+                        elif val[i_val + 1] == "exponential":
+                            initialization_parameters["velocity_distribution_decay"] = (
+                                val[i_val + 2] / self.apply_unit(1.0, "velocity")
+                                if len(val) > i_val + 2
+                                else None
+                            )
+                method["initialization_parameters"] = initialization_parameters
 
             thermostat_parameters, barostat_parameters = {}, {}
             val = self.log_parser.get("fix", None)

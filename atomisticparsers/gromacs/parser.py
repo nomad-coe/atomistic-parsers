@@ -71,6 +71,14 @@ def to_float(string):
     return value
 
 
+def to_int(string):
+    try:
+        value = int(string)
+    except ValueError:
+        value = None
+    return value
+
+
 class GromacsLogParser(TextParser):
     def __init__(self):
         super().__init__(None)
@@ -1106,6 +1114,22 @@ class GromacsParser(MDParser):
         rcoulomb = input_parameters.get("rcoulomb", None)
         sec_force_calculations.coulomb_cutoff = to_float(rcoulomb)
 
+    def get_initialization_parameters(self):
+        initialization_parameters = {"velocity_distribution": "gaussian"}
+        gen_vel = self.input_parameters.get("gen-vel", "no").lower()
+        if gen_vel == "no":
+            return {}
+        gen_temp = self.input_parameters.get("gen-temp", None)
+        if isinstance(gen_temp, str):
+            gen_temp = to_float(gen_temp)
+        initialization_parameters["temperature"] = gen_temp
+        gen_seed = self.input_parameters.get("gen-seed", None)
+        if isinstance(gen_seed, str):
+            gen_seed = to_int(gen_seed)
+        initialization_parameters["velocity_distribution_seed"] = gen_seed
+
+        return initialization_parameters
+
     def get_thermostat_parameters(self, integrator: str = ""):
         thermostat = self.input_parameters.get("tcoupl", "no").lower()
         thermostat_map = {
@@ -1389,6 +1413,8 @@ class GromacsParser(MDParser):
                 timestep * ureg.picosecond if timestep else None
             )
 
+            initialization_parameters = self.get_initialization_parameters()
+            method["initialization_parameters"] = [initialization_parameters]
             thermostat_parameters = self.get_thermostat_parameters(integrator)
             method["thermostat_parameters"] = [thermostat_parameters]
             barostat_parameters = self.get_barostat_parameters()

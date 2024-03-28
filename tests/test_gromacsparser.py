@@ -330,6 +330,20 @@ def test_geometry_optimization(parser):
     assert sec_workflow.results.steps[4] == 5000
 
 
+def test_initialization_parameters(parser):
+    archive = EntryArchive()
+    parser.parse(
+        "tests/data/gromacs/water_AA_ENUM_tests/integrator-sd/md.log", archive, None
+    )
+
+    sec_workflow = archive.workflow2
+    sec_init = sec_workflow.method.initialization_parameters[0]
+
+    assert sec_init.temperature.magnitude == approx(298.0)
+    assert sec_init.velocity_distribution == "gaussian"
+    assert sec_init.velocity_distribution_seed == 173529
+
+
 def test_integrator_sd(parser):
     archive = EntryArchive()
     parser.parse(

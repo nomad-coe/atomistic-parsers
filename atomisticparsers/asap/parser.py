@@ -154,9 +154,14 @@ class AsapParser(MDParser):
             for constraint in traj.constraints:
                 as_dict = constraint.todict()
                 indices = as_dict["kwargs"].get("a", as_dict["kwargs"].get("indices"))
+                indices = (
+                    indices
+                    if isinstance(indices, (np.ndarray, list))
+                    else [int(indices)]
+                )
                 constraints.append(
                     dict(
-                        atom_indices=np.asarray(indices),
+                        atom_indices=[np.asarray(indices)],
                         kind=get_constraint_name(as_dict),
                     )
                 )

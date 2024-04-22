@@ -16,11 +16,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import numpy as np            # pylint: disable=unused-import
-import typing                 # pylint: disable=unused-import
+import numpy as np  # pylint: disable=unused-import
+import typing  # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
-    MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    MSection,
+    MCategory,
+    Category,
+    Package,
+    Quantity,
+    Section,
+    SubSection,
+    SectionProxy,
+    Reference,
 )
 import simulationworkflowschema
 
@@ -29,38 +36,40 @@ m_package = Package()
 
 
 class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_asap_langevin_friction = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         Friction coeffient used in Langevin dynamics
-        ''')
+        """,
+    )
 
     x_asap_temperature = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         Temperature used in molecular-dynamics
-        ''')
+        """,
+    )
 
     x_asap_timestep = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         Timestep in molecular dynamics
-        ''')
+        """,
+    )
 
 
 class GeometryOptimization(simulationworkflowschema.GeometryOptimization):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_asap_maxstep = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         Maxstep in Angstrom for geometry optimization
-        ''')
+        """,
+    )

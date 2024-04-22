@@ -469,7 +469,7 @@ class BOPfoxParser(MDParser):
                                         name=key,
                                         functional_form=val[0],
                                         parameters=val[1:],
-                                        atom_labels=bond.get("bond"),
+                                        atom_labels=[bond.get("bond")],
                                         x_bopfox_valence=bond.get("valence"),
                                         x_bopfox_cutoff=bond.get("rcut"),
                                         x_bopfox_dcutoff=bond.get("dcut"),
@@ -496,7 +496,7 @@ class BOPfoxParser(MDParser):
                                         name=key,
                                         functional_form=val[0],
                                         parameters=val[1:],
-                                        atom_labels=bond.get("bond"),
+                                        atom_labels=[bond.get("bond")],
                                         x_bopfox_cutoff=bond.get("r2cut"),
                                         x_bopfox_dcutoff=bond.get("d2cut"),
                                     )
@@ -508,7 +508,7 @@ class BOPfoxParser(MDParser):
                                         name=key,
                                         functional_form=val[0],
                                         parameters=val[1:],
-                                        atom_labels=bond.get("bond"),
+                                        atom_labels=[bond.get("bond")],
                                         x_bopfox_cutoff=bond.get("r2cut"),
                                         x_bopfox_dcutoff=bond.get("d2cut"),
                                     )

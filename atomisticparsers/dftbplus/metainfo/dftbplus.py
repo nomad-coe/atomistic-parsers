@@ -16,10 +16,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import numpy as np            # pylint: disable=unused-import
+import numpy as np  # pylint: disable=unused-import
 
 from nomad.metainfo import (  # pylint: disable=unused-import
-    Package, Quantity, Section, SubSection, JSON
+    Package,
+    Quantity,
+    Section,
+    SubSection,
+    JSON,
 )
 import runschema.run  # pylint: disable=unused-import
 import runschema.calculation  # pylint: disable=unused-import
@@ -31,111 +35,118 @@ m_package = Package()
 
 
 class AtomParameters(runschema.method.AtomParameters):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     atom = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
     x_dftbp_charge = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
 
 class System(runschema.system.System):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_dftbp_atom_positions_X = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
     x_dftbp_atom_positions_Y = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
     x_dftbp_atom_positions_Z = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
 
 class BandEnergies(runschema.calculation.BandEnergies):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_dftbp_eigenvalues_values = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
     x_dftbp_eigenvalues_occupation = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
 
 class Calculation(runschema.calculation.Calculation):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_dftbp_atom_forces_X = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
     x_dftbp_atom_forces_Y = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
     x_dftbp_atom_forces_Z = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
     x_dftbp_force_max = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
     x_dftbp_force_max_mov = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
 
 class Energy(runschema.calculation.Energy):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_dftbp_total_mermin = SubSection(runschema.calculation.EnergyEntry.m_def)
@@ -156,47 +167,51 @@ class Energy(runschema.calculation.Energy):
 
 
 class TB(runschema.method.TB):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_dftbp_input_parameters = Quantity(
         type=JSON,
         shape=[],
-        description='''
+        description="""
         -
-        ''')
+        """,
+    )
 
     x_dftbp_n_sk_files = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
-        description='''
-        ''')
+        description="""
+        """,
+    )
 
     x_dftbp_sk_files = Quantity(
         type=str,
-        shape=['x_dftbp_n_sk_files'],
-        description='''
-        ''')
+        shape=["x_dftbp_n_sk_files"],
+        description="""
+        """,
+    )
 
 
 class Run(runschema.run.Run):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_dftbp_input_file = Quantity(
         type=str,
         shape=[],
-        description='''
-        ''')
+        description="""
+        """,
+    )
 
     x_dftbp_processed_input_file = Quantity(
         type=str,
         shape=[],
-        description='''
-        ''')
+        description="""
+        """,
+    )
 
     x_dftbp_parser_version = Quantity(
         type=str,
         shape=[],
-        description='''
-        ''')
+        description="""
+        """,
+    )

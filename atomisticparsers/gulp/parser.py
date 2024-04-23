@@ -1092,7 +1092,7 @@ class GulpParser(Parser):
                     sec_model.contributions.append(
                         Interaction(
                             functional_form=interaction.functional_form,
-                            atom_labels=[v[0] for v in interaction.get("atom_type")],
+                            atom_labels=[[v[0] for v in interaction.get("atom_type")]],
                             parameters={
                                 key: float(val) if isinstance(val, np.float64) else val
                                 for key, val in interaction.get("key_parameter", [])

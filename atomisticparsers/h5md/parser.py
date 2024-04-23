@@ -379,9 +379,9 @@ class H5MDParser(MDParser):
                         if observable_label
                         else f"{observable_name}"
                     )
-                    self._observable_info[observable_type][step][
-                        observable_key
-                    ] = values[i_step]
+                    self._observable_info[observable_type][step][observable_key] = (
+                        values[i_step]
+                    )
             else:
                 if observable_name not in self._observable_info[observable_type].keys():
                     self._observable_info[observable_type][observable_name] = {}
@@ -704,25 +704,42 @@ class H5MDParser(MDParser):
         property_type_key=None,
         property_type_value_key=None,
         properties_known={},
-        property_keys_list=[],
-        property_value_keys_list=[],
+        property_def: MSection = None,
+        property_value_def: MSection = None,
     ):
+        property_quantities = property_def.all_quantities
+        property_value_quantities = property_value_def.all_quantities
+
+        def reshape(quantity_name, val):
+            quantity_def = property_quantities.get(
+                quantity_name, property_value_quantities.get(quantity_name)
+            )
+            units = val.units if hasattr(val, "units") else None
+            magnitude = val.magnitude if units else val
+            if (
+                quantity_def
+                and quantity_def.shape
+                and not isinstance(magnitude, (np.ndarray, list))
+            ):
+                magnitude = [magnitude]
+            return magnitude * units if units else magnitude
+
         def populate_property_dict(
             property_dict, val_name, val, flag_known_property=False
         ):
             if val is None:
                 return
-            value_unit = val.units if hasattr(val, "units") else None
-            value_magnitude = val.magnitude if hasattr(val, "units") else val
             if flag_known_property:
-                property_dict[val_name] = (
-                    value_magnitude * value_unit if value_unit else value_magnitude
-                )
+                property_dict[val_name] = reshape(val_name, val)
             else:
+                val = reshape(f"{val_name}_magnitude", val)
+                value_unit = val.units if hasattr(val, "units") else None
                 property_dict[f"{val_name}_unit"] = (
                     str(value_unit) if value_unit else None
                 )
-                property_dict[f"{val_name}_magnitude"] = value_magnitude
+                property_dict[f"{val_name}_magnitude"] = (
+                    val.magnitude if value_unit else val
+                )
 
         workflow_properties_dict: Dict[Any, Any] = {}
         for observable_type, observable_dict in observables.items():
@@ -740,9 +757,10 @@ class H5MDParser(MDParser):
                         continue
                     if quant_name == "bins":
                         continue
-                    if quant_name in property_keys_list:
+                    val = reshape(quant_name, val)
+                    if quant_name in property_quantities:
                         property_dict[quant_name] = val
-                    if quant_name in property_value_keys_list:
+                    if quant_name in property_value_quantities:
                         property_values_dict[quant_name] = val
                     # TODO Still need to add custom values here.
 
@@ -784,8 +802,8 @@ class H5MDParser(MDParser):
             "properties_known": {
                 "radial_distribution_functions": "radial_distribution_function_values"
             },
-            "property_keys_list": EnsembleProperty.m_def.all_quantities.keys(),
-            "property_value_keys_list": EnsemblePropertyValues.m_def.all_quantities.keys(),
+            "property_def": EnsembleProperty.m_def,
+            "property_value_def": EnsemblePropertyValues.m_def,
         }
         workflow_results.update(
             self.get_workflow_properties_dict(
@@ -801,8 +819,8 @@ class H5MDParser(MDParser):
             "properties_known": {
                 "mean_squared_displacements": "mean_squared_displacement_values"
             },
-            "property_keys_list": CorrelationFunction.m_def.all_quantities.keys(),
-            "property_value_keys_list": CorrelationFunctionValues.m_def.all_quantities.keys(),
+            "property_def": CorrelationFunction.m_def,
+            "property_value_def": CorrelationFunctionValues.m_def,
         }
         workflow_results.update(
             self.get_workflow_properties_dict(

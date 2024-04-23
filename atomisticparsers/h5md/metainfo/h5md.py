@@ -88,7 +88,7 @@ class CalcEntry(MSection):
     )
 
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description="""
         Value of this contribution.
@@ -220,7 +220,7 @@ class Run(runschema.run.Run):
 
     # TODO Not sure how we are dealing with versioning with H5MD-NOMAD
     x_h5md_version = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[2],
         description="""
         Specifies the version of the h5md schema being followed.

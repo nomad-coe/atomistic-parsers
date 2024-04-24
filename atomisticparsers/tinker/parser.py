@@ -21,6 +21,7 @@ import os
 import numpy as np
 import fnmatch
 from typing import List
+import re
 
 from nomad.parsing.file_parser.text_parser import Quantity, TextParser
 from nomad.units import ureg
@@ -52,6 +53,7 @@ class KeyParser(TextParser):
             if len(val) == 1:
                 return [val[0], True]
             elif len(val) == 2:
+                val[1] = float(val[1]) if re.match(re_f, val[1]) else val[1]
                 return val
             else:
                 return [val[0], val[1:]]

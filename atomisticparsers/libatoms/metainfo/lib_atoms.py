@@ -16,11 +16,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import numpy as np            # pylint: disable=unused-import
-import typing                 # pylint: disable=unused-import
+import numpy as np  # pylint: disable=unused-import
+import typing  # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
-    MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    MSection,
+    MCategory,
+    Category,
+    Package,
+    Quantity,
+    Section,
+    SubSection,
+    SectionProxy,
+    Reference,
 )
 import runschema.run  # pylint: disable=unused-import
 import runschema.calculation  # pylint: disable=unused-import
@@ -32,191 +39,213 @@ m_package = Package()
 
 
 class x_lib_atoms_section_gap(MSection):
-    '''
+    """
     Description of Gaussian Approximation Potentials (GAPs).
-    '''
+    """
 
     m_def = Section(validate=False)
 
     x_lib_atoms_training_config_refs = Quantity(
         type=runschema.calculation.Calculation,
-        shape=['n_sparseX'],
-        description='''
+        shape=["n_sparseX"],
+        description="""
         References to frames in training configuration.
-        ''')
+        """,
+    )
 
     x_lib_atoms_GAP_params_label = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_GAP_params_svn_version = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_GAP_data_do_core = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_GAP_data_e0 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_command_line_command_line = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpSparse_n_coordinate = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_n_permutations = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_sparsified = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_signal_variance = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_label = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_n_sparseX = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_covariance_type = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_signal_mean = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_sparseX_filename = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_dimensions = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_theta = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_descriptor = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_perm_permutation = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_perm_i = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
-        description='''
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_alpha = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_sparseX', 2],
-        description='''
+        type=np.float64,
+        shape=["n_sparseX", 2],
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
     x_lib_atoms_gpCoordinates_sparseX = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_sparseX', 'dimensions'],
-        description='''
+        type=np.float64,
+        shape=["n_sparseX", "dimensions"],
+        description="""
         GAP classifier.
-        ''')
+        """,
+    )
 
 
 class Run(runschema.run.Run):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_lib_atoms_section_gap = SubSection(
-        sub_section=SectionProxy('x_lib_atoms_section_gap'),
-        repeats=False)
+        sub_section=SectionProxy("x_lib_atoms_section_gap"), repeats=False
+    )
 
 
 class Calculation(runschema.calculation.Calculation):
-
     m_def = Section(validate=False, extends_base_section=True)
 
     x_lib_atoms_virial_tensor = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3, 3],
-        unit='pascal',
-        description='''
+        unit="pascal",
+        description="""
         Virial tensor for this frame.
-        ''')
+        """,
+    )
 
     x_lib_atoms_config_type = Quantity(
         type=str,
         shape=[],
-        description='''
+        description="""
         Configuration type, e.g. = dislocation_quadrupole.
-        ''')
+        """,
+    )

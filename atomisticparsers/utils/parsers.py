@@ -210,7 +210,7 @@ class MDParser(Parser):
 
         interactions.sort(key=lambda x: x.get("type"))
         current_type = interactions[0].get("type")
-        interaction_values = {}
+        interaction_values: Dict[str, Any] = {}
         for interaction in interactions:
             interaction_type = interaction.get("type")
             if current_type and current_type != interaction_type:

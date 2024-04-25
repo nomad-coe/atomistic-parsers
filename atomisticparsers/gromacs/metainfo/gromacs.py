@@ -978,7 +978,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_compressibility = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3, 3],
         description="""
         Gromacs running environment and control parameters.
@@ -986,7 +986,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_compressibility0 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -994,7 +994,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_compressibility1 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1002,7 +1002,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_compressibility2 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1010,7 +1010,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_refp = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3, 3],
         description="""
         Gromacs running environment and control parameters.
@@ -1018,7 +1018,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_refp0 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1026,7 +1026,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_refp1 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1034,7 +1034,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_refp2 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1050,7 +1050,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_posrescom = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1082,7 +1082,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_posrescomb = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1234,7 +1234,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_wallatomtype = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[2],
         description="""
         Gromacs running environment and control parameters.
@@ -1258,7 +1258,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_walldensity = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=["*"],
         description="""
         Gromacs running environment and control parameters.
@@ -1402,7 +1402,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_deform = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3, 3],
         description="""
         Gromacs running environment and control parameters.
@@ -1410,7 +1410,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_deform0 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1418,7 +1418,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_deform1 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1426,7 +1426,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_deform2 = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Gromacs running environment and control parameters.
@@ -1626,7 +1626,7 @@ class x_gromacs_section_control_parameters(MSection):
     )
 
     x_gromacs_inout_control_energygrpflags = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3, 2],
         description="""
         Gromacs running environment and control parameters.
@@ -1668,7 +1668,7 @@ class x_gromacs_section_atom_to_atom_type_ref(MSection):
     )
 
     x_gromacs_atom_to_atom_type_ref = Quantity(
-        type=np.dtype(np.int64),
+        type=np.int64,
         shape=["number_of_atoms_per_type"],
         description="""
         Reference to the atoms of each atom type.
@@ -1693,7 +1693,7 @@ class System(runschema.system.System):
     )
 
     x_gromacs_atom_positions_image_index = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=["number_of_atoms", 3],
         unit="dimensionless",
         description="""
@@ -1702,7 +1702,7 @@ class System(runschema.system.System):
     )
 
     x_gromacs_atom_positions_scaled = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=["number_of_atoms", 3],
         unit="dimensionless",
         description="""
@@ -1711,7 +1711,7 @@ class System(runschema.system.System):
     )
 
     x_gromacs_atom_positions_wrapped = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=["number_of_atoms", 3],
         unit="meter",
         description="""
@@ -1720,7 +1720,7 @@ class System(runschema.system.System):
     )
 
     x_gromacs_lattice_lengths = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Lattice dimensions in a vector. Vector includes [a, b, c] lengths.
@@ -1728,7 +1728,7 @@ class System(runschema.system.System):
     )
 
     x_gromacs_lattice_angles = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description="""
         Angles of lattice vectors. Vector includes [alpha, beta, gamma] in degrees.
@@ -1807,7 +1807,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     )
 
     x_gromacs_barostat_target_pressure = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="pascal",
         description="""
@@ -1816,7 +1816,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     )
 
     x_gromacs_barostat_tau = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="second",
         description="""
@@ -1833,7 +1833,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     )
 
     x_gromacs_integrator_dt = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="second",
         description="""
@@ -1858,7 +1858,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     )
 
     x_gromacs_langevin_gamma = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="second",
         description="""
@@ -1867,7 +1867,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     )
 
     x_gromacs_number_of_steps_requested = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description="""
         Number of requested MD integration time steps.
@@ -1883,7 +1883,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     )
 
     x_gromacs_thermostat_target_temperature = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="kelvin",
         description="""
@@ -1892,7 +1892,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     )
 
     x_gromacs_thermostat_tau = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="second",
         description="""
@@ -1948,7 +1948,7 @@ class AtomParameters(runschema.method.AtomParameters):
     )
 
     x_gromacs_atom_type_radius = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description="""
         van der Waals radius of an atom type.
@@ -1964,7 +1964,7 @@ class AtomParameters(runschema.method.AtomParameters):
     )
 
     x_gromacs_atom_resid = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description="""
         """,
@@ -1978,7 +1978,7 @@ class AtomParameters(runschema.method.AtomParameters):
     )
 
     x_gromacs_atom_molnum = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description="""
         """,
@@ -2007,7 +2007,7 @@ class Interaction(runschema.method.Interaction):
     )
 
     x_gromacs_number_of_defined_pair_interactions = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description="""
         Number of defined pair interactions (L-J pairs).
@@ -2026,7 +2026,7 @@ class Interaction(runschema.method.Interaction):
     )
 
     x_gromacs_pair_interaction_parameters = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=["x_gromacs_number_of_defined_pair_interactions", 2],
         description="""
         Pair interactions parameters.
@@ -2042,7 +2042,7 @@ class Interaction(runschema.method.Interaction):
     )
 
     x_gromacs_number_of_defined_molecule_pair_interactions = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description="""
         Number of defined pair interactions within a molecule (L-J pairs).
@@ -2050,7 +2050,7 @@ class Interaction(runschema.method.Interaction):
     )
 
     x_gromacs_pair_molecule_interaction_parameters = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=["number_of_defined_molecule_pair_interactions", 2],
         description="""
         Molecule pair interactions parameters.
@@ -2084,7 +2084,7 @@ class Run(runschema.run.Run):
     )
 
     x_gromacs_parallel_task_nr = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description="""
         Program task no.
@@ -2092,7 +2092,7 @@ class Run(runschema.run.Run):
     )
 
     x_gromacs_number_of_tasks = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description="""
         Number of tasks in parallel program (MPI).
@@ -2220,7 +2220,7 @@ class Constraint(runschema.system.Constraint):
     )
 
     x_gromacs_data_bond_types_store = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description="""
         store temporarly
@@ -2228,7 +2228,7 @@ class Constraint(runschema.system.Constraint):
     )
 
     x_gromacs_data_bond_count_store = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description="""
         store temporarly
@@ -2236,7 +2236,7 @@ class Constraint(runschema.system.Constraint):
     )
 
     x_gromacs_data_angle_count_store = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description="""
         store temporarly
@@ -2244,7 +2244,7 @@ class Constraint(runschema.system.Constraint):
     )
 
     x_gromacs_data_atom_types_store = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description="""
         store temporarly
@@ -2252,7 +2252,7 @@ class Constraint(runschema.system.Constraint):
     )
 
     x_gromacs_data_dihedral_count_store = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description="""
         store temporarly
@@ -2337,7 +2337,7 @@ class CalcEntry(MSection):
     )
 
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description="""
         Value of this contribution.

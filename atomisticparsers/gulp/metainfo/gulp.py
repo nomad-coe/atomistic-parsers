@@ -792,7 +792,7 @@ class x_gulp_bulk_optimisation(MSection):
     x_gulp_max_gradient_tolerance = Quantity(
         type=np.float64,
         shape=[],
-        description=""""""
+        description="""
         """,
     )
 

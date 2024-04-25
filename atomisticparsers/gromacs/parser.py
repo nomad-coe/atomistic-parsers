@@ -914,7 +914,7 @@ class GromacsParser(MDParser):
                         "labels": atom_labels,
                         "positions": positions,
                         "velocities": self.traj_parser.get_velocities(n),
-                        "bond_list": bond_list,
+                        "bond_list": bond_list if bond_list else None,
                     }
                 }
             )
@@ -1278,9 +1278,9 @@ class GromacsParser(MDParser):
             couple_intramolecular = self.input_parameters.get(
                 "couple-intramol", "on"
             ).lower()
-            free_energy_parameters["final_state_bonded"] = "on"
+            free_energy_parameters["final_state_bonded"] = True
             free_energy_parameters["initial_state_bonded"] = (
-                "off" if couple_intramolecular == "yes" else "on"
+                couple_intramolecular != "yes"
             )
         return free_energy_parameters
 
@@ -1484,9 +1484,13 @@ class GromacsParser(MDParser):
                 "x_gromacs_inout_control_%s"
                 % key.replace("-", "").replace(" ", "_").lower()
             )
-            if hasattr(sec_control_parameters, key):
-                val = str(val) if not isinstance(val, np.ndarray) else val
-                setattr(sec_control_parameters, key, val)
+            quantity_def = sec_control_parameters.m_def.all_quantities.get(key)
+            if quantity_def:
+                try:
+                    val = str(val) if not isinstance(val, np.ndarray) else val
+                    sec_control_parameters.m_set(quantity_def, val)
+                except Exception:
+                    self.logger.error("Error setting metainfo.", data={"key": key})
 
     def write_to_archive(self):
         self._maindir = os.path.dirname(self.mainfile)

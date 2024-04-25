@@ -33,6 +33,7 @@ from runschema.method import (
     Method,
     Model,
     AtomParameters,
+    Interaction,
 )
 from runschema.system import AtomsGroup
 from simulationworkflowschema import (
@@ -1209,9 +1210,9 @@ class LammpsParser(MDParser):
                             float(fix[i_temp + 3]) * integration_timestep
                         )
                     elif fix_style == "temp/csld":
-                        thermostat_parameters[
-                            "thermostat_type"
-                        ] = "velocity_rescaling_langevin"
+                        thermostat_parameters["thermostat_type"] = (
+                            "velocity_rescaling_langevin"
+                        )
                         i_temp = 3
                         reference_temperature = float(fix[i_temp + 2])  # stop temp
                         coupling_constant = (
@@ -1390,7 +1391,7 @@ class LammpsParser(MDParser):
                         ),
                         "labels": self.traj_parsers.eval("get_atom_labels", traj_n),
                         "velocities": velocities,
-                        "bond_list": bond_list,
+                        "bond_list": bond_list if bond_list else None,
                     }
                 }
             )
@@ -1549,6 +1550,14 @@ class LammpsParser(MDParser):
 
         # TODO address case types are numbered instead of giving atom labels (fix tests accordingly)
         interactions = self._mdanalysistraj_parser.get_interactions()
+        # for interaction in interactions:
+        #     for key, val in interaction.items():
+        #         quantity_def = Interaction.m_def.all_quantities.get(key)
+        #         if quantity_def and quantity_def.shape:
+        #             # TODO reshape properly
+        #             interaction[key] = [val]
+        # print("---------", self._mdanalysistraj_parser.mainfile)
+        # print(interactions)
         self.parse_interactions(interactions, sec_model)
 
         # Force Calculation Parameters

@@ -1061,6 +1061,7 @@ class GromacsParser(MDParser):
             self.logger.error("Error parsing interactions.")
 
         interactions = self.traj_parser.get_interactions()
+        print(interactions)
         self.parse_interactions(interactions, sec_model)
 
         input_parameters = self.input_parameters

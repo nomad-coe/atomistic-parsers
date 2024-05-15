@@ -183,98 +183,98 @@ class MDParser(Parser):
             return
 
         ## OLD ##
-        interaction_dict = {}
-        for interaction_key in Interaction.m_def.all_quantities.keys():
-            interaction_dict[interaction_key] = np.array(
-                [interaction.get(interaction_key) for interaction in interactions],
-                dtype=object,
-            )
-        interaction_dict = {key: val for key, val in interaction_dict.items()}
-        interaction_types = (
-            np.unique(interaction_dict["type"])
-            if interaction_dict.get("type") is not None
-            else []
-        )
-        for interaction_type in interaction_types:
-            sec_interaction = Interaction()
-            sec_model.contributions.append(sec_interaction)
-            interaction_indices = np.where(
-                interaction_dict["type"] == interaction_type
-            )[0]
-            sec_interaction.type = interaction_type
-            sec_interaction.n_interactions = len(interaction_indices)
-            sec_interaction.n_atoms
-            for key, val in interaction_dict.items():
-                if key == "type":
-                    continue
-                interaction_vals = val[interaction_indices]
-                if type(interaction_vals[0]).__name__ == "ndarray":
-                    interaction_vals = np.array(
-                        [vals.tolist() for vals in interaction_vals], dtype=object
-                    )
-                if interaction_vals.all() is None:
-                    continue
-                if key == "parameters":
-                    interaction_vals = interaction_vals.tolist()
-                elif key == "n_atoms":
-                    interaction_vals = interaction_vals[0]
-                if hasattr(sec_interaction, key):
-                    sec_interaction.m_set(
-                        sec_interaction.m_get_quantity_definition(key), interaction_vals
-                    )
-
-            if not sec_interaction.n_atoms:
-                sec_interaction.n_atoms = (
-                    len(sec_interaction.get("atom_indices")[0])
-                    if sec_interaction.get("atom_indices") is not None
-                    else None
-                )
-        ## NEW ##
-        # def write_interaction_values(values):
+        # interaction_dict = {}
+        # for interaction_key in Interaction.m_def.all_quantities.keys():
+        #     interaction_dict[interaction_key] = np.array(
+        #         [interaction.get(interaction_key) for interaction in interactions],
+        #         dtype=object,
+        #     )
+        # interaction_dict = {key: val for key, val in interaction_dict.items()}
+        # interaction_types = (
+        #     np.unique(interaction_dict["type"])
+        #     if interaction_dict.get("type") is not None
+        #     else []
+        # )
+        # for interaction_type in interaction_types:
         #     sec_interaction = Interaction()
         #     sec_model.contributions.append(sec_interaction)
-        #     sec_interaction.type = current_type
-        #     sec_interaction.n_atoms = max(
-        #         [len(v) for v in values.get("atom_indices", [[0]])]
-        #     )
-        #     for key, val in values.items():
-        #         # TODO tempory fix: atom_labels, atom_indices not homogeneous
-        #         # fill in missing atom label with 'X', atom index with -1
-        #         # if key in ["atom_indices", "atom_labels"]:
-        #         #     val = [
-        #         #         (
-        #         #             v
-        #         #             + [-1 if key == "atom_indices" else "X"]
-        #         #             * sec_interaction.n_atoms
-        #         #         )[: sec_interaction.n_atoms]
-        #         #         for v in val
-        #         #     ]
-        #         quantity_def = sec_interaction.m_def.all_quantities.get(key)
-        #         if quantity_def:
-        #             try:
-        #                 sec_interaction.m_set(quantity_def, val)
-        #             except Exception:
-        #                 self.logger.error("Error setting metadata.", data={"key": key})
-
-        # interactions.sort(key=lambda x: x.get("type"))
-        # print(interactions)
-        # current_type = interactions[0].get("type")
-        # interaction_values: Dict[str, Any] = {}
-        # for interaction in interactions:
-        #     interaction_type = interaction.get("type")
-        #     if current_type and current_type != interaction_type:
-        #         write_interaction_values(interaction_values)
-        #         current_type = interaction_type
-        #         interaction_values = {}
-        #     interaction_values.setdefault("n_interactions", 0)
-        #     interaction_values["n_interactions"] += 1
-        #     for key, val in interaction.items():
+        #     interaction_indices = np.where(
+        #         interaction_dict["type"] == interaction_type
+        #     )[0]
+        #     sec_interaction.type = interaction_type
+        #     sec_interaction.n_interactions = len(interaction_indices)
+        #     sec_interaction.n_atoms
+        #     for key, val in interaction_dict.items():
         #         if key == "type":
         #             continue
-        #         interaction_values.setdefault(key, [])
-        #         interaction_values[key].append(val)
-        # if interaction_values:
-        #     write_interaction_values(interaction_values)
+        #         interaction_vals = val[interaction_indices]
+        #         if type(interaction_vals[0]).__name__ == "ndarray":
+        #             interaction_vals = np.array(
+        #                 [vals.tolist() for vals in interaction_vals], dtype=object
+        #             )
+        #         if interaction_vals.all() is None:
+        #             continue
+        #         if key == "parameters":
+        #             interaction_vals = interaction_vals.tolist()
+        #         elif key == "n_atoms":
+        #             interaction_vals = interaction_vals[0]
+        #         if hasattr(sec_interaction, key):
+        #             sec_interaction.m_set(
+        #                 sec_interaction.m_get_quantity_definition(key), interaction_vals
+        #             )
+
+        #     if not sec_interaction.n_atoms:
+        #         sec_interaction.n_atoms = (
+        #             len(sec_interaction.get("atom_indices")[0])
+        #             if sec_interaction.get("atom_indices") is not None
+        #             else None
+        #         )
+        ## NEW ##
+        def write_interaction_values(values):
+            sec_interaction = Interaction()
+            sec_model.contributions.append(sec_interaction)
+            sec_interaction.type = current_type
+            sec_interaction.n_atoms = max(
+                [len(v) for v in values.get("atom_indices", [[0]])]
+            )
+            for key, val in values.items():
+                # TODO tempory fix: atom_labels, atom_indices not homogeneous
+                # fill in missing atom label with 'X', atom index with -1
+                # if key in ["atom_indices", "atom_labels"]:
+                #     val = [
+                #         (
+                #             v
+                #             + [-1 if key == "atom_indices" else "X"]
+                #             * sec_interaction.n_atoms
+                #         )[: sec_interaction.n_atoms]
+                #         for v in val
+                #     ]
+                quantity_def = sec_interaction.m_def.all_quantities.get(key)
+                if quantity_def:
+                    try:
+                        sec_interaction.m_set(quantity_def, val)
+                    except Exception:
+                        self.logger.error("Error setting metadata.", data={"key": key})
+
+        interactions.sort(key=lambda x: x.get("type"))
+        print(interactions)
+        current_type = interactions[0].get("type")
+        interaction_values: Dict[str, Any] = {}
+        for interaction in interactions:
+            interaction_type = interaction.get("type")
+            if current_type and current_type != interaction_type:
+                write_interaction_values(interaction_values)
+                current_type = interaction_type
+                interaction_values = {}
+            interaction_values.setdefault("n_interactions", 0)
+            interaction_values["n_interactions"] += 1
+            for key, val in interaction.items():
+                if key == "type":
+                    continue
+                interaction_values.setdefault(key, [])
+                interaction_values[key].append(val)
+        if interaction_values:
+            write_interaction_values(interaction_values)
 
     def parse_interactions_by_type(
         self, interactions_by_type: List[Dict], sec_model: Model

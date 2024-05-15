@@ -72,8 +72,7 @@ def test_nvt(parser):
     assert sec_method.force_field.model[0].contributions[1].type == "bond"
     assert sec_method.force_field.model[0].contributions[1].n_interactions == 666
     assert sec_method.force_field.model[0].contributions[1].n_atoms == 2
-    # TODO fix this, fails with changes in utils.parsers.parse_interactions
-    # assert sec_method.force_field.model[0].contributions[1].atom_indices[100][1] == 103
+    assert sec_method.force_field.model[0].contributions[1].atom_indices[100, 1] == 103
     assert sec_method.force_field.model[0].contributions[1].parameters[200] == approx(
         1.1147454117684314
     )
@@ -93,8 +92,7 @@ def test_nvt(parser):
     assert sec_system[5].atoms.lattice_vectors[1][1].magnitude == approx(2.24235e-09)
     assert False not in sec_system[0].atoms.periodic
     assert sec_system[80].atoms.labels[91:96] == ["H", "H", "H", "C", "C"]
-    # TODO fix this, fails with changes in utils.parsers.parse_interactions
-    # assert sec_system[0].atoms.bond_list[200][0] == 194
+    assert sec_system[0].atoms.bond_list[200, 0] == 194
 
     sec_scc = sec_run.calculation
     assert len(sec_scc) == 201

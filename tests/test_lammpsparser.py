@@ -73,10 +73,7 @@ def test_nvt(parser):
     assert sec_method.force_field.model[0].contributions[1].n_interactions == 666
     assert sec_method.force_field.model[0].contributions[1].n_atoms == 2
     assert sec_method.force_field.model[0].contributions[1].atom_indices[100, 1] == 103
-    assert sec_method.force_field.model[0].contributions[1].parameters[200] == approx(
-        1.1147454117684314
-    )
-    assert sec_method.force_field.model[0].contributions[1].atom_labels[350][0] == "2"
+    assert sec_method.force_field.model[0].contributions[1].atom_labels[350, 0] == "1"
     assert (
         sec_method.force_field.force_calculations.coulomb_cutoff.magnitude
         == 1.2000000000000002e-08

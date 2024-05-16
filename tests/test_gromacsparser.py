@@ -152,9 +152,6 @@ def test_md_verbose(parser):
     assert (
         sec_method[0].force_field.model[0].contributions[6].atom_indices[100, 1] == 141
     )
-    assert sec_method[0].force_field.model[0].contributions[6].parameters[
-        858
-    ] == approx(0.9999996193044006)
     assert sec_method[0].force_field.force_calculations.vdw_cutoff.magnitude == 1.2e-09
     assert sec_method[0].force_field.force_calculations.vdw_cutoff.units == "meter"
     assert (

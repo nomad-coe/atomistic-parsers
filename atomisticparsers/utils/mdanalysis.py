@@ -462,13 +462,21 @@ class MDAnalysisParser(FileParser):
             except Exception:
                 continue
 
-            for i in range(len(interaction)):
+            for inter in interaction:
+                atom_labels = None
+                try:
+                    atom_labels = [
+                        self.universe.atoms[ind].type for ind in inter.indices
+                    ]
+                except Exception:
+                    self.logger.warning("Could not assign atom labels to interactions.")
                 interactions.append(
                     dict(
-                        atom_labels=list(interaction[i].type),
-                        parameters=float(interaction[i].value()),
-                        atom_indices=interaction[i].indices,
-                        type=interaction[i].btype,
+                        atom_labels=atom_labels,
+                        # parameters=float(inter.value()),  ## This is not the parameter but rather the value of the interaction order parameter for a single frame
+                        # TODO implement functions to get parameters for individual parsers
+                        atom_indices=inter.indices,
+                        type=inter.btype,
                     )
                 )
 

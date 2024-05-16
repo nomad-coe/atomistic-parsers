@@ -190,17 +190,6 @@ class MDParser(Parser):
                 [len(v) for v in values.get("atom_indices", [[0]])]
             )
             for key, val in values.items():
-                # TODO tempory fix: atom_labels, atom_indices not homogeneous
-                # fill in missing atom label with 'X', atom index with -1
-                if key in ["atom_indices", "atom_labels"]:
-                    val = [
-                        (
-                            v
-                            + [-1 if key == "atom_indices" else "X"]
-                            * sec_interaction.n_atoms
-                        )[: sec_interaction.n_atoms]
-                        for v in val
-                    ]
                 quantity_def = sec_interaction.m_def.all_quantities.get(key)
                 if quantity_def:
                     try:

@@ -1458,6 +1458,7 @@ class GromacsParser(MDParser):
                     sec_fe.value_total_energy_differences_magnitude = columns[:, 2:-1]
                     sec_fe.value_PV_energy_magnitude = columns[:, -1]
 
+    # comment
     def parse_input(self):
         sec_run = self.archive.run[-1]
         sec_input_output_files = x_gromacs_section_input_output_files()

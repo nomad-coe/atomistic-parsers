@@ -179,16 +179,19 @@ class AsapParser(MDParser):
             )
 
         for step in self.thermodynamics_steps:
-            traj = self.traj_parser.traj[steps.index(step)]
-            if (total_energy := traj.get_total_energy()) is not None:
-                total_energy = total_energy * ureg.eV
-            if (forces := traj.get_forces()) is not None:
-                forces = forces * ureg.eV / ureg.angstrom
-            if (forces_raw := traj.get_forces(apply_constraint=False)) is not None:
-                forces_raw * ureg.eV / ureg.angstrom
-            self.parse_thermodynamics_step(
-                dict(
-                    energy=dict(total=dict(value=total_energy)),
-                    forces=dict(total=dict(value=forces, value_raw=forces_raw)),
+            try:
+                traj = self.traj_parser.traj[steps.index(step)]
+                if (total_energy := traj.get_total_energy()) is not None:
+                    total_energy = total_energy * ureg.eV
+                if (forces := traj.get_forces()) is not None:
+                    forces = forces * ureg.eV / ureg.angstrom
+                if (forces_raw := traj.get_forces(apply_constraint=False)) is not None:
+                    forces_raw * ureg.eV / ureg.angstrom
+                self.parse_thermodynamics_step(
+                    dict(
+                        energy=dict(total=dict(value=total_energy)),
+                        forces=dict(total=dict(value=forces, value_raw=forces_raw)),
+                    )
                 )
-            )
+            except Exception:
+                pass

@@ -36,10 +36,6 @@ dev = [
     "typing-extensions==4.4.0",
     "ruff==0.1.8",
 ]
-# these are extra deps for nomad infra as a result of using nomad.search
-nomad_infrastructure = [
-    "mongoengine>=0.20'",
-]
 
 [tool.ruff]
 include = ["atomisticparsers/*.py", "tests/*.py"]

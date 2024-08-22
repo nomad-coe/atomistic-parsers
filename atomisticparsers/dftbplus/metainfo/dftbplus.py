@@ -186,7 +186,7 @@ class TB(runschema.method.TB):
 
     x_dftbp_sk_files = Quantity(
         type=str,
-        shape=["x_dftbp_n_sk_files"],
+        shape=['x_dftbp_n_sk_files'],
         description="""
         """,
     )

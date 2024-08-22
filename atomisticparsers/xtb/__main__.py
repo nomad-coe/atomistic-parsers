@@ -25,7 +25,7 @@ from nomad.datamodel import EntryArchive
 from atomisticparsers.xtb import XTBParser
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     configure_logging(console_log_level=logging.DEBUG)
     archive = EntryArchive()
     XTBParser().parse(sys.argv[1], archive, logging)

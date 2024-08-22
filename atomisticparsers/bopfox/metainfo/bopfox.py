@@ -154,7 +154,7 @@ class Interaction(runschema.method.Interaction):
 
     x_bopfox_valence = Quantity(
         type=str,
-        shape=["n_atoms"],
+        shape=['n_atoms'],
         description="""
         Valence of the atoms described by the interaction.
         """,
@@ -162,7 +162,7 @@ class Interaction(runschema.method.Interaction):
 
     x_bopfox_chargetransfer = Quantity(
         type=np.dtype(np.float64),
-        shape=["*"],
+        shape=['*'],
         description="""
         Charge transfer parameters.
         """,

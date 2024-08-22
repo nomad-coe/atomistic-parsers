@@ -41,7 +41,9 @@ def test_0(parser):
     assert sec_run.program.version == '4.07'
 
     sec_method = sec_run.method[0]
-    assert sec_method.x_dl_poly_control_parameters['real space cutoff'] == approx(1.2000e+01)
+    assert sec_method.x_dl_poly_control_parameters['real space cutoff'] == approx(
+        1.2000e01
+    )
     sec_atom_parameters = sec_method.molecule_parameters[0].atom_parameters
     assert len(sec_atom_parameters) == 2
     assert sec_atom_parameters[0].label == 'Na+'
@@ -69,8 +71,10 @@ def test_0(parser):
     assert sec_calc[8].energy.contributions[1].value.magnitude == approx(4.61213065e-11)
     assert sec_calc[17].temperature.magnitude == approx(503.57)
     assert sec_calc[9].pressure.magnitude == approx(-696315.532)
-    assert sec_calc[6].x_dl_poly_virial_configurational == approx(1.5826e+08)
-    assert sec_calc[1].x_dl_poly_volume.to('angstrom ** 3').magnitude == approx(9.6388e+05)
+    assert sec_calc[6].x_dl_poly_virial_configurational == approx(1.5826e08)
+    assert sec_calc[1].x_dl_poly_volume.to('angstrom ** 3').magnitude == approx(
+        9.6388e05
+    )
     assert sec_calc[2].time_physical.magnitude == approx(0.812)
     assert sec_calc[7].time_calculation.magnitude == approx(0.609)
 
@@ -104,7 +108,9 @@ def test_2(parser):
     sec_molecule_parameters = archive.run[0].method[0].molecule_parameters
     assert len(sec_molecule_parameters) == 2
     assert sec_molecule_parameters[1].label == 'water tip3p'
-    assert sec_molecule_parameters[0].atom_parameters[20].charge.magnitude == approx(5.60761822e-21)
+    assert sec_molecule_parameters[0].atom_parameters[20].charge.magnitude == approx(
+        5.60761822e-21
+    )
 
     sec_system = archive.run[0].system
     assert len(sec_system[0].constraint) == 127

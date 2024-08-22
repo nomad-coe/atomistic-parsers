@@ -736,14 +736,14 @@ class x_tinker_section_control_parameters(MSection):
 
     x_tinker_inout_control_parameter_files = Quantity(
         type=str,
-        shape=["x_tinker_inout_control_number_of_parameter_files"],
+        shape=['x_tinker_inout_control_number_of_parameter_files'],
         description="""
         tinker running environment and control parameters.
         """,
     )
 
     x_tinker_section_input_output_files = SubSection(
-        sub_section=SectionProxy("x_tinker_section_input_output_files"), repeats=True
+        sub_section=SectionProxy('x_tinker_section_input_output_files'), repeats=True
     )
 
 
@@ -756,7 +756,7 @@ class x_tinker_section_atom_to_atom_type_ref(MSection):
 
     x_tinker_atom_to_atom_type_ref = Quantity(
         type=np.int64,
-        shape=["number_of_atoms_per_type"],
+        shape=['number_of_atoms_per_type'],
         description="""
         Reference to the atoms of each atom type.
         """,
@@ -776,8 +776,8 @@ class System(runschema.system.System):
 
     x_tinker_atom_positions_image_index = Quantity(
         type=np.int32,
-        shape=["number_of_atoms", 3],
-        unit="dimensionless",
+        shape=['number_of_atoms', 3],
+        unit='dimensionless',
         description="""
         PBC image flag index.
         """,
@@ -785,8 +785,8 @@ class System(runschema.system.System):
 
     x_tinker_atom_positions_scaled = Quantity(
         type=np.float64,
-        shape=["number_of_atoms", 3],
-        unit="dimensionless",
+        shape=['number_of_atoms', 3],
+        unit='dimensionless',
         description="""
         Position of the atoms in a scaled format [0, 1].
         """,
@@ -794,8 +794,8 @@ class System(runschema.system.System):
 
     x_tinker_atom_positions_wrapped = Quantity(
         type=np.float64,
-        shape=["number_of_atoms", 3],
-        unit="meter",
+        shape=['number_of_atoms', 3],
+        unit='meter',
         description="""
         Position of the atoms wrapped back to the periodic box.
         """,
@@ -888,7 +888,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_tinker_barostat_target_pressure = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         MD barostat target pressure.
         """,
@@ -913,7 +913,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_tinker_integrator_dt = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         MD integration time step.
         """,
@@ -938,7 +938,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_tinker_langevin_gamma = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         Langevin thermostat damping factor.
         """,
@@ -963,7 +963,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_tinker_thermostat_target_temperature = Quantity(
         type=np.float64,
         shape=[],
-        unit="kelvin",
+        unit='kelvin',
         description="""
         MD thermostat target temperature.
         """,
@@ -972,7 +972,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_tinker_thermostat_tau = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         MD thermostat relaxation time.
         """,
@@ -993,7 +993,7 @@ class GeometryOptimization(simulationworkflowschema.GeometryOptimization):
     x_tiner_final_function_value = Quantity(
         type=np.float64,
         shape=[],
-        unit="newton",
+        unit='newton',
         description="""
         Final value of the energy.
         """,
@@ -1002,7 +1002,7 @@ class GeometryOptimization(simulationworkflowschema.GeometryOptimization):
     x_tinker_final_rms_gradient = Quantity(
         type=np.float64,
         shape=[],
-        unit="newton",
+        unit='newton',
         description="""
         Tolerance value of the RMS gradient for structure minimization.
         """,
@@ -1011,7 +1011,7 @@ class GeometryOptimization(simulationworkflowschema.GeometryOptimization):
     x_tinker_final_gradient_norm = Quantity(
         type=np.float64,
         shape=[],
-        unit="newton",
+        unit='newton',
         description="""
         Tolerance value of the RMS gradient for structure minimization.
         """,
@@ -1020,7 +1020,7 @@ class GeometryOptimization(simulationworkflowschema.GeometryOptimization):
     x_tinker_final_gradient_norm = Quantity(
         type=np.float64,
         shape=[],
-        unit="newton",
+        unit='newton',
         description="""
         Tolerance value of the RMS gradient for structure minimization.
         """,
@@ -1091,7 +1091,7 @@ class Interaction(runschema.method.Interaction):
 
     x_tinker_interaction_atom_to_atom_type_ref = Quantity(
         type=runschema.method.AtomParameters,
-        shape=["number_of_atoms_per_interaction"],
+        shape=['number_of_atoms_per_interaction'],
         description="""
         Reference to the atom type of each interaction atoms.
         """,
@@ -1108,8 +1108,8 @@ class Interaction(runschema.method.Interaction):
     x_tinker_pair_interaction_atom_type_ref = Quantity(
         type=runschema.method.AtomParameters,
         shape=[
-            "x_tinker_number_of_defined_pair_interactions",
-            "number_of_atoms_per_interaction",
+            'x_tinker_number_of_defined_pair_interactions',
+            'number_of_atoms_per_interaction',
         ],
         description="""
         Reference to the atom type for pair interactions.
@@ -1118,7 +1118,7 @@ class Interaction(runschema.method.Interaction):
 
     x_tinker_pair_interaction_parameters = Quantity(
         type=np.float64,
-        shape=["x_tinker_number_of_defined_pair_interactions", 2],
+        shape=['x_tinker_number_of_defined_pair_interactions', 2],
         description="""
         Pair interactions parameters.
         """,
@@ -1126,7 +1126,7 @@ class Interaction(runschema.method.Interaction):
 
     x_tinker_molecule_interaction_atom_to_atom_type_ref = Quantity(
         type=runschema.method.AtomParameters,
-        shape=["number_of_atoms_per_interaction"],
+        shape=['number_of_atoms_per_interaction'],
         description="""
         Reference to the atom type of each molecule interaction atoms.
         """,
@@ -1142,7 +1142,7 @@ class Interaction(runschema.method.Interaction):
 
     x_tinker_pair_molecule_interaction_parameters = Quantity(
         type=np.float64,
-        shape=["number_of_defined_molecule_pair_interactions", 2],
+        shape=['number_of_defined_molecule_pair_interactions', 2],
         description="""
         Molecule pair interactions parameters.
         """,
@@ -1151,8 +1151,8 @@ class Interaction(runschema.method.Interaction):
     x_tinker_pair_molecule_interaction_to_atom_type_ref = Quantity(
         type=runschema.method.AtomParameters,
         shape=[
-            "x_tinker_number_of_defined_pair_interactions",
-            "number_of_atoms_per_interaction",
+            'x_tinker_number_of_defined_pair_interactions',
+            'number_of_atoms_per_interaction',
         ],
         description="""
         Reference to the atom type for pair interactions within a molecule.
@@ -1332,7 +1332,7 @@ class Run(runschema.run.Run):
     )
 
     x_tinker_section_control_parameters = SubSection(
-        sub_section=SectionProxy("x_tinker_section_control_parameters"), repeats=True
+        sub_section=SectionProxy('x_tinker_section_control_parameters'), repeats=True
     )
 
     x_tinker_control_parameters = Quantity(
@@ -1347,7 +1347,7 @@ class Calculation(runschema.calculation.Calculation):
     m_def = Section(validate=False, extends_base_section=True)
 
     x_tinker_section_single_configuration_calculation = SubSection(
-        sub_section=SectionProxy("x_tinker_section_single_configuration_calculation"),
+        sub_section=SectionProxy('x_tinker_section_single_configuration_calculation'),
         repeats=True,
     )
 
@@ -1357,7 +1357,7 @@ class VibrationalFrequencies(runschema.calculation.VibrationalFrequencies):
 
     x_tinker_eigenvalues = Quantity(
         type=np.float64,
-        shape=["n_frequencies"],
+        shape=['n_frequencies'],
         description="""
         """,
     )

@@ -18,4 +18,5 @@
 
 from .mdanalysis import MDAnalysisParser
 from .parsers import MDParser
-MOL = 6.022140857e+23
+
+MOL = 6.022140857e23

@@ -32,9 +32,10 @@ class AmberParser:
             auxilliary_files=r'(\S+\.inpcrd|\S+\.prmtop)',
             atom_positions=(
                 rf'\d+\s+({re_f} +{re_f} +{re_f} +{re_f} +{re_f} +{re_f}[\s\S]+)',
-                lambda x: x.strip().split()),
+                lambda x: x.strip().split(),
+            ),
             atom_atom_number=r'\%FLAG ATOMIC_NUMBER\s*\%FORMAT\(.+\)\s*([\d\s]+)',
-            energy_total=rf'NSTEP\s*ENERGY.+\s*\d+\s*({re_f})'
+            energy_total=rf'NSTEP\s*ENERGY.+\s*\d+\s*({re_f})',
         )
 
     def parse(self, mainfile, archive, logger=None):

@@ -31,7 +31,7 @@ class LibAtomsParser:
             # necessary to include version due to auto type conversion
             program_version=r'(svn\_version\=\"\d+\")',
             atom_labels_atom_positions_atom_forces=r'(\<\!\[CDATA\[[A-Z][a-z]* +[\s\S]+?)(?:\<\!\[CDATA\[\d+\]\]\>|\Z)',
-            energy_total=rf'slice\_sample energy\=({re_f})'
+            energy_total=rf'slice\_sample energy\=({re_f})',
         )
 
     def parse(self, mainfile, archive, logger=None):

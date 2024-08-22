@@ -69,7 +69,7 @@ class MDParser(Parser):
     def trajectory_steps(self, value: List[int]):
         self._trajectory_steps = list(set(value))
         self._trajectory_steps.sort()
-        self.info["n_frames"] = len(self._trajectory_steps)
+        self.info['n_frames'] = len(self._trajectory_steps)
         self._trajectory_steps_sampled = []
 
     @property
@@ -87,30 +87,30 @@ class MDParser(Parser):
 
     @property
     def n_atoms(self) -> int:
-        return np.amax(self.info.get("n_atoms", [0]))
+        return np.amax(self.info.get('n_atoms', [0]))
 
     @n_atoms.setter
     def n_atoms(self, value: Union[Iterable, int]):
-        self.info["n_atoms"] = [value] if not isinstance(value, Iterable) else value
+        self.info['n_atoms'] = [value] if not isinstance(value, Iterable) else value
 
     @property
     def archive_sampling_rate(self) -> int:
         """
         Returns the sampling rate of saved thermodynamics data and trajectory.
         """
-        if self.info.get("archive_sampling_rate") is None:
-            n_frames = self.info.get("n_frames", len(self._trajectory_steps))
+        if self.info.get('archive_sampling_rate') is None:
+            n_frames = self.info.get('n_frames', len(self._trajectory_steps))
             n_atoms = np.amax(self.n_atoms)
             if not n_atoms or not n_frames:
-                self.info["archive_sampling_rate"] = 1
+                self.info['archive_sampling_rate'] = 1
             else:
                 cum_atoms = n_atoms * n_frames
-                self.info["archive_sampling_rate"] = (
+                self.info['archive_sampling_rate'] = (
                     1
                     if cum_atoms <= self.cum_max_atoms
                     else -(-cum_atoms // self.cum_max_atoms)
                 )
-        return self.info.get("archive_sampling_rate")
+        return self.info.get('archive_sampling_rate')
 
     def parse(self, *args, **kwargs):
         self.info = {}
@@ -127,7 +127,7 @@ class MDParser(Parser):
         if self.archive is None:
             return
 
-        if (step := data.get("step")) is not None and step not in self.trajectory_steps:
+        if (step := data.get('step')) is not None and step not in self.trajectory_steps:
             return
 
         if self.archive.run:
@@ -148,7 +148,7 @@ class MDParser(Parser):
             return
 
         if (
-            step := data.get("step")
+            step := data.get('step')
         ) is not None and step not in self.thermodynamics_steps:
             return
 
@@ -187,7 +187,7 @@ class MDParser(Parser):
             sec_model.contributions.append(sec_interaction)
             sec_interaction.type = current_type
             sec_interaction.n_atoms = max(
-                [len(v) for v in values.get("atom_indices", [[0]])]
+                [len(v) for v in values.get('atom_indices', [[0]])]
             )
             for key, val in values.items():
                 quantity_def = sec_interaction.m_def.all_quantities.get(key)
@@ -195,21 +195,21 @@ class MDParser(Parser):
                     try:
                         sec_interaction.m_set(quantity_def, val)
                     except Exception:
-                        self.logger.error("Error setting metadata.", data={"key": key})
+                        self.logger.error('Error setting metadata.', data={'key': key})
 
-        interactions.sort(key=lambda x: x.get("type"))
-        current_type = interactions[0].get("type")
+        interactions.sort(key=lambda x: x.get('type'))
+        current_type = interactions[0].get('type')
         interaction_values: Dict[str, Any] = {}
         for interaction in interactions:
-            interaction_type = interaction.get("type")
+            interaction_type = interaction.get('type')
             if current_type and current_type != interaction_type:
                 write_interaction_values(interaction_values)
                 current_type = interaction_type
                 interaction_values = {}
-            interaction_values.setdefault("n_interactions", 0)
-            interaction_values["n_interactions"] += 1
+            interaction_values.setdefault('n_interactions', 0)
+            interaction_values['n_interactions'] += 1
             for key, val in interaction.items():
-                if key == "type":
+                if key == 'type':
                     continue
                 interaction_values.setdefault(key, [])
                 interaction_values[key].append(val)

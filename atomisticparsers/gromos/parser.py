@@ -29,7 +29,11 @@ class GromosParser:
 
         def get_positions(val):
             try:
-                labels, positions = zip(*re.findall(rf'\d+ \w* +([A-Z])\w* +\d+ +({re_f} +{re_f} +{re_f})', val))
+                labels, positions = zip(
+                    *re.findall(
+                        rf'\d+ \w* +([A-Z])\w* +\d+ +({re_f} +{re_f} +{re_f})', val
+                    )
+                )
                 positions = [v.split() for v in positions]
             except Exception:
                 labels, positions = [], []
@@ -37,16 +41,17 @@ class GromosParser:
 
         self._parser = BasicParser(
             'Gromos',
-            units_mapping=dict(length=ureg.nm, energy=ureg.kJ / 6.02214076e+23),
+            units_mapping=dict(length=ureg.nm, energy=ureg.kJ / 6.02214076e23),
             # include code name to distinguish gamess and firefly
             program_version=r'version *\: *([\d\.]+)',
             auxilliary_files=r'configuration read from\s*(\S+)',
             atom_labels_atom_positions=(
                 rf'POSITION\s*(\d+ +[A-Z]+ +\w+ +\d+ +{re_f} +{re_f} +{re_f}[\s\S]+?)END',
-                get_positions),
+                get_positions,
+            ),
             energy_total=rf'E\_Total +\:\ *({re_f})',
             pressure=rf'pressure\: +({re_f})',
-            time_step=r'TIMESTEP\s+(\d+)'
+            time_step=r'TIMESTEP\s+(\d+)',
         )
 
     def parse(self, mainfile, archive, logger=None):

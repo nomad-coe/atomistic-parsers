@@ -29,43 +29,43 @@ def approx(value, abs=0, rel=1e-6):
     return pytest.approx(value, abs=abs, rel=rel)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def parser():
     return GromacsParser()
 
 
 def test_md_verbose(parser):
     archive = EntryArchive()
-    parser.parse("tests/data/gromacs/fe_test/md.log", archive, None)
+    parser.parse('tests/data/gromacs/fe_test/md.log', archive, None)
 
     sec_run = archive.run[0]
-    assert sec_run.program.version == "5.1.4"
+    assert sec_run.program.version == '5.1.4'
     sec_control = sec_run.x_gromacs_section_control_parameters
-    assert sec_control.x_gromacs_inout_control_coulombtype == "pme"
+    assert sec_control.x_gromacs_inout_control_coulombtype == 'pme'
     assert np.shape(sec_control.x_gromacs_inout_control_deform) == (3, 3)
 
     sec_workflow = archive.workflow2
-    assert sec_workflow.m_def.name == "MolecularDynamics"
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
     sec_method = sec_workflow.method
-    assert sec_method.thermodynamic_ensemble == "NPT"
-    assert sec_method.integrator_type == "leap_frog"
+    assert sec_method.thermodynamic_ensemble == 'NPT'
+    assert sec_method.integrator_type == 'leap_frog'
     assert sec_method.integration_timestep.magnitude == 5e-16
-    assert sec_method.integration_timestep.units == "second"
+    assert sec_method.integration_timestep.units == 'second'
     assert sec_method.n_steps == 20
     assert sec_method.coordinate_save_frequency == 20
     assert sec_method.thermodynamics_save_frequency == 5
-    assert sec_method.thermostat_parameters[0].thermostat_type == "berendsen"
+    assert sec_method.thermostat_parameters[0].thermostat_type == 'berendsen'
     assert sec_method.thermostat_parameters[0].reference_temperature.magnitude == 298.0
-    assert sec_method.thermostat_parameters[0].reference_temperature.units == "kelvin"
+    assert sec_method.thermostat_parameters[0].reference_temperature.units == 'kelvin'
     assert sec_method.thermostat_parameters[0].coupling_constant.magnitude == 5e-13
-    assert sec_method.thermostat_parameters[0].coupling_constant.units == "second"
-    assert sec_method.barostat_parameters[0].barostat_type == "berendsen"
-    assert sec_method.barostat_parameters[0].coupling_type == "isotropic"
+    assert sec_method.thermostat_parameters[0].coupling_constant.units == 'second'
+    assert sec_method.barostat_parameters[0].barostat_type == 'berendsen'
+    assert sec_method.barostat_parameters[0].coupling_type == 'isotropic'
     assert np.all(
         sec_method.barostat_parameters[0].reference_pressure.magnitude
         == [[100000.0, 0.0, 0.0], [0.0, 100000.0, 0.0], [0.0, 0.0, 100000.0]]
     )
-    assert sec_method.barostat_parameters[0].reference_pressure.units == "pascal"
+    assert sec_method.barostat_parameters[0].reference_pressure.units == 'pascal'
     assert np.all(
         sec_method.barostat_parameters[0].coupling_constant.magnitude
         == [
@@ -74,7 +74,7 @@ def test_md_verbose(parser):
             [1.0e-12, 1.0e-12, 1.0e-12],
         ]
     )
-    assert sec_method.barostat_parameters[0].coupling_constant.units == "second"
+    assert sec_method.barostat_parameters[0].coupling_constant.units == 'second'
     assert np.all(
         sec_method.barostat_parameters[0].compressibility.magnitude
         == [
@@ -83,7 +83,7 @@ def test_md_verbose(parser):
             [0.0e00, 0.0e00, 4.6e-10],
         ]
     )
-    assert sec_method.barostat_parameters[0].compressibility.units == "1 / pascal"
+    assert sec_method.barostat_parameters[0].compressibility.units == '1 / pascal'
 
     sec_sccs = sec_run.calculation
     assert len(sec_sccs) == 5
@@ -95,12 +95,12 @@ def test_md_verbose(parser):
     assert sec_sccs[2].enthalpy.magnitude == approx(-3.265048185525196e-17)
     assert sec_sccs[2].virial_tensor[2][2].magnitude == approx(1.1367756347656254e-19)
     assert len(sec_sccs[1].x_gromacs_thermodynamics_contributions) == 5
-    assert sec_sccs[1].x_gromacs_thermodynamics_contributions[2].kind == "#Surf*SurfTen"
+    assert sec_sccs[1].x_gromacs_thermodynamics_contributions[2].kind == '#Surf*SurfTen'
     assert sec_sccs[1].x_gromacs_thermodynamics_contributions[2].value == approx(
         2453.242431640625
     )
     assert len(sec_sccs[4].energy.x_gromacs_energy_contributions) == 12
-    assert sec_sccs[-2].energy.x_gromacs_energy_contributions[1].kind == "G96Angle"
+    assert sec_sccs[-2].energy.x_gromacs_energy_contributions[1].kind == 'G96Angle'
     assert sec_sccs[-2].energy.x_gromacs_energy_contributions[
         1
     ].value.magnitude == approx(2.7314541413859703e-20)
@@ -145,21 +145,21 @@ def test_md_verbose(parser):
     sec_method = sec_run.method
     assert len(sec_method) == 1
     assert len(sec_method[0].force_field.model[0].contributions) == 8
-    assert sec_method[0].force_field.model[0].contributions[6].type == "bond"
+    assert sec_method[0].force_field.model[0].contributions[6].type == 'bond'
     assert sec_method[0].force_field.model[0].contributions[6].n_interactions == 1017
     assert sec_method[0].force_field.model[0].contributions[6].n_atoms == 2
-    assert sec_method[0].force_field.model[0].contributions[6].atom_labels[10][0] == "C"
+    assert sec_method[0].force_field.model[0].contributions[6].atom_labels[10][0] == 'C'
     assert (
         sec_method[0].force_field.model[0].contributions[6].atom_indices[100, 1] == 141
     )
     assert sec_method[0].force_field.force_calculations.vdw_cutoff.magnitude == 1.2e-09
-    assert sec_method[0].force_field.force_calculations.vdw_cutoff.units == "meter"
+    assert sec_method[0].force_field.force_calculations.vdw_cutoff.units == 'meter'
     assert (
         sec_method[0].force_field.force_calculations.coulomb_type
-        == "particle_mesh_ewald"
+        == 'particle_mesh_ewald'
     )
     assert sec_method[0].force_field.force_calculations.coulomb_cutoff.magnitude == 0.9
-    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.units == "meter"
+    assert sec_method[0].force_field.force_calculations.coulomb_cutoff.units == 'meter'
     assert (
         sec_method[
             0
@@ -176,13 +176,13 @@ def test_md_verbose(parser):
         sec_method[
             0
         ].force_field.force_calculations.neighbor_searching.neighbor_update_cutoff.units
-        == "meter"
+        == 'meter'
     )
 
 
 def test_md_edr(parser):
     archive = EntryArchive()
-    parser.parse("tests/data/gromacs/fe_test/mdrun.out", archive, None)
+    parser.parse('tests/data/gromacs/fe_test/mdrun.out', archive, None)
 
     assert len(archive.run[0].calculation) == 5
 
@@ -190,7 +190,7 @@ def test_md_edr(parser):
 def test_md_atomsgroup(parser):
     archive = EntryArchive()
     parser.parse(
-        "tests/data/gromacs/polymer_melt/step4.0_minimization.log", archive, None
+        'tests/data/gromacs/polymer_melt/step4.0_minimization.log', archive, None
     )
 
     sec_run = archive.run[0]
@@ -199,19 +199,19 @@ def test_md_atomsgroup(parser):
     assert len(sec_systems[0].atoms_group) == 1
     assert len(sec_systems[0].atoms_group[0].atoms_group) == 100
 
-    assert sec_systems[0].atoms_group[0].label == "group_S1P1"
-    assert sec_systems[0].atoms_group[0].type == "molecule_group"
+    assert sec_systems[0].atoms_group[0].label == 'group_S1P1'
+    assert sec_systems[0].atoms_group[0].type == 'molecule_group'
     assert sec_systems[0].atoms_group[0].index == 0
-    assert sec_systems[0].atoms_group[0].composition_formula == "S1P1(100)"
+    assert sec_systems[0].atoms_group[0].composition_formula == 'S1P1(100)'
     assert sec_systems[0].atoms_group[0].n_atoms == 7200
     assert sec_systems[0].atoms_group[0].atom_indices[5] == 5
     assert sec_systems[0].atoms_group[0].is_molecule is False
 
-    assert sec_systems[0].atoms_group[0].atoms_group[52].label == "S1P1"
-    assert sec_systems[0].atoms_group[0].atoms_group[52].type == "molecule"
+    assert sec_systems[0].atoms_group[0].atoms_group[52].label == 'S1P1'
+    assert sec_systems[0].atoms_group[0].atoms_group[52].type == 'molecule'
     assert sec_systems[0].atoms_group[0].atoms_group[52].index == 52
     assert (
-        sec_systems[0].atoms_group[0].atoms_group[52].composition_formula == "ETHOX(10)"
+        sec_systems[0].atoms_group[0].atoms_group[52].composition_formula == 'ETHOX(10)'
     )
     assert sec_systems[0].atoms_group[0].atoms_group[52].n_atoms == 72
     assert sec_systems[0].atoms_group[0].atoms_group[52].atom_indices[8] == 3752
@@ -219,16 +219,16 @@ def test_md_atomsgroup(parser):
 
     assert (
         sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].label
-        == "group_ETHOX"
+        == 'group_ETHOX'
     )
     assert (
         sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].type
-        == "monomer_group"
+        == 'monomer_group'
     )
     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].index == 0
     assert (
         sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].composition_formula
-        == "ETHOX(10)"
+        == 'ETHOX(10)'
     )
     assert sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].n_atoms == 72
     assert (
@@ -247,11 +247,11 @@ def test_md_atomsgroup(parser):
         .atoms_group[0]
         .atoms_group[7]
         .label
-        == "ETHOX"
+        == 'ETHOX'
     )
     assert (
         sec_systems[0].atoms_group[0].atoms_group[76].atoms_group[0].atoms_group[7].type
-        == "monomer"
+        == 'monomer'
     )
     assert (
         sec_systems[0]
@@ -269,7 +269,7 @@ def test_md_atomsgroup(parser):
         .atoms_group[0]
         .atoms_group[7]
         .composition_formula
-        == "C(2)H(4)O(1)"
+        == 'C(2)H(4)O(1)'
     )
     assert (
         sec_systems[0]
@@ -303,26 +303,26 @@ def test_md_atomsgroup(parser):
 def test_geometry_optimization(parser):
     archive = EntryArchive()
     parser.parse(
-        "tests/data/gromacs/polymer_melt/step4.0_minimization.log", archive, None
+        'tests/data/gromacs/polymer_melt/step4.0_minimization.log', archive, None
     )
 
     sec_workflow = archive.workflow2
 
-    assert sec_workflow.method.type == "atomic"
-    assert sec_workflow.method.method == "steepest_descent"
+    assert sec_workflow.method.type == 'atomic'
+    assert sec_workflow.method.method == 'steepest_descent'
     assert sec_workflow.method.convergence_tolerance_force_maximum.magnitude == approx(
         6.02214076e38
     )
-    assert sec_workflow.method.convergence_tolerance_force_maximum.units == "newton"
+    assert sec_workflow.method.convergence_tolerance_force_maximum.units == 'newton'
     assert sec_workflow.results.final_force_maximum.magnitude == approx(
         1.303670442204273e38
     )
-    assert sec_workflow.results.final_force_maximum.units == "newton"
+    assert sec_workflow.results.final_force_maximum.units == 'newton'
     assert sec_workflow.results.optimization_steps == 12
     assert sec_workflow.method.optimization_steps_maximum == 5000
     assert len(sec_workflow.results.energies) == 11
     assert sec_workflow.results.energies[2].magnitude == approx(8.244726173423347e-17)
-    assert sec_workflow.results.energies[2].units == "joule"
+    assert sec_workflow.results.energies[2].units == 'joule'
     assert len(sec_workflow.results.steps) == 11
     assert sec_workflow.results.steps[4] == 5000
 
@@ -330,18 +330,18 @@ def test_geometry_optimization(parser):
 def test_integrator_sd(parser):
     archive = EntryArchive()
     parser.parse(
-        "tests/data/gromacs/water_AA_ENUM_tests/integrator-sd/md.log", archive, None
+        'tests/data/gromacs/water_AA_ENUM_tests/integrator-sd/md.log', archive, None
     )
 
     sec_run = archive.run[0]
     # assert sec_run.program.version == "2018.6"
 
     sec_workflow = archive.workflow2
-    assert sec_workflow.m_def.name == "MolecularDynamics"
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
     sec_method = sec_workflow.method
-    assert sec_method.thermodynamic_ensemble == "NVT"
-    assert sec_method.integrator_type == "langevin_goga"
-    assert sec_method.thermostat_parameters[0].thermostat_type == "langevin_goga"
+    assert sec_method.thermodynamic_ensemble == 'NVT'
+    assert sec_method.integrator_type == 'langevin_goga'
+    assert sec_method.thermostat_parameters[0].thermostat_type == 'langevin_goga'
     assert sec_method.thermostat_parameters[0].reference_temperature.magnitude == 298.0
     assert sec_method.thermostat_parameters[0].coupling_constant.magnitude == 5e-13
 
@@ -349,33 +349,33 @@ def test_integrator_sd(parser):
 def test_integrator_mdvv(parser):
     archive = EntryArchive()
     parser.parse(
-        "tests/data/gromacs/water_AA_ENUM_tests/integrator-mdvv/md.log", archive, None
+        'tests/data/gromacs/water_AA_ENUM_tests/integrator-mdvv/md.log', archive, None
     )
 
     sec_run = archive.run[0]
     # assert sec_run.program.version == "2018.6"
 
     sec_workflow = archive.workflow2
-    assert sec_workflow.m_def.name == "MolecularDynamics"
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
     sec_method = sec_workflow.method
-    assert sec_method.thermodynamic_ensemble == "NVE"
-    assert sec_method.integrator_type == "velocity_verlet"
+    assert sec_method.thermodynamic_ensemble == 'NVE'
+    assert sec_method.integrator_type == 'velocity_verlet'
 
 
 def test_integrator_bd(parser):
     archive = EntryArchive()
     parser.parse(
-        "tests/data/gromacs/water_AA_ENUM_tests/integrator-bd/md.log", archive, None
+        'tests/data/gromacs/water_AA_ENUM_tests/integrator-bd/md.log', archive, None
     )
 
     sec_run = archive.run[0]
     # assert sec_run.program.version == "2018.6"
 
     sec_workflow = archive.workflow2
-    assert sec_workflow.m_def.name == "MolecularDynamics"
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
     sec_method = sec_workflow.method
-    assert sec_method.thermodynamic_ensemble == "NVE"
-    assert sec_method.integrator_type == "brownian"
+    assert sec_method.thermodynamic_ensemble == 'NVE'
+    assert sec_method.integrator_type == 'brownian'
 
 
 # TODO test for andersen thermostat? It's not clear how to run this at the moment or if it is deprecated in newer versions of Gromacs.
@@ -384,20 +384,20 @@ def test_integrator_bd(parser):
 def test_integrator_md_thermostat_vrescale(parser):
     archive = EntryArchive()
     parser.parse(
-        "tests/data/gromacs/water_AA_ENUM_tests/integrator-md/thermostat-vrescale/md.log",
+        'tests/data/gromacs/water_AA_ENUM_tests/integrator-md/thermostat-vrescale/md.log',
         archive,
         None,
     )
 
     sec_run = archive.run[0]
-    assert sec_run.program.version == "2018.6"
+    assert sec_run.program.version == '2018.6'
 
     sec_workflow = archive.workflow2
-    assert sec_workflow.m_def.name == "MolecularDynamics"
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
     sec_method = sec_workflow.method
-    assert sec_method.thermodynamic_ensemble == "NVT"
-    assert sec_method.integrator_type == "leap_frog"
-    assert sec_method.thermostat_parameters[0].thermostat_type == "velocity_rescaling"
+    assert sec_method.thermodynamic_ensemble == 'NVT'
+    assert sec_method.integrator_type == 'leap_frog'
+    assert sec_method.thermostat_parameters[0].thermostat_type == 'velocity_rescaling'
     assert sec_method.thermostat_parameters[0].reference_temperature.magnitude == 298.0
     assert sec_method.thermostat_parameters[0].coupling_constant.magnitude == 5e-13
 
@@ -405,24 +405,24 @@ def test_integrator_md_thermostat_vrescale(parser):
 def test_integrator_md_thermostat_nosehoover_barostat_parrinellorahman(parser):
     archive = EntryArchive()
     parser.parse(
-        "tests/data/gromacs/water_AA_ENUM_tests/integrator-md/thermostat-nosehoover_barostat-parrinellorahman/md.log",
+        'tests/data/gromacs/water_AA_ENUM_tests/integrator-md/thermostat-nosehoover_barostat-parrinellorahman/md.log',
         archive,
         None,
     )
 
     sec_run = archive.run[0]
-    assert sec_run.program.version == "2018.6"
+    assert sec_run.program.version == '2018.6'
 
     sec_workflow = archive.workflow2
-    assert sec_workflow.m_def.name == "MolecularDynamics"
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
     sec_method = sec_workflow.method
-    assert sec_method.thermodynamic_ensemble == "NPT"
-    assert sec_method.integrator_type == "leap_frog"
-    assert sec_method.thermostat_parameters[0].thermostat_type == "nose_hoover"
+    assert sec_method.thermodynamic_ensemble == 'NPT'
+    assert sec_method.integrator_type == 'leap_frog'
+    assert sec_method.thermostat_parameters[0].thermostat_type == 'nose_hoover'
     assert sec_method.thermostat_parameters[0].reference_temperature.magnitude == 298.0
     assert sec_method.thermostat_parameters[0].coupling_constant.magnitude == 5e-13
-    assert sec_method.barostat_parameters[0].barostat_type == "parrinello_rahman"
-    assert sec_method.barostat_parameters[0].coupling_type == "isotropic"
+    assert sec_method.barostat_parameters[0].barostat_type == 'parrinello_rahman'
+    assert sec_method.barostat_parameters[0].coupling_type == 'isotropic'
     assert np.all(
         sec_method.barostat_parameters[0].reference_pressure.magnitude
         == [[100000.0, 0.0, 0.0], [0.0, 100000.0, 0.0], [0.0, 0.0, 100000.0]]
@@ -448,7 +448,7 @@ def test_integrator_md_thermostat_nosehoover_barostat_parrinellorahman(parser):
 def test_free_energy_calculations(parser):
     archive = EntryArchive()
     parser.parse(
-        "tests/data/gromacs/free_energy_calculations/alchemical_transformation_single_run/fep_run-7.log",
+        'tests/data/gromacs/free_energy_calculations/alchemical_transformation_single_run/fep_run-7.log',
         archive,
         None,
     )
@@ -458,10 +458,10 @@ def test_free_energy_calculations(parser):
     def get_dataset(filename_with_path):
         try:
             # Split the filename and dataset path
-            filename, dataset_path = filename_with_path.split("#", 1)
+            filename, dataset_path = filename_with_path.split('#', 1)
 
             # Open the HDF5 file in read mode
-            with h5py.File(filename, "r") as file:
+            with h5py.File(filename, 'r') as file:
                 # Access the dataset using the provided path
                 dataset = file[dataset_path]
                 data = dataset[()]
@@ -470,19 +470,19 @@ def test_free_energy_calculations(parser):
 
         except (ValueError, KeyError) as e:
             # Handle potential errors (e.g., invalid input or dataset not found)
-            print(f"Error: {e}")
+            print(f'Error: {e}')
             return None
 
     sec_workflow = archive.workflow2
     sec_method = sec_workflow.method.free_energy_calculation_parameters[0]
     sec_results = sec_workflow.results.free_energy_calculations[0]
 
-    assert sec_method.type == "alchemical"
+    assert sec_method.type == 'alchemical'
     sec_lambdas = sec_method.lambdas
     assert len(sec_lambdas) == 7
-    assert sec_lambdas[2].type == "vdw"
+    assert sec_lambdas[2].type == 'vdw'
     assert sec_lambdas[2].value[2] == 0.2
-    assert sec_lambdas[-1].type == "temperature"
+    assert sec_lambdas[-1].type == 'temperature'
     assert sec_lambdas[-1].value[2] == 0.0
     assert sec_method.lambda_index == 7
     assert sec_method.atom_indices.shape == (1,)

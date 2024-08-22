@@ -24,7 +24,7 @@ from nomad.utils import configure_logging
 from nomad.datamodel import EntryArchive
 from atomisticparsers.dftbplus import DFTBPlusParser
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     configure_logging(console_log_level=logging.DEBUG)
     archive = EntryArchive()
     DFTBPlusParser().parse(sys.argv[1], archive, logging)

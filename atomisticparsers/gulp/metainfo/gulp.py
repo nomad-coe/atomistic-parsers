@@ -412,7 +412,7 @@ class Run(runschema.run.Run):
     )
 
     x_gulp_section_main_keyword = SubSection(
-        sub_section=SectionProxy("x_gulp_section_main_keyword"), repeats=True
+        sub_section=SectionProxy('x_gulp_section_main_keyword'), repeats=True
     )
 
 
@@ -429,14 +429,14 @@ class Method(runschema.method.Method):
 
     x_gulp_species_charge = Quantity(
         type=np.float64,
-        shape=["x_gulp_number_of_species"],
+        shape=['x_gulp_number_of_species'],
         description="""
         Number of species in GULP
         """,
     )
 
     x_gulp_section_forcefield = SubSection(
-        sub_section=SectionProxy("x_gulp_section_forcefield"), repeats=True
+        sub_section=SectionProxy('x_gulp_section_forcefield'), repeats=True
     )
 
 
@@ -453,7 +453,7 @@ class AtomParameters(runschema.method.AtomParameters):
     x_gulp_covalent_radius = Quantity(
         type=np.float64,
         shape=[],
-        unit="m",
+        unit='m',
         description="""
         """,
     )
@@ -461,7 +461,7 @@ class AtomParameters(runschema.method.AtomParameters):
     x_gulp_ionic_radius = Quantity(
         type=np.float64,
         shape=[],
-        unit="m",
+        unit='m',
         description="""
         """,
     )
@@ -469,7 +469,7 @@ class AtomParameters(runschema.method.AtomParameters):
     x_gulp_vdw_radius = Quantity(
         type=np.float64,
         shape=[],
-        unit="m",
+        unit='m',
         description="""
         """,
     )
@@ -481,7 +481,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_attachment_energy = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for attachment_energy
         """,
@@ -490,7 +490,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_attachment_unit = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for attachment_energy_unit
         """,
@@ -499,7 +499,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_bond_order_potentials = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for bond_order_potentials
         """,
@@ -508,7 +508,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_brenner_potentials = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for brenner_potentials
         """,
@@ -517,7 +517,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_bulk = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for bulk_energy
         """,
@@ -526,7 +526,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_dispersion_real_recip = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for dispersion_real_recip
         """,
@@ -535,7 +535,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_electric_field_times_distance = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for electric_field_times_distance
         """,
@@ -544,7 +544,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_shift = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for energy_shift
         """,
@@ -553,7 +553,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_four_body_potentials = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for four_body_potentials
         """,
@@ -562,7 +562,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_improper_torsions = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for improper_torsions
         """,
@@ -571,7 +571,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_interatomic_potentials = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for interatomic_potentials
         """,
@@ -580,7 +580,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_many_body_potentials = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for many_body_potentials
         """,
@@ -589,7 +589,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_monopole_monopole_real = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for monopole_monopole_real
         """,
@@ -598,7 +598,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_monopole_monopole_recip = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for monopole_monopole_recip
         """,
@@ -607,7 +607,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_monopole_monopole_total = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for monopole_monopole_total
         """,
@@ -616,7 +616,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_neutralising = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for neutralising_energy
         """,
@@ -625,7 +625,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_non_primitive_unit_cell = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for non_primitive_unit_cell
         """,
@@ -634,7 +634,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_out_of_plane_potentials = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for out_of_plane_potentials
         """,
@@ -643,7 +643,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_primitive_unit_cell = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for primitive_unit_cell
         """,
@@ -652,7 +652,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_reaxff_force_field = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for reaxff_force_field
         """,
@@ -661,7 +661,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_region_1_2_interaction = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for region_1_2_interaction
         """,
@@ -670,7 +670,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_region_2_2_interaction = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for region_2_2_interaction
         """,
@@ -679,7 +679,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_self_eem_qeq_sm = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for self_energy_eem_qeq_sm
         """,
@@ -688,7 +688,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_sm_coulomb_correction = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for sm_coulomb_correction
         """,
@@ -697,7 +697,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_solvation = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for solvation_energy
         """,
@@ -706,7 +706,7 @@ class Energy(runschema.calculation.Energy):
     x_gulp_three_body_potentials = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         GULP energy term for three_body_potentials
         """,
@@ -723,7 +723,7 @@ class x_gulp_bulk_optimisation_cycle(MSection):
     x_gulp_energy = Quantity(
         type=np.float64,
         shape=[],
-        unit="joule",
+        unit='joule',
         description="""
         """,
     )
@@ -738,7 +738,7 @@ class x_gulp_bulk_optimisation_cycle(MSection):
     x_gulp_cpu_time = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -876,7 +876,7 @@ class Calculation(runschema.calculation.Calculation):
     x_gulp_temperature_averaged = Quantity(
         type=np.float64,
         shape=[],
-        unit="kelvin",
+        unit='kelvin',
         description="""
         """,
     )
@@ -884,7 +884,7 @@ class Calculation(runschema.calculation.Calculation):
     x_gulp_pressure_averaged = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         """,
     )
@@ -892,7 +892,7 @@ class Calculation(runschema.calculation.Calculation):
     x_gulp_piezoelectric_strain_matrix = Quantity(
         type=np.float64,
         shape=[3, 6],
-        unit="C / m**2",
+        unit='C / m**2',
         description="""
         """,
     )
@@ -900,7 +900,7 @@ class Calculation(runschema.calculation.Calculation):
     x_gulp_piezoelectric_stress_matrix = Quantity(
         type=np.float64,
         shape=[3, 6],
-        unit="C / N",
+        unit='C / N',
         description="""
         """,
     )
@@ -942,7 +942,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_velocity_s_wave_reuss = Quantity(
         type=np.float64,
         shape=[],
-        unit="m / s",
+        unit='m / s',
         description="""
         """,
     )
@@ -950,7 +950,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_velocity_s_wave_voigt = Quantity(
         type=np.float64,
         shape=[],
-        unit="m / s",
+        unit='m / s',
         description="""
         """,
     )
@@ -958,7 +958,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_velocity_s_wave_hill = Quantity(
         type=np.float64,
         shape=[],
-        unit="m / s",
+        unit='m / s',
         description="""
         """,
     )
@@ -966,7 +966,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_velocity_p_wave_reuss = Quantity(
         type=np.float64,
         shape=[],
-        unit="m / s",
+        unit='m / s',
         description="""
         """,
     )
@@ -974,7 +974,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_velocity_p_wave_voigt = Quantity(
         type=np.float64,
         shape=[],
-        unit="m / s",
+        unit='m / s',
         description="""
         """,
     )
@@ -982,7 +982,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_velocity_p_wave_hill = Quantity(
         type=np.float64,
         shape=[],
-        unit="m / s",
+        unit='m / s',
         description="""
         """,
     )
@@ -990,7 +990,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_compressibility = Quantity(
         type=np.float64,
         shape=[],
-        unit="1 / pascal",
+        unit='1 / pascal',
         description="""
         """,
     )
@@ -999,7 +999,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_youngs_modulus_x = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         """,
     )
@@ -1007,7 +1007,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_youngs_modulus_y = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         """,
     )
@@ -1015,7 +1015,7 @@ class ElasticResults(simulationworkflowschema.ElasticResults):
     x_gulp_youngs_modulus_z = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         """,
     )
@@ -1055,7 +1055,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_gulp_equilibration_time = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -1063,7 +1063,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_gulp_production_time = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -1071,7 +1071,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_gulp_scaling_time = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -1079,7 +1079,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_gulp_scaling_frequency = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -1087,7 +1087,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_gulp_sampling_frequency = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -1095,7 +1095,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_gulp_write_frequency = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -1103,7 +1103,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_gulp_td_force_start_time = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -1111,7 +1111,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_gulp_td_field_start_time = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )

@@ -26,7 +26,7 @@ def approx(value, abs=0, rel=1e-6):
     return pytest.approx(value, abs=abs, rel=rel)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope='module')
 def parser():
     return GulpParser()
 
@@ -34,26 +34,26 @@ def parser():
 def test_optimise_conp_property_old(parser):
     archive = EntryArchive()
 
-    parser.parse("tests/data/gulp/example1_old/example1.got", archive, None)
+    parser.parse('tests/data/gulp/example1_old/example1.got', archive, None)
 
     sec_run = archive.run[0]
-    assert sec_run.program.version == "4.1.0"
-    assert sec_run.x_gulp_title == "alumina test file"
+    assert sec_run.program.version == '4.1.0'
+    assert sec_run.x_gulp_title == 'alumina test file'
     assert sec_run.x_gulp_n_cpu == 1
-    assert sec_run.x_gulp_host_name == "M-A0002884.local"
+    assert sec_run.x_gulp_host_name == 'M-A0002884.local'
     assert sec_run.time_run.date_start > 0
     assert sec_run.time_run.date_end > 0
 
     sec_method = sec_run.method[0]
     contributions = sec_method.force_field.model[0].contributions
     assert len(contributions) == 4
-    assert contributions[0].functional_form == "Buckingham"
-    assert contributions[1].atom_labels[0][1] == "O"
-    assert contributions[2].parameters["A"] == approx(404.0)
-    assert contributions[3].parameters["cutoff_max"] == approx(0.8)
+    assert contributions[0].functional_form == 'Buckingham'
+    assert contributions[1].atom_labels[0][1] == 'O'
+    assert contributions[2].parameters['A'] == approx(404.0)
+    assert contributions[3].parameters['cutoff_max'] == approx(0.8)
     assert len(sec_method.atom_parameters) == 4
-    assert sec_method.atom_parameters[0].label == "Al"
-    assert sec_method.atom_parameters[1].x_gulp_type == "shell"
+    assert sec_method.atom_parameters[0].label == 'Al'
+    assert sec_method.atom_parameters[1].x_gulp_type == 'shell'
     assert sec_method.atom_parameters[2].atom_number == 8
     assert sec_method.atom_parameters[3].mass.magnitude == approx(0.0)
     assert sec_method.atom_parameters[0].charge.magnitude == approx(6.88935953e-21)
@@ -69,7 +69,7 @@ def test_optimise_conp_property_old(parser):
     assert sec_system[0].atoms.lattice_vectors[2][1].magnitude == approx(
         -2.74830275e-10
     )
-    assert sec_system[0].atoms.labels[1] == "O"
+    assert sec_system[0].atoms.labels[1] == 'O'
     assert sec_system[0].atoms.positions[1][1].magnitude == approx(-1.11691024e-11)
     assert sec_system[1].atoms.lattice_vectors[1][0].magnitude == approx(-2.410026e-10)
     assert sec_system[1].atoms.positions[0][2].magnitude == approx(7.59013967e-10)
@@ -137,7 +137,7 @@ def test_optimise_conp_property_old(parser):
 def test_single_md_conv_old(parser):
     archive = EntryArchive()
 
-    parser.parse("tests/data/gulp/example18_old/example18.got", archive, None)
+    parser.parse('tests/data/gulp/example18_old/example18.got', archive, None)
 
     sec_system = archive.run[0].system
     assert len(sec_system) == 1
@@ -164,8 +164,8 @@ def test_single_md_conv_old(parser):
     assert sec_calc[3].x_gulp_pressure_averaged.magnitude == approx(1.2832591e10)
 
     sec_workflow = archive.workflow2
-    assert sec_workflow.m_def.name == "MolecularDynamics"
-    assert sec_workflow.method.thermodynamic_ensemble == "NVT"
+    assert sec_workflow.m_def.name == 'MolecularDynamics'
+    assert sec_workflow.method.thermodynamic_ensemble == 'NVT'
     assert sec_workflow.method.integration_timestep.magnitude == approx(1e-15)
     assert sec_workflow.x_gulp_production_time.magnitude == approx(5e-13)
     assert sec_workflow.x_gulp_td_field_start_time.magnitude == approx(0.0)
@@ -176,13 +176,13 @@ def test_single_md_conv_old(parser):
 def test_opti_mole_defe(parser):
     archive = EntryArchive()
 
-    parser.parse("tests/data/gulp/example8/example8.got", archive, None)
+    parser.parse('tests/data/gulp/example8/example8.got', archive, None)
 
     sec_model = archive.run[0].method[0].force_field.model
     assert len(sec_model) == 4
-    assert sec_model[0].contributions[1].functional_form == "Spring (c-s)"
-    assert sec_model[1].contributions[0].atom_labels[0][1] == "O"
-    assert sec_model[2].contributions[0].parameters["Buckingham rho"] == approx(
+    assert sec_model[0].contributions[1].functional_form == 'Spring (c-s)'
+    assert sec_model[1].contributions[0].atom_labels[0][1] == 'O'
+    assert sec_model[2].contributions[0].parameters['Buckingham rho'] == approx(
         0.19760000
     )
 

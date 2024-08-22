@@ -67,18 +67,28 @@ def test_energy(parser):
     sec_calc = sec_run.calculation
     assert len(sec_calc) == 1
     assert sec_calc[0].energy.total.value.magnitude == approx(-2.73845525e-18)
-    assert sec_calc[0].energy.total.values_per_atom[1].magnitude == approx(-1.29324898e-18)
-    assert sec_calc[0].energy.nuclear_repulsion.value.magnitude == approx(6.79146568e-21)
+    assert sec_calc[0].energy.total.values_per_atom[1].magnitude == approx(
+        -1.29324898e-18
+    )
+    assert sec_calc[0].energy.nuclear_repulsion.value.magnitude == approx(
+        6.79146568e-21
+    )
     assert sec_calc[0].energy.contributions[1].kind == 'prom'
     assert sec_calc[0].energy.contributions[1].value.magnitude == approx(0)
-    assert sec_calc[0].energy.contributions[0].values_per_atom[0].magnitude == approx(-2.45798958e-18)
-    assert sec_calc[0].energy.electrostatic.values_per_atom[0].magnitude == approx(0.)
-    assert sec_calc[0].energy.contributions[2].values_per_atom[1].magnitude == approx(1.72008688e-19)
+    assert sec_calc[0].energy.contributions[0].values_per_atom[0].magnitude == approx(
+        -2.45798958e-18
+    )
+    assert sec_calc[0].energy.electrostatic.values_per_atom[0].magnitude == approx(0.0)
+    assert sec_calc[0].energy.contributions[2].values_per_atom[1].magnitude == approx(
+        1.72008688e-19
+    )
     assert sec_calc[0].energy.contributions[3].value.magnitude == approx(1.78028693e-18)
     assert sec_calc[0].energy.contributions[4].values_per_atom[0].magnitude == approx(0)
     assert sec_calc[0].charges[0].value[0].magnitude == approx(-3.29865537e-20)
     assert sec_calc[0].charges[0].n_electrons[1] == approx(4.2058858813722590)
-    assert sec_calc[0].x_bopfox_onsite_levels[0].orbital_projected[0].value == approx(-0.2068902284569173)
+    assert sec_calc[0].x_bopfox_onsite_levels[0].orbital_projected[0].value == approx(
+        -0.2068902284569173
+    )
     assert sec_calc[0].x_bopfox_onsite_levels[0].orbital_projected[1].atom_index == 1
     assert sec_calc[0].x_bopfox_onsite_levels[0].orbital_projected[1].orbital == 'd'
 
@@ -90,14 +100,24 @@ def test_force(parser):
     sec_calc = archive.run[0].calculation
     assert sec_calc[0].forces.total.value[1][0].magnitude == approx(-3.58311324e-11)
     assert sec_calc[0].forces.contributions[0].kind == 'analytic'
-    assert sec_calc[0].forces.contributions[0].value[3][2].magnitude == approx(-2.56348261e-18)
-    assert sec_calc[0].forces.contributions[2].value[2][0].magnitude == approx(-6.30558431e-11)
-    assert sec_calc[0].stress.total.value[0][0].magnitude == approx(8.48866946e+10)
+    assert sec_calc[0].forces.contributions[0].value[3][2].magnitude == approx(
+        -2.56348261e-18
+    )
+    assert sec_calc[0].forces.contributions[2].value[2][0].magnitude == approx(
+        -6.30558431e-11
+    )
+    assert sec_calc[0].stress.total.value[0][0].magnitude == approx(8.48866946e10)
     assert sec_calc[0].stress.total.value[2][0].magnitude == approx(-6879666.36)
-    assert sec_calc[0].stress.total.values_per_atom[1][2][1].magnitude == approx(7.79970078e+09)
-    assert sec_calc[0].stress.contributions[0].values_per_atom[3][2][2].magnitude == approx(1.8928643e+12)
+    assert sec_calc[0].stress.total.values_per_atom[1][2][1].magnitude == approx(
+        7.79970078e09
+    )
+    assert sec_calc[0].stress.contributions[0].values_per_atom[3][2][
+        2
+    ].magnitude == approx(1.8928643e12)
     assert sec_calc[0].stress.contributions[1].kind == 'rep1'
-    assert sec_calc[0].stress.contributions[2].values_per_atom[2][0][0].magnitude == approx(5.19185442e+11)
+    assert sec_calc[0].stress.contributions[2].values_per_atom[2][0][
+        0
+    ].magnitude == approx(5.19185442e11)
 
 
 def test_relaxation_verbose_notraj(parser):
@@ -112,7 +132,9 @@ def test_relaxation_verbose_notraj(parser):
 
     sec_calc = archive.run[0].calculation
     assert len(sec_calc) == 23
-    assert sec_calc[0].energy.total.values_per_atom[2].magnitude == approx(-1.31534881e-18)
+    assert sec_calc[0].energy.total.values_per_atom[2].magnitude == approx(
+        -1.31534881e-18
+    )
     assert sec_calc[10].forces.total.value[1][0].magnitude == approx(-2.6174859e-12)
 
 
@@ -133,7 +155,9 @@ def test_relaxation_nonverbose_notraj(parser):
 
 def test_relaxation_verbose_traj(parser):
     archive = EntryArchive()
-    parser.parse('tests/data/bopfox/fcc.2x2x2.vacancy.SCFreuseHii/log.bx', archive, None)
+    parser.parse(
+        'tests/data/bopfox/fcc.2x2x2.vacancy.SCFreuseHii/log.bx', archive, None
+    )
 
     sec_system = archive.run[0].system
     assert len(sec_system) == 5
@@ -143,7 +167,9 @@ def test_relaxation_verbose_traj(parser):
 
     sec_calc = archive.run[0].calculation
     assert len(sec_calc) == 5
-    assert sec_calc[2].forces.contributions[0].value[2][0].magnitude == approx(-8.26723143e-17)
+    assert sec_calc[2].forces.contributions[0].value[2][0].magnitude == approx(
+        -8.26723143e-17
+    )
 
 
 def test_md(parser):

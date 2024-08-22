@@ -42,7 +42,7 @@ def test_basic(parser):
     sec_systems = archive.run[0].system
     assert len(sec_systems) == 2000
     assert sec_systems[20].atoms.labels[0] == 'W'
-    assert sec_systems[1000].atoms.positions[0][2].magnitude == 0.
+    assert sec_systems[1000].atoms.positions[0][2].magnitude == 0.0
 
     sec_sccs = sec_run.calculation
     assert len(sec_sccs) == 2000

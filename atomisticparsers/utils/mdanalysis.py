@@ -73,23 +73,23 @@ class MDAnalysisParser(FileParser):
                     self.mainfile, *self.auxilliary_files, **self.options
                 )
             except Exception as e:
-                self.logger.error("Error creating MDAnalysis universe.", exc_info=e)
+                self.logger.error('Error creating MDAnalysis universe.', exc_info=e)
         return self._file_handler
 
     @property
     def bead_groups(self):
-        atoms_moltypes = self.get("atoms_info", {}).get("moltypes", [])
+        atoms_moltypes = self.get('atoms_info', {}).get('moltypes', [])
         moltypes = np.unique(atoms_moltypes)
         bead_groups = {}
-        compound = "fragments"
+        compound = 'fragments'
         for moltype in moltypes:
-            if hasattr(self.universe.atoms, "moltypes"):
-                ags_by_moltype = self.universe.select_atoms("moltype " + moltype)
+            if hasattr(self.universe.atoms, 'moltypes'):
+                ags_by_moltype = self.universe.select_atoms('moltype ' + moltype)
             else:  # this is easier than adding something to the universe
-                selection = " ".join(
+                selection = ' '.join(
                     [str(i) for i in np.where(atoms_moltypes == moltype)[0]]
                 )
-                selection = f"index {selection}"
+                selection = f'index {selection}'
                 ags_by_moltype = self.universe.select_atoms(selection)
             ags_by_moltype = ags_by_moltype[
                 ags_by_moltype.masses > abs(1e-2)
@@ -107,66 +107,66 @@ class MDAnalysisParser(FileParser):
 
         atoms = list(self.universe.atoms)
 
-        name_map = {"mass": "masses"}
-        unit_map = {"mass": ureg.amu, "charge": ureg.elementary_charge}
-        self._results["atoms_info"] = dict()
+        name_map = {'mass': 'masses'}
+        unit_map = {'mass': ureg.amu, 'charge': ureg.elementary_charge}
+        self._results['atoms_info'] = dict()
         for key in [
-            "name",
-            "charge",
-            "mass",
-            "resid",
-            "resname",
-            "molnum",
-            "moltype",
-            "type",
-            "segid",
-            "element",
+            'name',
+            'charge',
+            'mass',
+            'resid',
+            'resname',
+            'molnum',
+            'moltype',
+            'type',
+            'segid',
+            'element',
         ]:
             try:
                 value = [getattr(atom, key) for atom in atoms]
             except Exception:
                 continue
             value = value * unit_map.get(key, 1) if value is not None else value
-            self._results["atoms_info"][name_map.get(key, f"{key}s")] = value
+            self._results['atoms_info'][name_map.get(key, f'{key}s')] = value
 
         # if atom name is not identified, set it to 'X'
-        if self._results["atoms_info"].get("names") is None:
-            self._results["atoms_info"]["names"] = ["X"] * self.universe.atoms.n_atoms
-        self._results["n_atoms"] = self.universe.atoms.n_atoms
-        self._results["n_frames"] = len(self.universe.trajectory)
+        if self._results['atoms_info'].get('names') is None:
+            self._results['atoms_info']['names'] = ['X'] * self.universe.atoms.n_atoms
+        self._results['n_atoms'] = self.universe.atoms.n_atoms
+        self._results['n_frames'] = len(self.universe.trajectory)
 
         # make substitutions based on available atom info
-        if self._results["atoms_info"].get("moltypes") is None:
-            if hasattr(self.universe.atoms, "fragments"):
-                self._results["atoms_info"]["moltypes"] = self.get_fragtypes()
+        if self._results['atoms_info'].get('moltypes') is None:
+            if hasattr(self.universe.atoms, 'fragments'):
+                self._results['atoms_info']['moltypes'] = self.get_fragtypes()
 
-        if self._results["atoms_info"].get("molnums") is None:
+        if self._results['atoms_info'].get('molnums') is None:
             try:
-                value = getattr(self.universe.atoms, "fragindices")
-                self._results["atoms_info"]["molnums"] = value
+                value = getattr(self.universe.atoms, 'fragindices')
+                self._results['atoms_info']['molnums'] = value
             except Exception:
                 pass
 
-        if self._results["atoms_info"].get("resnames") is None:
+        if self._results['atoms_info'].get('resnames') is None:
             try:
-                self._results["atoms_info"]["resnames"] = self._results["atoms_info"][
-                    "resids"
+                self._results['atoms_info']['resnames'] = self._results['atoms_info'][
+                    'resids'
                 ]
             except Exception:
                 pass
 
-        if self._results["atoms_info"].get("names") is None:
+        if self._results['atoms_info'].get('names') is None:
             try:
-                self._results["atoms_info"]["names"] = self._results["atoms_info"][
-                    "types"
+                self._results['atoms_info']['names'] = self._results['atoms_info'][
+                    'types'
                 ]
             except Exception:
                 pass
 
-        if self._results["atoms_info"].get("elements") is None:
+        if self._results['atoms_info'].get('elements') is None:
             try:
-                self._results["atoms_info"]["elements"] = self._results["atoms_info"][
-                    "names"
+                self._results['atoms_info']['elements'] = self._results['atoms_info'][
+                    'names'
                 ]
             except Exception:
                 pass
@@ -225,41 +225,41 @@ class MDAnalysisParser(FileParser):
             )
             assert abs(np.sum(split_weights) - 1.0) < 1e-6
             rdf_values_avg = (
-                split_weights[0] * rdf_results_tmp["value"][interval_indices[0]]
+                split_weights[0] * rdf_results_tmp['value'][interval_indices[0]]
             )
             for i_interval, interval in enumerate(interval_indices[1:]):
                 assert (
-                    rdf_results_tmp["types"][interval]
-                    == rdf_results_tmp["types"][interval - 1]
+                    rdf_results_tmp['types'][interval]
+                    == rdf_results_tmp['types'][interval - 1]
                 )
                 assert (
-                    rdf_results_tmp["variables_name"][interval]
-                    == rdf_results_tmp["variables_name"][interval - 1]
+                    rdf_results_tmp['variables_name'][interval]
+                    == rdf_results_tmp['variables_name'][interval - 1]
                 )
                 assert (
-                    rdf_results_tmp["bins"][interval]
-                    == rdf_results_tmp["bins"][interval - 1]
+                    rdf_results_tmp['bins'][interval]
+                    == rdf_results_tmp['bins'][interval - 1]
                 ).all()
                 rdf_values_avg += (
-                    split_weights[i_interval + 1] * rdf_results_tmp["value"][interval]
+                    split_weights[i_interval + 1] * rdf_results_tmp['value'][interval]
                 )
-            rdf_results["types"].append(rdf_results_tmp["types"][interval_indices[0]])
-            rdf_results["variables_name"].append(
-                rdf_results_tmp["variables_name"][interval_indices[0]]
+            rdf_results['types'].append(rdf_results_tmp['types'][interval_indices[0]])
+            rdf_results['variables_name'].append(
+                rdf_results_tmp['variables_name'][interval_indices[0]]
             )
-            rdf_results["bins"].append(rdf_results_tmp["bins"][interval_indices[0]])
-            rdf_results["value"].append(rdf_values_avg)
-            rdf_results["frame_start"].append(
-                int(rdf_results_tmp["frame_start"][interval_indices[0]])
+            rdf_results['bins'].append(rdf_results_tmp['bins'][interval_indices[0]])
+            rdf_results['value'].append(rdf_values_avg)
+            rdf_results['frame_start'].append(
+                int(rdf_results_tmp['frame_start'][interval_indices[0]])
             )
-            rdf_results["frame_end"].append(
-                int(rdf_results_tmp["frame_end"][interval_indices[-1]])
+            rdf_results['frame_end'].append(
+                int(rdf_results_tmp['frame_end'][interval_indices[-1]])
             )
 
         if self.universe is None:
             return
         trajectory = self.universe.trajectory[0] if self.universe.trajectory else None
-        dimensions = getattr(trajectory, "dimensions", None) if trajectory else None
+        dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
         if dimensions is None:
             return
 
@@ -289,7 +289,7 @@ class MDAnalysisParser(FileParser):
             if bead_groups[moltype]._nbeads > max_mols:
                 del_list.append(i_moltype)
                 self.logger.warning(
-                    "The number of molecules of exceeds the maximum of for calculating the rdf. Skipping this molecule type."
+                    'The number of molecules of exceeds the maximum of for calculating the rdf. Skipping this molecule type.'
                 )
         moltypes = np.delete(moltypes, del_list)
 
@@ -297,13 +297,13 @@ class MDAnalysisParser(FileParser):
         max_rdf_dist = min_box_dimension / 2
 
         rdf_results = {}
-        rdf_results["n_smooth"] = n_smooth
-        rdf_results["types"] = []
-        rdf_results["variables_name"] = []
-        rdf_results["bins"] = []
-        rdf_results["value"] = []
-        rdf_results["frame_start"] = []
-        rdf_results["frame_end"] = []
+        rdf_results['n_smooth'] = n_smooth
+        rdf_results['types'] = []
+        rdf_results['variables_name'] = []
+        rdf_results['bins'] = []
+        rdf_results['value'] = []
+        rdf_results['frame_start'] = []
+        rdf_results['frame_end'] = []
         for i, moltype_i in enumerate(moltypes):
             for j, moltype_j in enumerate(moltypes):
                 if j > i:
@@ -317,17 +317,17 @@ class MDAnalysisParser(FileParser):
                     exclusion_block = (1, 1)  # remove self-distance
                 else:
                     exclusion_block = None
-                pair_type = moltype_i + "-" + moltype_j
+                pair_type = moltype_i + '-' + moltype_j
                 rdf_results_tmp = {}
-                rdf_results_tmp["types"] = []
-                rdf_results_tmp["variables_name"] = []
-                rdf_results_tmp["bins"] = []
-                rdf_results_tmp["value"] = []
-                rdf_results_tmp["frame_start"] = []
-                rdf_results_tmp["frame_end"] = []
+                rdf_results_tmp['types'] = []
+                rdf_results_tmp['variables_name'] = []
+                rdf_results_tmp['bins'] = []
+                rdf_results_tmp['value'] = []
+                rdf_results_tmp['frame_start'] = []
+                rdf_results_tmp['frame_end'] = []
                 for i_interval in range(n_traj_split):
-                    rdf_results_tmp["types"].append(pair_type)
-                    rdf_results_tmp["variables_name"].append(["distance"])
+                    rdf_results_tmp['types'].append(pair_type)
+                    rdf_results_tmp['variables_name'].append(['distance'])
                     rdf = MDA_RDF.InterRDF(
                         bead_groups[moltype_i],
                         bead_groups[moltype_j],
@@ -335,18 +335,18 @@ class MDAnalysisParser(FileParser):
                         exclusion_block=exclusion_block,
                         nbins=n_bins,
                     ).run(frames_start[i_interval], frames_end[i_interval], n_prune)
-                    rdf_results_tmp["frame_start"].append(frames_start[i_interval])
-                    rdf_results_tmp["frame_end"].append(frames_end[i_interval])
+                    rdf_results_tmp['frame_start'].append(frames_start[i_interval])
+                    rdf_results_tmp['frame_end'].append(frames_end[i_interval])
 
-                    rdf_results_tmp["bins"].append(
+                    rdf_results_tmp['bins'].append(
                         rdf.results.bins[int(n_smooth / 2) : -int(n_smooth / 2)]
                         * ureg.angstrom
                     )
-                    rdf_results_tmp["value"].append(
+                    rdf_results_tmp['value'].append(
                         np.convolve(
                             rdf.results.rdf,
                             np.ones((n_smooth,)) / n_smooth,
-                            mode="same",
+                            mode='same',
                         )[int(n_smooth / 2) : -int(n_smooth / 2)]
                     )
 
@@ -373,7 +373,7 @@ class MDAnalysisParser(FileParser):
         try:
             return self.universe.trajectory[frame_index]
         except Exception as e:
-            self.logger.warning("Error accessing frame.", exc_info=e)
+            self.logger.warning('Error accessing frame.', exc_info=e)
 
     def get_n_atoms(self, frame_index):
         """
@@ -389,7 +389,7 @@ class MDAnalysisParser(FileParser):
         # MDAnalysis assumes no change in atom configuration
         return [
             guess_atom_element(name).title()
-            for name in self.get("atoms_info", {}).get("names", [])
+            for name in self.get('atoms_info', {}).get('names', [])
         ]
 
     def get_time(self, frame_index):
@@ -404,7 +404,7 @@ class MDAnalysisParser(FileParser):
         Returns the step of the frame with index frame_index.
         """
         frame = self.get_frame(frame_index)
-        dt = frame.dt if frame.dt else getattr(self.universe.trajectory, "dt")
+        dt = frame.dt if frame.dt else getattr(self.universe.trajectory, 'dt')
         if not dt:
             return
         if frame:
@@ -450,11 +450,11 @@ class MDAnalysisParser(FileParser):
         )
 
     def get_interactions(self):
-        interactions = self.get("interactions", None)
+        interactions = self.get('interactions', None)
         if interactions is not None:
             return interactions
 
-        interaction_types = ["angles", "bonds", "dihedrals", "impropers"]
+        interaction_types = ['angles', 'bonds', 'dihedrals', 'impropers']
         interactions = []
         for interaction_type in interaction_types:
             try:
@@ -469,7 +469,7 @@ class MDAnalysisParser(FileParser):
                         self.universe.atoms[ind].type for ind in inter.indices
                     ]
                 except Exception:
-                    self.logger.warning("Could not assign atom labels to interactions.")
+                    self.logger.warning('Could not assign atom labels to interactions.')
                 interactions.append(
                     dict(
                         atom_labels=atom_labels,
@@ -480,7 +480,7 @@ class MDAnalysisParser(FileParser):
                     )
                 )
 
-        self._results["interactions"] = interactions
+        self._results['interactions'] = interactions
 
         return interactions
 
@@ -513,19 +513,19 @@ class MDAnalysisParser(FileParser):
         if self.universe is None:
             return
         trajectory = self.universe.trajectory[0] if self.universe.trajectory else None
-        dimensions = getattr(trajectory, "dimensions", None) if trajectory else None
+        dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
         if dimensions is None:
             return
 
         n_frames = self.universe.trajectory.n_frames
         if n_frames < 50:
             self.logger.warning(
-                "At least 50 frames required to calculate molecular"  # noqa: PLE1205
-                " mean squared displacements, skipping.",
+                'At least 50 frames required to calculate molecular'  # noqa: PLE1205
+                ' mean squared displacements, skipping.',
             )
             return
 
-        dt = getattr(self.universe.trajectory, "dt")
+        dt = getattr(self.universe.trajectory, 'dt')
         if dt is None:
             return
         times = np.arange(n_frames) * dt
@@ -556,49 +556,49 @@ class MDAnalysisParser(FileParser):
                             ]
                         )
                     ]
-                    selection = " ".join([str(i) for i in atom_indices_rnd])
-                    selection = f"index {selection}"
+                    selection = ' '.join([str(i) for i in atom_indices_rnd])
+                    selection = f'index {selection}'
                     ags_moltype_rnd = self.universe.select_atoms(selection)
                     bead_groups[moltype] = BeadGroup(
-                        ags_moltype_rnd, compound="fragments"
+                        ags_moltype_rnd, compound='fragments'
                     )
                     self.logger.warning(
-                        "Maximum number of molecules for calculating the msd has been reached."
-                        " Will make a random selection for calculation."
+                        'Maximum number of molecules for calculating the msd has been reached.'
+                        ' Will make a random selection for calculation.'
                     )
                 except Exception:
                     self.logger.warning(
-                        "Tried to select random molecules for large group when calculating msd, but something went wrong. Skipping this molecule type."
+                        'Tried to select random molecules for large group when calculating msd, but something went wrong. Skipping this molecule type.'
                     )
                 del_list.append(i_moltype)
         moltypes = np.delete(moltypes, del_list)
 
         msd_results = {}
-        msd_results["value"] = []
-        msd_results["times"] = []
-        msd_results["diffusion_constant"] = []
-        msd_results["error_diffusion_constant"] = []
+        msd_results['value'] = []
+        msd_results['times'] = []
+        msd_results['diffusion_constant'] = []
+        msd_results['error_diffusion_constant'] = []
         for moltype in moltypes:
             positions = self.get_nojump_positions(bead_groups[moltype])
             results = shifted_correlation_average(
                 mean_squared_displacement, times, positions
             )
-            msd_results["value"].append(results[1])
-            msd_results["times"].append(results[0])
+            msd_results['value'].append(results[1])
+            msd_results['times'].append(results[0])
             diffusion_constant, error = self.__calc_diffusion_constant(*results)
-            msd_results["diffusion_constant"].append(diffusion_constant)
-            msd_results["error_diffusion_constant"].append(error)
+            msd_results['diffusion_constant'].append(diffusion_constant)
+            msd_results['error_diffusion_constant'].append(error)
 
-        msd_results["types"] = moltypes
-        msd_results["times"] = np.array(msd_results["times"]) * ureg.picosecond
-        msd_results["value"] = np.array(msd_results["value"]) * ureg.angstrom**2
-        msd_results["diffusion_constant"] = (
-            np.array(msd_results["diffusion_constant"])
+        msd_results['types'] = moltypes
+        msd_results['times'] = np.array(msd_results['times']) * ureg.picosecond
+        msd_results['value'] = np.array(msd_results['value']) * ureg.angstrom**2
+        msd_results['diffusion_constant'] = (
+            np.array(msd_results['diffusion_constant'])
             * ureg.angstrom**2
             / ureg.picosecond
         )
-        msd_results["error_diffusion_constant"] = np.array(
-            msd_results["error_diffusion_constant"]
+        msd_results['error_diffusion_constant'] = np.array(
+            msd_results['error_diffusion_constant']
         )
 
         return msd_results
@@ -607,11 +607,11 @@ class MDAnalysisParser(FileParser):
         __ = self.universe.trajectory[0]
         prev = np.array(selection.positions)
         box = self.universe.trajectory[0].dimensions[:3]
-        sparse_data = namedtuple("SparseData", ["data", "row", "col"])
+        sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])
         jump_data = (
-            sparse_data(data=array("b"), row=array("l"), col=array("l")),
-            sparse_data(data=array("b"), row=array("l"), col=array("l")),
-            sparse_data(data=array("b"), row=array("l"), col=array("l")),
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
         )
 
         for i_frame, _ in enumerate(self.universe.trajectory[1:]):
@@ -655,7 +655,7 @@ class MDAnalysisParser(FileParser):
 
     def clean(self):
         for name in os.listdir(self.maindir):
-            if name.startswith(".") and (
-                name.endswith(".lock") or name.endswith(".npz")
+            if name.startswith('.') and (
+                name.endswith('.lock') or name.endswith('.npz')
             ):
                 os.remove(os.path.join(self.maindir, name))

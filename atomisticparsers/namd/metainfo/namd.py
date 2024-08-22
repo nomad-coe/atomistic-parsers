@@ -1001,7 +1001,7 @@ class x_namd_section_control_parameters(MSection):
 
     x_namd_inout_control_parameters = Quantity(
         type=str,
-        shape=["x_namd_inout_control_number_of_parameters"],
+        shape=['x_namd_inout_control_number_of_parameters'],
         description="""
         NAMD running environment and control parameters.
         """,
@@ -1017,7 +1017,7 @@ class x_namd_section_atom_to_atom_type_ref(MSection):
 
     x_namd_atom_to_atom_type_ref = Quantity(
         type=np.int64,
-        shape=["number_of_atoms_per_type"],
+        shape=['number_of_atoms_per_type'],
         description="""
         Reference to the atoms of each atom type.
         """,
@@ -1037,8 +1037,8 @@ class System(runschema.system.System):
 
     x_namd_atom_positions_image_index = Quantity(
         type=np.int32,
-        shape=["number_of_atoms", 3],
-        unit="dimensionless",
+        shape=['number_of_atoms', 3],
+        unit='dimensionless',
         description="""
         PBC image flag index.
         """,
@@ -1046,8 +1046,8 @@ class System(runschema.system.System):
 
     x_namd_atom_positions_scaled = Quantity(
         type=np.float64,
-        shape=["number_of_atoms", 3],
-        unit="dimensionless",
+        shape=['number_of_atoms', 3],
+        unit='dimensionless',
         description="""
         Position of the atoms in a scaled format [0, 1].
         """,
@@ -1055,8 +1055,8 @@ class System(runschema.system.System):
 
     x_namd_atom_positions_wrapped = Quantity(
         type=np.float64,
-        shape=["number_of_atoms", 3],
-        unit="meter",
+        shape=['number_of_atoms', 3],
+        unit='meter',
         description="""
         Position of the atoms wrapped back to the periodic box.
         """,
@@ -1149,7 +1149,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_namd_barostat_target_pressure = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         MD barostat target pressure.
         """,
@@ -1158,7 +1158,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_namd_barostat_tau = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         MD barostat relaxation time.
         """,
@@ -1175,7 +1175,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_namd_integrator_dt = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         MD integration time step.
         """,
@@ -1200,7 +1200,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_namd_langevin_gamma = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         Langevin thermostat damping factor.
         """,
@@ -1225,7 +1225,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_namd_thermostat_target_temperature = Quantity(
         type=np.float64,
         shape=[],
-        unit="kelvin",
+        unit='kelvin',
         description="""
         MD thermostat target temperature.
         """,
@@ -1234,7 +1234,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_namd_thermostat_tau = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         MD thermostat relaxation time.
         """,
@@ -1306,7 +1306,7 @@ class Interaction(runschema.method.Interaction):
 
     x_namd_interaction_atom_to_atom_type_ref = Quantity(
         type=runschema.method.AtomParameters,
-        shape=["number_of_atoms_per_interaction"],
+        shape=['number_of_atoms_per_interaction'],
         description="""
         Reference to the atom type of each interaction atoms.
         """,
@@ -1323,8 +1323,8 @@ class Interaction(runschema.method.Interaction):
     x_namd_pair_interaction_atom_type_ref = Quantity(
         type=runschema.method.AtomParameters,
         shape=[
-            "x_namd_number_of_defined_pair_interactions",
-            "number_of_atoms_per_interaction",
+            'x_namd_number_of_defined_pair_interactions',
+            'number_of_atoms_per_interaction',
         ],
         description="""
         Reference to the atom type for pair interactions.
@@ -1333,7 +1333,7 @@ class Interaction(runschema.method.Interaction):
 
     x_namd_pair_interaction_parameters = Quantity(
         type=np.float64,
-        shape=["x_namd_number_of_defined_pair_interactions", 2],
+        shape=['x_namd_number_of_defined_pair_interactions', 2],
         description="""
         Pair interactions parameters.
         """,
@@ -1341,7 +1341,7 @@ class Interaction(runschema.method.Interaction):
 
     x_namd_molecule_interaction_atom_to_atom_type_ref = Quantity(
         type=runschema.method.AtomParameters,
-        shape=["number_of_atoms_per_interaction"],
+        shape=['number_of_atoms_per_interaction'],
         description="""
         Reference to the atom type of each molecule interaction atoms.
         """,
@@ -1357,7 +1357,7 @@ class Interaction(runschema.method.Interaction):
 
     x_namd_pair_molecule_interaction_parameters = Quantity(
         type=np.float64,
-        shape=["number_of_defined_molecule_pair_interactions", 2],
+        shape=['number_of_defined_molecule_pair_interactions', 2],
         description="""
         Molecule pair interactions parameters.
         """,
@@ -1366,8 +1366,8 @@ class Interaction(runschema.method.Interaction):
     x_namd_pair_molecule_interaction_to_atom_type_ref = Quantity(
         type=runschema.method.AtomParameters,
         shape=[
-            "x_namd_number_of_defined_pair_interactions",
-            "number_of_atoms_per_interaction",
+            'x_namd_number_of_defined_pair_interactions',
+            'number_of_atoms_per_interaction',
         ],
         description="""
         Reference to the atom type for pair interactions within a molecule.
@@ -1515,11 +1515,11 @@ class Run(runschema.run.Run):
     )
 
     x_namd_section_input_output_files = SubSection(
-        sub_section=SectionProxy("x_namd_section_input_output_files"), repeats=True
+        sub_section=SectionProxy('x_namd_section_input_output_files'), repeats=True
     )
 
     x_namd_section_control_parameters = SubSection(
-        sub_section=SectionProxy("x_namd_section_control_parameters"), repeats=True
+        sub_section=SectionProxy('x_namd_section_control_parameters'), repeats=True
     )
 
 
@@ -1529,7 +1529,7 @@ class Calculation(runschema.calculation.Calculation):
     x_namd_temperature_average = Quantity(
         type=np.float64,
         shape=[],
-        unit="kelvin",
+        unit='kelvin',
         description="""
         """,
     )
@@ -1537,7 +1537,7 @@ class Calculation(runschema.calculation.Calculation):
     x_namd_gpressure = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         """,
     )
@@ -1545,7 +1545,7 @@ class Calculation(runschema.calculation.Calculation):
     x_namd_pressure_average = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         """,
     )
@@ -1553,7 +1553,7 @@ class Calculation(runschema.calculation.Calculation):
     x_namd_gpressure_average = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         """,
     )
@@ -1561,7 +1561,7 @@ class Calculation(runschema.calculation.Calculation):
     x_namd_volume = Quantity(
         type=np.float64,
         shape=[],
-        unit="meter ** 3",
+        unit='meter ** 3',
         description="""
         """,
     )

@@ -24,7 +24,7 @@ from nomad.utils import configure_logging
 from nomad.datamodel import EntryArchive
 from atomisticparsers.namd import NAMDParser
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     configure_logging(console_log_level=logging.DEBUG)
     archive = EntryArchive()
     NAMDParser().parse(sys.argv[1], archive, logging)

@@ -80,7 +80,7 @@ class x_dl_poly_section_md_topology(MSection):
     )
 
     x_dl_poly_section_md_molecule_type = SubSection(
-        sub_section=SectionProxy("x_dl_poly_section_md_molecule_type"), repeats=True
+        sub_section=SectionProxy('x_dl_poly_section_md_molecule_type'), repeats=True
     )
 
 
@@ -90,7 +90,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_dl_poly_barostat_target_pressure = Quantity(
         type=np.float64,
         shape=[],
-        unit="pascal",
+        unit='pascal',
         description="""
         MD barostat target pressure.
         """,
@@ -99,7 +99,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_dl_poly_barostat_tau = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         MD barostat relaxation time.
         """,
@@ -108,7 +108,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_dl_poly_integrator_dt = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         MD integration time step.
         """,
@@ -133,7 +133,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_dl_poly_thermostat_target_temperature = Quantity(
         type=np.float64,
         shape=[],
-        unit="kelvin",
+        unit='kelvin',
         description="""
         MD thermostat target temperature.
         """,
@@ -142,7 +142,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_dl_poly_thermostat_tau = Quantity(
         type=np.float64,
         shape=[],
-        unit="second",
+        unit='second',
         description="""
         MD thermostat relaxation time.
         """,
@@ -173,7 +173,7 @@ class System(runschema.system.System):
     m_def = Section(validate=False, extends_base_section=True)
 
     x_dl_poly_section_md_topology = SubSection(
-        sub_section=SectionProxy("x_dl_poly_section_md_topology"), repeats=True
+        sub_section=SectionProxy('x_dl_poly_section_md_topology'), repeats=True
     )
 
 
@@ -291,7 +291,7 @@ class Calculation(runschema.calculation.Calculation):
 
     x_dl_poly_volume = Quantity(
         type=np.float64,
-        unit="m ** 3",
+        unit='m ** 3',
         shape=[],
         description="""
         """,

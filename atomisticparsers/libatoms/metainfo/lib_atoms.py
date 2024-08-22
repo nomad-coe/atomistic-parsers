@@ -47,7 +47,7 @@ class x_lib_atoms_section_gap(MSection):
 
     x_lib_atoms_training_config_refs = Quantity(
         type=runschema.calculation.Calculation,
-        shape=["n_sparseX"],
+        shape=['n_sparseX'],
         description="""
         References to frames in training configuration.
         """,
@@ -207,7 +207,7 @@ class x_lib_atoms_section_gap(MSection):
 
     x_lib_atoms_gpCoordinates_alpha = Quantity(
         type=np.float64,
-        shape=["n_sparseX", 2],
+        shape=['n_sparseX', 2],
         description="""
         GAP classifier.
         """,
@@ -215,7 +215,7 @@ class x_lib_atoms_section_gap(MSection):
 
     x_lib_atoms_gpCoordinates_sparseX = Quantity(
         type=np.float64,
-        shape=["n_sparseX", "dimensions"],
+        shape=['n_sparseX', 'dimensions'],
         description="""
         GAP classifier.
         """,
@@ -226,7 +226,7 @@ class Run(runschema.run.Run):
     m_def = Section(validate=False, extends_base_section=True)
 
     x_lib_atoms_section_gap = SubSection(
-        sub_section=SectionProxy("x_lib_atoms_section_gap"), repeats=False
+        sub_section=SectionProxy('x_lib_atoms_section_gap'), repeats=False
     )
 
 
@@ -236,7 +236,7 @@ class Calculation(runschema.calculation.Calculation):
     x_lib_atoms_virial_tensor = Quantity(
         type=np.float64,
         shape=[3, 3],
-        unit="pascal",
+        unit='pascal',
         description="""
         Virial tensor for this frame.
         """,

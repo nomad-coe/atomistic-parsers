@@ -90,14 +90,14 @@ class MultipolesEntry(runschema.calculation.MultipolesEntry):
 
     x_xtb_q_only = Quantity(
         type=np.float64,
-        shape=["n_multipoles"],
+        shape=['n_multipoles'],
         description="""
         """,
     )
 
     x_xtb_q_plus_dip = Quantity(
         type=np.float64,
-        shape=["n_multipoles"],
+        shape=['n_multipoles'],
         description="""
         """,
     )
@@ -176,7 +176,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_xtb_md_time = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -191,7 +191,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_xtb_temperature = Quantity(
         type=np.float64,
         shape=[],
-        unit="K",
+        unit='K',
         description="""
         """,
     )
@@ -213,7 +213,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_xtb_dumpstep_trj = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -221,7 +221,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_xtb_dumpstep_coords = Quantity(
         type=np.float64,
         shape=[],
-        unit="s",
+        unit='s',
         description="""
         """,
     )
@@ -229,7 +229,7 @@ class MolecularDynamics(simulationworkflowschema.MolecularDynamics):
     x_xtb_h_atoms_mass = Quantity(
         type=np.float64,
         shape=[],
-        unit="kg",
+        unit='kg',
         description="""
         """,
     )

@@ -34,7 +34,11 @@ dev = [
     "pytest-cov==2.7.1",
     "astroid>=2.5.1",
     "typing-extensions==4.4.0",
-    "ruff==0.1.8"
+    "ruff==0.1.8",
+]
+# these are extra deps for nomad infra as a result of using nomad.search
+nomad_infrastructure = [
+    "mongoengine>=0.20'",
 ]
 
 [tool.ruff]

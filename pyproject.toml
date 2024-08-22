@@ -59,12 +59,42 @@ ignore = [
     "PLR1714", # consider-using-in
     "PLR5501", # else-if-used
 ]
-fixable = ["ALL"]
+lint.fixable = ["ALL"]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+[tool.ruff.format]
+# use single quotes for strings.
+quote-style = "single"
+
+# indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
 
 [tool.setuptools.packages.find]
 include = [
     "atomisticparsers*",
 ] # package names should match these glob patterns (["*"] by default)
 
-[tool.setuptools.package-data]
-atomisticparsers = ["*/metadata.yaml", "*/README.md"]
+[project.entry-points.'nomad.plugin']
+amberparser = "atomisticparsers:amber_parser_entry_point"
+asapparser = "atomisticparsers:asap_parser_entry_point"
+bopfoxparser = "atomisticparsers:bopfox_parser_entry_point"
+dftbplusparser = "atomisticparsers:dftbplus_parser_entry_point"
+dlpolyparser = "atomisticparsers:dlpoly_parser_entry_point"
+gromacsparser = "atomisticparsers:gromacs_parser_entry_point"
+gromosparser = "atomisticparsers:gromos_parser_entry_point"
+gulpparser = "atomisticparsers:gulp_parser_entry_point"
+h5mdparser = "atomisticparsers:h5md_parser_entry_point"
+lammpsparser = "atomisticparsers:lammps_parser_entry_point"
+libatomsparser = "atomisticparsers:libatoms_parser_entry_point"
+namdparser = "atomisticparsers:namd_parser_entry_point"
+tinkerparser = "atomisticparsers:tinker_parser_entry_point"
+xtbparser = "atomisticparsers:xtb_parser_entry_point"

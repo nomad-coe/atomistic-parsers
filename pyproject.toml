@@ -16,7 +16,7 @@ dependencies = [
     "simulationparsers@git+https://github.com/nomad-coe/simulation-parsers.git@develop",
     "lxml>=5.2",
     "MDAnalysis",
-    "panedr==0.2",
+    "panedr>=0.2",
     "scipy>=1.7.1",
 ]
 

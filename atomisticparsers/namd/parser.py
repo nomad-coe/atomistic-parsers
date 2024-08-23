@@ -29,7 +29,7 @@ from runschema.run import Run, Program
 from runschema.method import Method
 from simulationworkflowschema import MolecularDynamics
 from atomisticparsers.utils import MDAnalysisParser, MDParser
-from .metainfo import m_env  # pylint: disable=unused-import
+from .metainfo import namd  # pylint: disable=unused-import
 
 
 MOL = 6.022140857e23

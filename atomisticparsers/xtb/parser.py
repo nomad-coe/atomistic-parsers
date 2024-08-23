@@ -43,7 +43,7 @@ from simulationworkflowschema import (
     GeometryOptimizationMethod,
 )
 from atomisticparsers.utils import MDParser
-from atomisticparsers.xtb.metainfo import m_env  # pylint: disable=unused-import
+from atomisticparsers.xtb.metainfo import xtb  # pylint: disable=unused-import
 
 
 re_f = r"[-+]?\d+\.\d*(?:[Ee][-+]\d+)?"

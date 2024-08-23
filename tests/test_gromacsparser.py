@@ -445,6 +445,66 @@ def test_integrator_md_thermostat_nosehoover_barostat_parrinellorahman(parser):
     )
 
 
+def test_umbrela_sampling(parser):
+    archive = EntryArchive()
+    parser.parse(
+        "tests/data/gromacs/umbrella_sampling/us-0.0/prod.log",
+        archive,
+        None,
+    )
+
+    import h5py
+
+    def get_dataset(filename_with_path):
+        try:
+            # Split the filename and dataset path
+            filename, dataset_path = filename_with_path.split("#", 1)
+            print(filename, dataset_path)
+
+            # Open the HDF5 file in read mode
+            with h5py.File(filename, "r") as file:
+                # Access the dataset using the provided path
+                dataset = file[dataset_path]
+                data = dataset[()]
+
+            return data
+
+        except (ValueError, KeyError) as e:
+            # Handle potential errors (e.g., invalid input or dataset not found)
+            print(f"Error: {e}")
+            return None
+
+    # sec_workflow = archive.workflow2
+    # sec_method = sec_workflow.method.free_energy_calculation_parameters[0]
+    # sec_results = sec_workflow.results.free_energy_calculations[0]
+
+    # assert sec_method.type == "alchemical"
+    # sec_lambdas = sec_method.lambdas
+    # assert len(sec_lambdas) == 7
+    # assert sec_lambdas[2].type == "vdw"
+    # assert sec_lambdas[2].value[2] == 0.2
+    # assert sec_lambdas[-1].type == "temperature"
+    # assert sec_lambdas[-1].value[2] == 0.0
+    # assert sec_method.lambda_index == 7
+    # assert sec_method.atom_indices.shape == (1,)
+    # assert sec_method.atom_indices[0] == 0
+    # assert sec_method.initial_state_vdw is True
+    # assert sec_method.final_state_vdw is False
+    # assert sec_method.initial_state_coloumb is False
+    # assert sec_method.final_state_coloumb is False
+    # assert sec_method.initial_state_bonded is True
+    # assert sec_method.final_state_bonded is True
+
+    # assert sec_results.n_frames == 5001
+    # assert sec_results.n_states == 11
+    # assert sec_results.lambda_index == 7
+    # assert len(sec_results.times) == 5001
+    # assert sec_results.times.to("ps")[10].magnitude == approx(2.0)
+    # assert sec_results.value_unit == "kilojoule"
+    # assert isinstance(sec_results.method_ref, FreeEnergyCalculationParameters)
+    # # TODO add testing of hdf5 references in sec_results ('value_total_energy_magnitude', 'value_total_energy_derivative_magnitude', 'value_total_energy_differences_magnitude', 'value_PV_energy_magnitude') to NOMAD testing
+
+
 def test_free_energy_calculations(parser):
     archive = EntryArchive()
     parser.parse(
@@ -476,6 +536,8 @@ def test_free_energy_calculations(parser):
     sec_workflow = archive.workflow2
     sec_method = sec_workflow.method.free_energy_calculation_parameters[0]
     sec_results = sec_workflow.results.free_energy_calculations[0]
+    print("sec_method:", sec_method)
+    print("atom_indices:", sec_method.atom_indices)
 
     assert sec_method.type == "alchemical"
     sec_lambdas = sec_method.lambdas
@@ -485,6 +547,7 @@ def test_free_energy_calculations(parser):
     assert sec_lambdas[-1].type == "temperature"
     assert sec_lambdas[-1].value[2] == 0.0
     assert sec_method.lambda_index == 7
+    # TODO: Check if the atom_indices are correct
     assert sec_method.atom_indices.shape == (1,)
     assert sec_method.atom_indices[0] == 0
     assert sec_method.initial_state_vdw is True

@@ -1,0 +1,44 @@
+;;;; C9_AcO
+
+[moleculetype]
+; molname       nrexcl
+  MOL           2
+
+[atoms]  
+; i type resnr residue atom cgnr charge mass
+  1 C1   1     MOL     C01  1    0.0     45.0
+  2 C1   1     MOL     C02  2    0.0     45.0
+  3 SQ0  1     MOL     S01  3    1.0     75.0
+  4 SN0  1     MOL     S02  4    0.0     75.0
+  5 SN0  1     MOL     S03  5    0.0     75.0
+  6 SC5  1     MOL     V01  6    0.0      0.0
+  7 SC5  1     MOL     V02  7    0.0      0.0
+
+[bonds]
+; i j   funct   length  force.c.
+; alkyl chain:
+  1 2   1       0.37    1250
+  2 3   1       0.32    1250
+; central ring:
+  3 4   1       0.25    20000
+  3 5   1       0.25    20000
+  4 5   1       0.25    20000
+
+[ virtual_sites3 ]
+; In-plane virtual sites 
+; defined by the three beads on the central ring
+; i  j  k  l  funct  jk  kl  
+  6  4  5  3   1  1.25    0.5 
+  7  4  5  3   1 -0.75    0.5
+
+[angles]
+; i j k         funct   angle   force.c.
+  1 2 3         2       180.0   25.0
+
+[ exclusions ]
+; i  j  k  ...
+  3  4  5  6  7
+  4  5  6  7
+  5  6  7
+  6  7
+

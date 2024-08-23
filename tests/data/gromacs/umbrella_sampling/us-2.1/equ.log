@@ -1,0 +1,944 @@
+Log file opened on Sat Feb 24 03:22:29 2018
+Host: thinc109  pid: 5870  rank ID: 0  number of ranks:  1
+GROMACS:    gmx mdrun, VERSION 5.0.8-dev-20160207-b53b2f6
+
+GROMACS is written by:
+Emile Apol         Rossen Apostolov   Herman J.C. Berendsen Par Bjelkmar       
+Aldert van Buuren  Rudi van Drunen    Anton Feenstra     Sebastian Fritsch  
+Gerrit Groenhof    Christoph Junghans Peter Kasson       Carsten Kutzner    
+Per Larsson        Justin A. Lemkul   Magnus Lundborg    Pieter Meulenhoff  
+Erik Marklund      Teemu Murtola      Szilard Pall       Sander Pronk       
+Roland Schulz      Alexey Shvetsov    Michael Shirts     Alfons Sijbers     
+Peter Tieleman     Christian Wennberg Maarten Wolf       
+and the project leaders:
+Mark Abraham, Berk Hess, Erik Lindahl, and David van der Spoel
+
+Copyright (c) 1991-2000, University of Groningen, The Netherlands.
+Copyright (c) 2001-2014, The GROMACS development team at
+Uppsala University, Stockholm University and
+the Royal Institute of Technology, Sweden.
+check out http://www.gromacs.org for more information.
+
+GROMACS is free software; you can redistribute it and/or modify it
+under the terms of the GNU Lesser General Public License
+as published by the Free Software Foundation; either version 2.1
+of the License, or (at your option) any later version.
+
+GROMACS:      gmx mdrun, VERSION 5.0.8-dev-20160207-b53b2f6
+Executable:   /sw/linux/gromacs/5.1.2/bin/gmx
+Library dir:  /sw/linux/gromacs/5.1.2/share/gromacs/top
+Command line:
+  gmx mdrun -v -nt 4 -deffnm equ -append -cpi prod.cpt -maxh 35.5
+
+Gromacs version:    VERSION 5.0.8-dev-20160207-b53b2f6
+GIT SHA1 hash:      b53b2f684ae172f78d802a4b0dcfd58e4d6ebc96
+Precision:          single
+Memory model:       64 bit
+MPI library:        thread_mpi
+OpenMP support:     enabled
+GPU support:        disabled
+invsqrt routine:    gmx_software_invsqrt(x)
+SIMD instructions:  SSE4.1
+FFT library:        fftw-3.3.3-sse2
+RDTSCP usage:       enabled
+C++11 compilation:  enabled
+TNG support:        enabled
+Tracing support:    disabled
+Built on:           Mon Feb 15 09:35:49 CET 2016
+Built by:           andrienk@thinc111 [CMAKE]
+Build OS/arch:      Linux 3.4.28-2.20-desktop x86_64
+Build CPU vendor:   GenuineIntel
+Build CPU brand:    Intel(R) Xeon(R) CPU           X5667  @ 3.07GHz
+Build CPU family:   6   Model: 44   Stepping: 2
+Build CPU features: apic clfsh cmov cx8 cx16 htt lahf_lm mmx msr nonstop_tsc pcid pdcm pdpe1gb popcnt pse rdtscp sse2 sse3 sse4.1 sse4.2 ssse3
+C compiler:         /usr/bin/gcc GNU 4.7.1
+C compiler flags:    -msse4.1    -Wno-maybe-uninitialized -Wextra -Wno-missing-field-initializers -Wno-sign-compare -Wpointer-arith -Wall -Wno-unused -Wunused-value -Wunused-parameter  -O3 -DNDEBUG -fomit-frame-pointer -funroll-all-loops -fexcess-precision=fast  -Wno-array-bounds 
+C++ compiler:       /usr/bin/c++ GNU 4.7.1
+C++ compiler flags:  -msse4.1   -std=c++0x  -Wextra -Wno-missing-field-initializers -Wpointer-arith -Wall -Wno-unused-function  -O3 -DNDEBUG -fomit-frame-pointer -funroll-all-loops -fexcess-precision=fast  -Wno-array-bounds 
+Boost version:      1.49.0 (external)
+
+
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+M. J. Abraham, T. Murtola, R. Schulz, S. Páll, J. C. Smith, B. Hess, E.
+Lindahl
+GROMACS: High performance molecular simulations through multi-level
+parallelism from laptops to supercomputers
+SoftwareX 1 (2015) pp. 19-25
+-------- -------- --- Thank You --- -------- --------
+
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+S. Páll, M. J. Abraham, C. Kutzner, B. Hess, E. Lindahl
+Tackling Exascale Software Challenges in Molecular Dynamics Simulations with
+GROMACS
+In S. Markidis & E. Laure (Eds.), Solving Software Challenges for Exascale 8759 (2015) pp. 3-27
+-------- -------- --- Thank You --- -------- --------
+
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+S. Pronk, S. Páll, R. Schulz, P. Larsson, P. Bjelkmar, R. Apostolov, M. R.
+Shirts, J. C. Smith, P. M. Kasson, D. van der Spoel, B. Hess, and E. Lindahl
+GROMACS 4.5: a high-throughput and highly parallel open source molecular
+simulation toolkit
+Bioinformatics 29 (2013) pp. 845-54
+-------- -------- --- Thank You --- -------- --------
+
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+B. Hess and C. Kutzner and D. van der Spoel and E. Lindahl
+GROMACS 4: Algorithms for highly efficient, load-balanced, and scalable
+molecular simulation
+J. Chem. Theory Comput. 4 (2008) pp. 435-447
+-------- -------- --- Thank You --- -------- --------
+
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+D. van der Spoel, E. Lindahl, B. Hess, G. Groenhof, A. E. Mark and H. J. C.
+Berendsen
+GROMACS: Fast, Flexible and Free
+J. Comp. Chem. 26 (2005) pp. 1701-1719
+-------- -------- --- Thank You --- -------- --------
+
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+E. Lindahl and B. Hess and D. van der Spoel
+GROMACS 3.0: A package for molecular simulation and trajectory analysis
+J. Mol. Mod. 7 (2001) pp. 306-317
+-------- -------- --- Thank You --- -------- --------
+
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+H. J. C. Berendsen, D. van der Spoel and R. van Drunen
+GROMACS: A message-passing parallel molecular dynamics implementation
+Comp. Phys. Comm. 91 (1995) pp. 43-56
+-------- -------- --- Thank You --- -------- --------
+
+Input Parameters:
+   integrator                     = md
+   tinit                          = 0
+   dt                             = 0.01
+   nsteps                         = 1000000
+   init-step                      = 0
+   simulation-part                = 1
+   comm-mode                      = Linear
+   nstcomm                        = 1000
+   bd-fric                        = 0
+   ld-seed                        = 3367064590
+   emtol                          = 10
+   emstep                         = 0.01
+   niter                          = 20
+   fcstep                         = 0
+   nstcgsteep                     = 1000
+   nbfgscorr                      = 10
+   rtpi                           = 0.05
+   nstxout                        = 0
+   nstvout                        = 0
+   nstfout                        = 0
+   nstlog                         = 30000
+   nstcalcenergy                  = 100
+   nstenergy                      = 30000
+   nstxout-compressed             = 30000
+   compressed-x-precision         = 100
+   cutoff-scheme                  = Verlet
+   nstlist                        = 20
+   ns-type                        = Grid
+   pbc                            = xyz
+   periodic-molecules             = FALSE
+   verlet-buffer-tolerance        = 0.005
+   rlist                          = 1.138
+   rlistlong                      = 1.138
+   nstcalclr                      = 20
+   coulombtype                    = PME
+   coulomb-modifier               = Potential-shift
+   rcoulomb-switch                = 0
+   rcoulomb                       = 1.1
+   epsilon-r                      = 2.5
+   epsilon-rf                     = inf
+   vdw-type                       = Cut-off
+   vdw-modifier                   = Potential-shift
+   rvdw-switch                    = 0.9
+   rvdw                           = 1.1
+   DispCorr                       = No
+   table-extension                = 1
+   fourierspacing                 = 0.12
+   fourier-nx                     = 56
+   fourier-ny                     = 56
+   fourier-nz                     = 80
+   pme-order                      = 4
+   ewald-rtol                     = 1e-05
+   ewald-rtol-lj                  = 0.001
+   lj-pme-comb-rule               = Geometric
+   ewald-geometry                 = 0
+   epsilon-surface                = 0
+   implicit-solvent               = No
+   gb-algorithm                   = Still
+   nstgbradii                     = 1
+   rgbradii                       = 1
+   gb-epsilon-solvent             = 80
+   gb-saltconc                    = 0
+   gb-obc-alpha                   = 1
+   gb-obc-beta                    = 0.8
+   gb-obc-gamma                   = 4.85
+   gb-dielectric-offset           = 0.009
+   sa-algorithm                   = Ace-approximation
+   sa-surface-tension             = 2.05016
+   tcoupl                         = V-rescale
+   nsttcouple                     = 20
+   nh-chain-length                = 0
+   print-nose-hoover-chain-variables = FALSE
+   pcoupl                         = Berendsen
+   pcoupltype                     = Semiisotropic
+   nstpcouple                     = 20
+   tau-p                          = 5
+   compressibility (3x3):
+      compressibility[    0]={ 3.00000e-04,  0.00000e+00,  0.00000e+00}
+      compressibility[    1]={ 0.00000e+00,  3.00000e-04,  0.00000e+00}
+      compressibility[    2]={ 0.00000e+00,  0.00000e+00,  3.00000e-04}
+   ref-p (3x3):
+      ref-p[    0]={ 1.00000e+00,  0.00000e+00,  0.00000e+00}
+      ref-p[    1]={ 0.00000e+00,  1.00000e+00,  0.00000e+00}
+      ref-p[    2]={ 0.00000e+00,  0.00000e+00,  1.00000e+00}
+   refcoord-scaling               = No
+   posres-com (3):
+      posres-com[0]= 0.00000e+00
+      posres-com[1]= 0.00000e+00
+      posres-com[2]= 0.00000e+00
+   posres-comB (3):
+      posres-comB[0]= 0.00000e+00
+      posres-comB[1]= 0.00000e+00
+      posres-comB[2]= 0.00000e+00
+   QMMM                           = FALSE
+   QMconstraints                  = 0
+   QMMMscheme                     = 0
+   MMChargeScaleFactor            = 1
+qm-opts:
+   ngQM                           = 0
+   constraint-algorithm           = Lincs
+   continuation                   = TRUE
+   Shake-SOR                      = FALSE
+   shake-tol                      = 0.0001
+   lincs-order                    = 1
+   lincs-iter                     = 1
+   lincs-warnangle                = 30
+   nwall                          = 0
+   wall-type                      = 9-3
+   wall-r-linpot                  = -1
+   wall-atomtype[0]               = -1
+   wall-atomtype[1]               = -1
+   wall-density[0]                = 0
+   wall-density[1]                = 0
+   wall-ewald-zfac                = 3
+   pull                           = umbrella
+   pull-geometry                  = distance
+   pull-dim (3):
+      pull-dim[0]=0
+      pull-dim[1]=0
+      pull-dim[2]=1
+   pull-r1                        = 1
+   pull-r0                        = 1.5
+   pull-constr-tol                = 1e-06
+   pull-print-reference           = FALSE
+   pull-nstxout                   = 1000
+   pull-nstfout                   = 1000
+   pull-ngroups                   = 4
+   pull-group 0:
+     atom: not available
+     weight: not available
+     pbcatom                        = -1
+   pull-group 1:
+     atom (1416):
+        atom[0,...,1415] = {14,...,1429}
+     weight: not available
+     pbcatom                        = 721
+   pull-group 2:
+     atom (1):
+        atom[0]=2
+     weight: not available
+     pbcatom                        = -1
+   pull-group 3:
+     atom (1):
+        atom[0]=9
+     weight: not available
+     pbcatom                        = -1
+   pull-ncoords                   = 2
+   pull-coord 0:
+   group[0]                       = 2
+   group[1]                       = 1
+   origin (3):
+      origin[0]= 0.00000e+00
+      origin[1]= 0.00000e+00
+      origin[2]= 0.00000e+00
+   vec (3):
+      vec[0]= 0.00000e+00
+      vec[1]= 0.00000e+00
+      vec[2]= 0.00000e+00
+   init                           = 2
+   rate                           = 0
+   k                              = 1000
+   kB                             = 1000
+   pull-coord 1:
+   group[0]                       = 3
+   group[1]                       = 1
+   origin (3):
+      origin[0]= 0.00000e+00
+      origin[1]= 0.00000e+00
+      origin[2]= 0.00000e+00
+   vec (3):
+      vec[0]= 0.00000e+00
+      vec[1]= 0.00000e+00
+      vec[2]= 0.00000e+00
+   init                           = 2.1
+   rate                           = 0
+   k                              = 1000
+   kB                             = 1000
+   rotation                       = FALSE
+   interactiveMD                  = FALSE
+   disre                          = No
+   disre-weighting                = Conservative
+   disre-mixed                    = FALSE
+   dr-fc                          = 1000
+   dr-tau                         = 0
+   nstdisreout                    = 100
+   orire-fc                       = 0
+   orire-tau                      = 0
+   nstorireout                    = 100
+   free-energy                    = no
+   cos-acceleration               = 0
+   deform (3x3):
+      deform[    0]={ 0.00000e+00,  0.00000e+00,  0.00000e+00}
+      deform[    1]={ 0.00000e+00,  0.00000e+00,  0.00000e+00}
+      deform[    2]={ 0.00000e+00,  0.00000e+00,  0.00000e+00}
+   simulated-tempering            = FALSE
+   E-x:
+      n = 0
+   E-xt:
+      n = 0
+   E-y:
+      n = 0
+   E-yt:
+      n = 0
+   E-z:
+      n = 0
+   E-zt:
+      n = 0
+   swapcoords                     = no
+   adress                         = FALSE
+   userint1                       = 0
+   userint2                       = 0
+   userint3                       = 0
+   userint4                       = 0
+   userreal1                      = 0
+   userreal2                      = 0
+   userreal3                      = 0
+   userreal4                      = 0
+grpopts:
+   nrdf:     14.9975     14.9975      4247.3     13696.8     347.943
+   ref-t:         300         300         300         300         300
+   tau-t:           1           1           1           1           1
+annealing:          No          No          No          No          No
+annealing-npoints:           0           0           0           0           0
+   acc:	           0           0           0
+   nfreeze:           N           N           N
+   energygrp-flags[  0]: 0 0 0 0 0
+   energygrp-flags[  1]: 0 0 0 0 0
+   energygrp-flags[  2]: 0 0 0 0 0
+   energygrp-flags[  3]: 0 0 0 0 0
+   energygrp-flags[  4]: 0 0 0 0 0
+Using 1 MPI thread
+Using 4 OpenMP threads 
+
+Detecting CPU SIMD instructions.
+Present hardware specification:
+Vendor: GenuineIntel
+Brand:  Intel(R) Xeon(R) CPU           X5667  @ 3.07GHz
+Family:  6  Model: 44  Stepping:  2
+Features: apic clfsh cmov cx8 cx16 htt lahf_lm mmx msr nonstop_tsc pcid pdcm pdpe1gb popcnt pse rdtscp sse2 sse3 sse4.1 sse4.2 ssse3
+SIMD instructions most likely to fit this hardware: SSE4.1
+SIMD instructions selected at GROMACS compile time: SSE4.1
+
+Will do PME sum in reciprocal space for electrostatic interactions.
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+U. Essmann, L. Perera, M. L. Berkowitz, T. Darden, H. Lee and L. G. Pedersen 
+A smooth particle mesh Ewald method
+J. Chem. Phys. 103 (1995) pp. 8577-8592
+-------- -------- --- Thank You --- -------- --------
+
+Will do ordinary reciprocal space Ewald sum.
+Using a Gaussian width (1/beta) of 0.352179 nm for Ewald
+Cut-off's:   NS: 1.138   Coulomb: 1.1   LJ: 1.1
+System total charge: 0.000
+Generated table with 1069 data points for Ewald.
+Tabscale = 500 points/nm
+Generated table with 1069 data points for LJ6.
+Tabscale = 500 points/nm
+Generated table with 1069 data points for LJ12.
+Tabscale = 500 points/nm
+
+Using SSE4.1 4x4 non-bonded kernels
+
+Using full Lennard-Jones parameter combination matrix
+
+Potential shift: LJ r^-12: -3.186e-01 r^-6: -5.645e-01, Ewald -1.000e-05
+Initialized non-bonded Ewald correction tables, spacing: 9.79e-04 size: 2186
+
+
+NOTE: The number of threads is not equal to the number of (logical) cores
+      and the -pin option is set to auto: will not pin thread to cores.
+      This can lead to significant performance degradation.
+      Consider using -pin on (and -pinoffset in case you run multiple jobs).
+
+
+Will apply umbrella COM pulling in geometry 'distance'
+with 2 pull coordinates and 4 groups
+Pull group 1:  1416 atoms, mass 101952.000
+Pull group 2:     1 atoms, mass    75.000
+Pull group 3:     1 atoms, mass    75.000
+
+Initializing LINear Constraint Solver
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+B. Hess and H. Bekker and H. J. C. Berendsen and J. G. E. M. Fraaije
+LINCS: A Linear Constraint Solver for molecular simulations
+J. Comp. Chem. 18 (1997) pp. 1463-1472
+-------- -------- --- Thank You --- -------- --------
+
+The number of constraints is 3914
+Center of mass motion removal mode is Linear
+We have the following groups for center of mass motion removal:
+  0:  rest
+
+++++ PLEASE READ AND CITE THE FOLLOWING REFERENCE ++++
+G. Bussi, D. Donadio and M. Parrinello
+Canonical sampling through velocity rescaling
+J. Chem. Phys. 126 (2007) pp. 014101
+-------- -------- --- Thank You --- -------- --------
+
+There are: 7413 Atoms
+There are: 4 VSites
+Initial temperature: 299.276 K
+
+Started mdrun on rank 0 Sat Feb 24 03:22:29 2018
+           Step           Time         Lambda
+              0        0.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.18838e+03    8.53930e+03   -6.96020e+04   -5.25665e+04    3.94770e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    4.57628e+00   -1.07489e+05    2.28013e+04   -8.46873e+04    2.99351e+02
+ Pressure (bar)   Constr. rmsd
+    5.73553e+01    2.63405e-04
+
+           Step           Time         Lambda
+          30000      300.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.12721e+03    8.54119e+03   -6.97628e+04   -5.20287e+04    3.95901e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    2.06331e-01   -1.07164e+05    2.22641e+04   -8.48999e+04    2.92297e+02
+ Pressure (bar)   Constr. rmsd
+   -4.32825e+01    2.61990e-04
+
+           Step           Time         Lambda
+          60000      600.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.13895e+03    8.38914e+03   -6.99947e+04   -5.18957e+04    4.00064e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    2.30682e+00   -1.07359e+05    2.30455e+04   -8.43139e+04    3.02556e+02
+ Pressure (bar)   Constr. rmsd
+    7.60040e+00    2.57319e-04
+
+           Step           Time         Lambda
+          90000      900.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.12741e+03    8.61612e+03   -6.99536e+04   -5.21870e+04    3.99435e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    7.74392e+00   -1.07395e+05    2.25981e+04   -8.47969e+04    2.96682e+02
+ Pressure (bar)   Constr. rmsd
+    2.58439e-02    2.70874e-04
+
+           Step           Time         Lambda
+         120000     1200.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.06050e+03    8.52281e+03   -6.94711e+04   -5.22711e+04    3.99236e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    5.36189e-01   -1.07166e+05    2.34053e+04   -8.37607e+04    3.07280e+02
+ Pressure (bar)   Constr. rmsd
+    2.29099e+01    2.72661e-04
+
+           Step           Time         Lambda
+         150000     1500.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.14392e+03    8.61075e+03   -6.93997e+04   -5.19169e+04    3.99610e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    2.91029e+00   -1.06563e+05    2.32774e+04   -8.32855e+04    3.05602e+02
+ Pressure (bar)   Constr. rmsd
+   -2.32047e+01    2.74039e-04
+
+           Step           Time         Lambda
+         180000     1800.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.33358e+03    8.44667e+03   -6.96928e+04   -5.22572e+04    3.94819e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    4.14451e+00   -1.07217e+05    2.30162e+04   -8.42013e+04    3.02172e+02
+ Pressure (bar)   Constr. rmsd
+   -1.47024e+01    2.67348e-04
+
+           Step           Time         Lambda
+         210000     2100.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.10250e+03    8.45937e+03   -6.96061e+04   -5.13799e+04    3.96417e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    6.61954e-01   -1.06459e+05    2.32097e+04   -8.32495e+04    3.04712e+02
+ Pressure (bar)   Constr. rmsd
+   -7.86902e+01    2.65156e-04
+
+Writing checkpoint, step 223580 at Sat Feb 24 03:37:29 2018
+
+
+           Step           Time         Lambda
+         240000     2400.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.07934e+03    8.59493e+03   -6.94254e+04   -5.26656e+04    4.01249e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    2.83751e+00   -1.07401e+05    2.28197e+04   -8.45817e+04    2.99592e+02
+ Pressure (bar)   Constr. rmsd
+   -3.82270e+00    2.59843e-04
+
+           Step           Time         Lambda
+         270000     2700.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.14542e+03    8.73897e+03   -6.97117e+04   -5.27247e+04    3.96651e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    1.13424e+00   -1.07584e+05    2.29491e+04   -8.46353e+04    3.01291e+02
+ Pressure (bar)   Constr. rmsd
+   -5.40500e+01    2.75101e-04
+
+           Step           Time         Lambda
+         300000     3000.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.01648e+03    8.59797e+03   -6.91271e+04   -5.24418e+04    4.02649e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    2.33534e+00   -1.06926e+05    2.34402e+04   -8.34854e+04    3.07738e+02
+ Pressure (bar)   Constr. rmsd
+    4.84757e+00    2.70425e-04
+
+           Step           Time         Lambda
+         330000     3300.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.15757e+03    8.48266e+03   -6.97184e+04   -5.21638e+04    3.86949e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    1.43185e+01   -1.07358e+05    2.31182e+04   -8.42400e+04    3.03511e+02
+ Pressure (bar)   Constr. rmsd
+   -1.84969e+01    2.70163e-04
+
+           Step           Time         Lambda
+         360000     3600.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.07558e+03    8.24006e+03   -6.92237e+04   -5.23427e+04    3.90426e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    8.46836e+00   -1.07338e+05    2.31219e+04   -8.42162e+04    3.03559e+02
+ Pressure (bar)   Constr. rmsd
+    4.26497e+01    2.53523e-04
+
+           Step           Time         Lambda
+         390000     3900.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.15206e+03    8.48214e+03   -6.93507e+04   -5.17277e+04    4.03019e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    1.81418e+00   -1.06412e+05    2.24256e+04   -8.39867e+04    2.94418e+02
+ Pressure (bar)   Constr. rmsd
+    2.00226e+00    2.54552e-04
+
+           Step           Time         Lambda
+         420000     4200.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.20188e+03    8.53584e+03   -6.99893e+04   -5.22594e+04    3.96131e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    3.95133e-01   -1.07549e+05    2.25099e+04   -8.50394e+04    2.95524e+02
+ Pressure (bar)   Constr. rmsd
+    9.42478e+00    2.72697e-04
+
+           Step           Time         Lambda
+         450000     4500.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.09886e+03    8.48869e+03   -6.97431e+04   -5.19491e+04    4.01239e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    9.41871e-01   -1.07091e+05    2.35313e+04   -8.35599e+04    3.08935e+02
+ Pressure (bar)   Constr. rmsd
+   -5.91411e+01    2.59102e-04
+
+Writing checkpoint, step 453420 at Sat Feb 24 03:52:29 2018
+
+
+           Step           Time         Lambda
+         480000     4800.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.12903e+03    8.41707e+03   -6.98540e+04   -5.18864e+04    3.94014e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    1.59578e+00   -1.07253e+05    2.26950e+04   -8.45576e+04    2.97955e+02
+ Pressure (bar)   Constr. rmsd
+    3.30762e+01    2.53812e-04
+
+           Step           Time         Lambda
+         510000     5100.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.16252e+03    8.59076e+03   -6.98524e+04   -5.19044e+04    4.06070e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    2.14860e+00   -1.06941e+05    2.24039e+04   -8.45368e+04    2.94133e+02
+ Pressure (bar)   Constr. rmsd
+   -2.71863e+01    2.78679e-04
+
+           Step           Time         Lambda
+         540000     5400.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.18119e+03    8.51559e+03   -6.96122e+04   -5.22555e+04    3.94638e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    5.49828e+00   -1.07219e+05    2.22702e+04   -8.49488e+04    2.92378e+02
+ Pressure (bar)   Constr. rmsd
+    1.10289e+01    2.73415e-04
+
+           Step           Time         Lambda
+         570000     5700.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.06257e+03    8.66086e+03   -6.97683e+04   -5.27792e+04    3.92415e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    8.26659e-01   -1.07899e+05    2.24319e+04   -8.54672e+04    2.94501e+02
+ Pressure (bar)   Constr. rmsd
+   -8.34617e+00    2.55860e-04
+
+           Step           Time         Lambda
+         600000     6000.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.09566e+03    8.58837e+03   -6.95525e+04   -5.18292e+04    3.97510e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    8.11377e-01   -1.06722e+05    2.29355e+04   -8.37863e+04    3.01112e+02
+ Pressure (bar)   Constr. rmsd
+   -2.14354e+01    2.51685e-04
+
+           Step           Time         Lambda
+         630000     6300.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.09582e+03    8.53578e+03   -6.91218e+04   -5.20669e+04    4.02505e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    6.74447e-03   -1.06532e+05    2.25064e+04   -8.40256e+04    2.95479e+02
+ Pressure (bar)   Constr. rmsd
+    3.03302e+01    2.69121e-04
+
+           Step           Time         Lambda
+         660000     6600.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    1.92702e+03    8.38703e+03   -6.93769e+04   -5.26642e+04    3.91181e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    5.08586e+00   -1.07810e+05    2.28001e+04   -8.50101e+04    2.99334e+02
+ Pressure (bar)   Constr. rmsd
+    3.13048e+01    2.46058e-04
+
+Writing checkpoint, step 682800 at Sat Feb 24 04:07:29 2018
+
+
+           Step           Time         Lambda
+         690000     6900.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.13863e+03    8.67480e+03   -7.00570e+04   -5.18977e+04    4.04165e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    1.42589e+00   -1.07098e+05    2.30419e+04   -8.40563e+04    3.02509e+02
+ Pressure (bar)   Constr. rmsd
+   -1.34220e+01    2.71959e-04
+
+           Step           Time         Lambda
+         720000     7200.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.20111e+03    8.50037e+03   -6.96267e+04   -5.24002e+04    3.96308e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    1.09295e-01   -1.07362e+05    2.30365e+04   -8.43258e+04    3.02438e+02
+ Pressure (bar)   Constr. rmsd
+   -4.69636e+01    2.66485e-04
+
+           Step           Time         Lambda
+         750000     7500.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.14802e+03    8.59147e+03   -6.94922e+04   -5.20395e+04    3.96326e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    8.28918e-01   -1.06828e+05    2.29783e+04   -8.38498e+04    3.01675e+02
+ Pressure (bar)   Constr. rmsd
+    4.00259e+01    2.60118e-04
+
+           Step           Time         Lambda
+         780000     7800.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.10540e+03    8.55897e+03   -6.96503e+04   -5.23075e+04    4.06552e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    3.25550e+00   -1.07225e+05    2.30793e+04   -8.41454e+04    3.03000e+02
+ Pressure (bar)   Constr. rmsd
+   -2.78174e+01    2.52496e-04
+
+           Step           Time         Lambda
+         810000     8100.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.12977e+03    8.48618e+03   -6.97127e+04   -5.20582e+04    3.94177e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    5.84405e+00   -1.07207e+05    2.26608e+04   -8.45465e+04    2.97506e+02
+ Pressure (bar)   Constr. rmsd
+   -5.21812e+01    2.57056e-04
+
+           Step           Time         Lambda
+         840000     8400.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.03317e+03    8.68056e+03   -7.00355e+04   -5.23937e+04    3.92829e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    5.14159e-01   -1.07787e+05    2.28413e+04   -8.49454e+04    2.99875e+02
+ Pressure (bar)   Constr. rmsd
+    3.11321e+00    2.66475e-04
+
+           Step           Time         Lambda
+         870000     8700.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.15245e+03    8.57538e+03   -6.95452e+04   -5.22271e+04    3.97233e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    1.87982e+00   -1.07070e+05    2.25184e+04   -8.45519e+04    2.95636e+02
+ Pressure (bar)   Constr. rmsd
+    3.67498e+01    2.75057e-04
+
+           Step           Time         Lambda
+         900000     9000.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.05715e+03    8.59161e+03   -6.97661e+04   -5.18692e+04    4.10311e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    9.79994e-01   -1.06883e+05    2.31146e+04   -8.37680e+04    3.03463e+02
+ Pressure (bar)   Constr. rmsd
+   -2.67852e+01    2.62676e-04
+
+Writing checkpoint, step 918960 at Sat Feb 24 04:22:29 2018
+
+
+           Step           Time         Lambda
+         930000     9300.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.07737e+03    8.41500e+03   -7.02959e+04   -5.21231e+04    3.88143e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    5.89315e-01   -1.08045e+05    2.28203e+04   -8.52244e+04    2.99600e+02
+ Pressure (bar)   Constr. rmsd
+   -3.90031e+00    2.66150e-04
+
+           Step           Time         Lambda
+         960000     9600.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.04051e+03    8.60150e+03   -6.97926e+04   -5.23363e+04    3.97902e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    1.42730e+00   -1.07506e+05    2.22453e+04   -8.52610e+04    2.92052e+02
+ Pressure (bar)   Constr. rmsd
+   -5.86225e+00    2.61668e-04
+
+           Step           Time         Lambda
+         990000     9900.00000        0.00000
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.14595e+03    8.62922e+03   -7.00321e+04   -5.21621e+04    3.98562e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    1.40726e+00   -1.07432e+05    2.26012e+04   -8.48309e+04    2.96723e+02
+ Pressure (bar)   Constr. rmsd
+   -2.59524e-01    2.63985e-04
+
+           Step           Time         Lambda
+        1000000    10000.00000        0.00000
+
+Writing checkpoint, step 1000000 at Sat Feb 24 04:27:17 2018
+
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.09307e+03    8.56748e+03   -6.98594e+04   -5.21730e+04    3.99247e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    5.28930e+00   -1.07374e+05    2.25904e+04   -8.47837e+04    2.96581e+02
+ Pressure (bar)   Constr. rmsd
+   -3.27950e+01    2.56609e-04
+
+	<======  ###############  ==>
+	<====  A V E R A G E S  ====>
+	<==  ###############  ======>
+
+	Statistics over 1000001 steps using 10001 frames
+
+   Energies (kJ/mol)
+           Bond       G96Angle        LJ (SR)   Coulomb (SR)   Coul. recip.
+    2.12689e+03    8.54390e+03   -6.97013e+04   -5.22008e+04    3.98298e+03
+   COM Pull En.      Potential    Kinetic En.   Total Energy    Temperature
+    3.15742e+00   -1.07245e+05    2.28051e+04   -8.44401e+04    2.99400e+02
+ Pressure (bar)   Constr. rmsd
+    1.24543e+00    0.00000e+00
+
+          Box-X          Box-Y          Box-Z
+    6.32974e+00    6.32974e+00    9.57003e+00
+
+   Total Virial (kJ/mol)
+    7.60104e+03   -3.01391e+00    4.00218e+00
+   -3.01389e+00    7.58697e+03   -5.44790e+00
+    4.00220e+00   -5.44791e+00    7.57437e+03
+
+   Pressure (bar)
+    7.69011e-01    2.53592e-01   -2.54440e-01
+    2.53590e-01    2.24607e+00    3.91868e-01
+   -2.54442e-01    3.91869e-01    7.21206e-01
+
+  Epot (kJ/mol)        Coul-SR          LJ-SR   
+        MOL-MOL   -8.90297e+01   -5.49438e+00
+        MOL-MON    0.00000e+00    0.00000e+00
+       MOL-POPG   -9.80112e+00   -1.50539e+02
+         MOL-PW   -4.12636e+00   -7.04707e+01
+        MOL-ION    2.28544e-01   -6.58956e+00
+        MON-MON   -8.90297e+01   -5.55517e+00
+       MON-POPG   -9.83852e+00   -1.35798e+02
+         MON-PW   -5.09983e+00   -8.14527e+01
+        MON-ION    2.11056e-01   -6.54365e+00
+      POPG-POPG   -1.04421e+04   -1.95666e+04
+        POPG-PW   -1.61465e+03   -8.79931e+03
+       POPG-ION   -1.29475e+03   -2.91335e+03
+          PW-PW   -2.67395e+04   -3.47254e+04
+         PW-ION   -1.60954e+03   -3.15048e+03
+        ION-ION   -1.02938e+04   -8.36775e+01
+
+          T-MOL          T-MON         T-POPG           T-PW
+    2.99857e+02    2.97254e+02    2.99502e+02    2.99360e+02
+          T-ION
+    2.99787e+02
+
+
+	M E G A - F L O P S   A C C O U N T I N G
+
+ NB=Group-cutoff nonbonded kernels    NxN=N-by-N cluster Verlet kernels
+ RF=Reaction-Field  VdW=Van der Waals  QSTab=quadratic-spline table
+ W3=SPC/TIP3p  W4=TIP4p (single or pairs)
+ V&F=Potential and force  V=Potential only  F=Force only
+
+ Computing:                               M-Number         M-Flops  % Flops
+-----------------------------------------------------------------------------
+ Pair Search distance check           63307.734924      569769.614     0.5
+ NxN QSTab Elec. + LJ [F]            593251.579144    24323314.745    19.8
+ NxN QSTab Elec. + LJ [V&F]            5993.082760      353591.883     0.3
+ NxN LJ [F]                          101755.094896     3357918.132     2.7
+ NxN LJ [V&F]                          1028.103456       44208.449     0.0
+ NxN QSTab Elec. [F]                 485100.591432    16493420.109    13.4
+ NxN QSTab Elec. [V&F]                 4900.439752      200918.030     0.2
+ Calc Weights                         22251.022251      801036.801     0.7
+ Spread Q Bspline                    474688.474688      949376.949     0.8
+ Gather F Bspline                    474688.474688     2848130.848     2.3
+ 3D-FFT                             8999894.999886    71999159.999    58.5
+ Solve PME                             3136.003136      200704.201     0.2
+ Shift-X                                370.857417        2225.145     0.0
+ Bonds                                 1308.001308       77172.077     0.1
+ Angles                                2903.002903      487704.488     0.4
+ Virial                                 373.107462        6715.934     0.0
+ Stop-CM                                  7.424417          74.244     0.0
+ P-Coupling                            7417.007417       44502.045     0.0
+ Calc-Ekin                              741.714834       20026.301     0.0
+ Lincs                                 3914.003914      234840.235     0.2
+ Lincs-Mat                            11742.011742       46968.047     0.0
+ Constraint-V                          7828.007828       62624.063     0.1
+ Constraint-Vir                         195.703914        4696.894     0.0
+ Virtual Site 3                           4.200008         155.400     0.0
+-----------------------------------------------------------------------------
+ Total                                               123129254.631   100.0
+-----------------------------------------------------------------------------
+
+
+     R E A L   C Y C L E   A N D   T I M E   A C C O U N T I N G
+
+On 1 MPI rank, each using 4 OpenMP threads
+
+ Computing:          Num   Num      Call    Wall time         Giga-Cycles
+                     Ranks Threads  Count      (s)         total sum    %
+-----------------------------------------------------------------------------
+ Vsite constr.          1    4    1000001       3.853         47.266   0.1
+ Neighbor search        1    4      50001      99.145       1216.237   2.6
+ Force                  1    4    1000001    1268.235      15557.705  32.6
+ PME mesh               1    4    1000001    2149.903      26373.316  55.3
+ NB X/F buffer ops.     1    4    1950001      80.643        989.264   2.1
+ Vsite spread           1    4    1050002       6.078         74.559   0.2
+ COM pull force         1    4    1000001      50.056        614.048   1.3
+ Write traj.            1    4         39       0.198          2.434   0.0
+ Update                 1    4    1000001      38.414        471.227   1.0
+ Constraints            1    4    1000001     112.165       1375.956   2.9
+ Rest                                          78.833        967.066   2.0
+-----------------------------------------------------------------------------
+ Total                                       3887.523      47689.077 100.0
+-----------------------------------------------------------------------------
+ Breakdown of PME mesh computation
+-----------------------------------------------------------------------------
+ PME spread/gather      1    4    2000002     823.089      10097.006  21.2
+ PME 3D-FFT             1    4    2000002    1068.234      13104.249  27.5
+ PME solve Elec         1    4    1000001     254.548       3122.600   6.5
+-----------------------------------------------------------------------------
+
+               Core t (s)   Wall t (s)        (%)
+       Time:    15436.376     3887.523      397.1
+                         1h04:47
+                 (ns/day)    (hour/ns)
+Performance:      222.250        0.108
+Finished mdrun on rank 0 Sat Feb 24 04:27:17 2018

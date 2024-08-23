@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 import os
+
 import numpy as np
 import logging
 import re
@@ -49,6 +50,7 @@ from simulationworkflowschema import (
     GeometryOptimizationMethod,
     GeometryOptimizationResults,
 )
+
 from .metainfo.gromacs import (
     x_gromacs_section_control_parameters,
     x_gromacs_section_input_output_files,
@@ -65,7 +67,7 @@ MOL = 6.022140857e23
 def to_float(string):
     try:
         value = float(string)
-    except ValueError:
+    except (ValueError, TypeError):
         value = None
     return value
 
@@ -198,15 +200,22 @@ class GromacsMdpParser(TextParser):
         def str_to_input_parameters(val_in):
             re_array = re.compile(r"\s*([\w\-]+)\[[\d ]+\]\s*=\s*\{*(.+)")
             re_scalar = re.compile(r"\s*([\w\-]+)\s*[=:]\s*(.+)")
+            re_comment = re.compile(r"^\S+?(?=[\s;])")
             parameters = dict()
             val = [line.strip() for line in val_in.splitlines()]
             for val_n in val:
                 val_scalar = re_scalar.match(val_n)
                 if val_scalar:
-                    parameters[val_scalar.group(1)] = val_scalar.group(2)
+                    val_scalar_group2 = val_scalar.group(2)
+                    inline_comment = re_comment.match(val_scalar_group2)
+                    if inline_comment:
+                        parameters[val_scalar.group(1)] = inline_comment.group(1)
+                    else:
+                        parameters[val_scalar.group(1)] = val_scalar.group(2)
                     continue
                 val_array = re_array.match(val_n)
                 if val_array:
+                    # print("val_array", val_array)
                     parameters.setdefault(val_array.group(1), [])
                     value = [
                         to_float(v) for v in val_array.group(2).rstrip("}").split(",")
@@ -214,6 +223,8 @@ class GromacsMdpParser(TextParser):
                     parameters[val_array.group(1)].append(
                         value[0] if len(value) == 1 else value
                     )
+            # print("\nTEST:", parameters)
+
             return parameters
 
         self._quantities = [
@@ -1064,6 +1075,7 @@ class GromacsParser(MDParser):
         self.parse_interactions(interactions, sec_model)
 
         input_parameters = self.input_parameters
+        # print("input_parameters", input_parameters)
         sec_force_calculations = ForceCalculations()
         sec_force_field.force_calculations = sec_force_calculations
         sec_neighbor_searching = NeighborSearching()
@@ -1074,6 +1086,12 @@ class GromacsParser(MDParser):
             int(nstlist) if nstlist else None
         )
         rlist = to_float(input_parameters.get("rlist", None))
+        # rlist = (
+        #     to_float(value)
+        #     if (value := input_parameters.get("rlist")) is not None
+        #     else None
+        # )
+
         sec_neighbor_searching.neighbor_update_cutoff = (
             rlist * ureg.nanometer if rlist else None
         )
@@ -1196,6 +1214,12 @@ class GromacsParser(MDParser):
             )
         return barostat_parameters
 
+    # TODO: implement
+    def get_umbrella_sampling_parameters(self):
+        umbrella_sampling_parameters = {}
+        umbrella_sampling = self.input_parameters.get("pull", "")
+        # print("test", umbrella_sampling)
+
     def get_free_energy_calculation_parameters(self):
         free_energy_parameters = {}
         free_energy = self.input_parameters.get("free-energy", "")
@@ -1240,7 +1264,9 @@ class GromacsParser(MDParser):
 
             atoms_info = self.traj_parser._results["atoms_info"]
             atoms_moltypes = np.array(atoms_info["moltypes"])
+            # print("atoms_moltypes", atoms_moltypes)
             couple_moltype = self.input_parameters.get("couple-moltype", "").split()
+            print("couple_moltype", self.input_parameters.get("couple-moltype", ""))
             n_atoms = len(atoms_moltypes)
             indices = []
             if len(couple_moltype) == 1 and couple_moltype[0].lower() == "system":
@@ -1478,6 +1504,7 @@ class GromacsParser(MDParser):
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
         input_parameters = self.input_parameters
         input_parameters.update(self.info.get("header", {}))
+        # print("input_parameters: ", input_parameters)
         for key, val in input_parameters.items():
             key = (
                 "x_gromacs_inout_control_%s"

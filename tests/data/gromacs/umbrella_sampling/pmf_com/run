@@ -1,0 +1,4 @@
+#!/bin/bash
+
+gmx wham -it tpr-files.dat -ix pullx-files.dat \
+-b 5000  -o -hist -unit kCal -zprof0 4.2 -nBootstrap 100

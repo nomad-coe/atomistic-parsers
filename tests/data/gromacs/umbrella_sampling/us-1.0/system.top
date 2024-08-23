@@ -1,0 +1,17 @@
+; Include MARTINI atom types
+#include "martini_v2.2P.itp"
+#include "martini_v2.0_lipids_all_201506.itp"
+#include "martini_v2.0_ions.itp"
+; Then ITP of specific molecule
+#include "C9_AcO.itp"
+#include "C9_AcO-2.itp"
+
+[ system ]
+C9_AcO-POPG-POLWATER
+
+[ molecules ]
+MOL 1
+MON 1
+POPG 118
+PW 1957
+NA+ 116

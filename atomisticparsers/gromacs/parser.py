@@ -1446,7 +1446,7 @@ class GromacsParser(MDParser):
 
             self.parse_md_workflow(dict(method=method, results=results))
 
-            if flag_fe:
+            if flag_fe and self.archive.m_context:
                 sec_fe_parameters = (
                     self.archive.workflow2.method.free_energy_calculation_parameters[0]
                 )

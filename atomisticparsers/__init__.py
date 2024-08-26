@@ -159,7 +159,7 @@ dftbplus_parser_entry_point = EntryPoint(
 )
 
 dlpoly_parser_entry_point = EntryPoint(
-    name='parsers/dlpoly',
+    name='parsers/dl-poly',
     description='NOMAD parser for DLPOLY.',
     python_package='atomisticparsers.dlpoly',
     mainfile_contents_re=r'\*\*\s+DL_POLY.+\*\*',
@@ -306,7 +306,7 @@ lammps_parser_entry_point = EntryPoint(
 )
 
 libatoms_parser_entry_point = EntryPoint(
-    name='parsers/libatoms',
+    name='parsers/lib-atoms',
     description='NOMAD parser for LIBATOMS.',
     python_package='atomisticparsers.libatoms',
     mainfile_contents_re=r'\s*<GAP_params\s',

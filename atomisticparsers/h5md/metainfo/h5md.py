@@ -212,6 +212,13 @@ class Author(MSection):
     )
 
 
+class Program(runschema.run.Program):
+    m_def = Section(
+        validate=False,
+        extends_base_section=True,
+    )
+
+
 class Run(runschema.run.Run):
     m_def = Section(
         validate=False,
@@ -229,4 +236,4 @@ class Run(runschema.run.Run):
 
     x_h5md_author = SubSection(sub_section=Author.m_def)
 
-    x_h5md_creator = SubSection(sub_section=runschema.run.Program.m_def)
+    x_h5md_creator = SubSection(sub_section=Program.m_def)

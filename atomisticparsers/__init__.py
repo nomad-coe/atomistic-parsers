@@ -39,23 +39,6 @@ class EntryPoint(ParserEntryPoint):
 
     def load(self):
         from nomad.parsing import MatchingParserInterface
-        from . import (
-            amber,
-            asap,
-            bopfox,
-            dftbplus,
-            dlpoly,
-            gromacs,
-            gromos,
-            gulp,
-            h5md,
-            lammps,
-            libatoms,
-            namd,
-            tinker,
-            xtb,
-            utils,
-        )
 
         return MatchingParserInterface(**self.dict())
 

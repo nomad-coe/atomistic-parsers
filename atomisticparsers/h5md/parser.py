@@ -24,7 +24,6 @@ import h5py
 from typing import List, Dict, Union, Any
 from h5py import Group
 
-from nomad.datamodel import EntryArchive
 from nomad.metainfo.util import MEnum
 from nomad.parsing.file_parser import FileParser
 from runschema.run import Run, Program, MSection
@@ -898,3 +897,5 @@ class H5MDParser(MDParser):
         self.parse_calculation()
 
         self.parse_workflow()
+
+        self._data_parser.close()

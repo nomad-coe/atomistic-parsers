@@ -18,7 +18,6 @@
 #
 import numpy as np
 import os
-import logging
 from ase import data as asedata
 import re
 
@@ -33,7 +32,6 @@ from runschema.method import (
     Method,
     Model,
     AtomParameters,
-    Interaction,
 )
 from runschema.system import AtomsGroup
 from simulationworkflowschema import (
@@ -1556,8 +1554,6 @@ class LammpsParser(MDParser):
         #         if quantity_def and quantity_def.shape:
         #             # TODO reshape properly
         #             interaction[key] = [val]
-        # print("---------", self._mdanalysistraj_parser.mainfile)
-        # print(interactions)
         self.parse_interactions(interactions, sec_model)
 
         # Force Calculation Parameters
@@ -1751,3 +1747,7 @@ class LammpsParser(MDParser):
         self.parse_thermodynamic_data()
 
         self.parse_workflow()
+
+        self._mdanalysistraj_parser.close()
+        for parser in parsers:
+            parser.close()

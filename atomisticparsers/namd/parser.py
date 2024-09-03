@@ -308,3 +308,5 @@ class NAMDParser(MDParser):
 
         # workflow
         self.archive.workflow2 = MolecularDynamics()
+
+        self.traj_parser.close()

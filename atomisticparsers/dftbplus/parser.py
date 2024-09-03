@@ -194,6 +194,7 @@ class GenParser(FileParser):
         self._results = dict()
 
         geometry = self.mainfile_obj.read()
+        self.mainfile_obj.close()
         if geometry is None:
             return
 
@@ -281,6 +282,8 @@ class HSDParser(FileParser):
             line = self.hsd.readline()
 
         self.gen_parser.mainfile = self.mainfile
+        # TODO why is this necessary when you assign mainfile?
+        # private variables should not be set
         self.gen_parser._mainfile_obj = io.StringIO(
             self._results.get('data', {}).get('Geometry', {}).get('_block', '')
         )

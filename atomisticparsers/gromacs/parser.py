@@ -31,7 +31,6 @@ except Exception:
     logging.warning('Required module MDAnalysis not found.')
     MDAnalysis = False
 from ase.symbols import symbols2numbers
-from nomad.datamodel import EntryArchive
 from nomad.units import ureg
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser
 from runschema.run import Run, Program, TimeRun
@@ -1578,3 +1577,5 @@ class GromacsParser(MDParser):
         self.parse_workflow()
 
         self.traj_parser.clean()
+        self.traj_parser.close()
+        self.energy_parser.close()

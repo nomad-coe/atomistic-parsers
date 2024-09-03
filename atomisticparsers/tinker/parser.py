@@ -681,3 +681,5 @@ class TinkerParser(MDParser):
             self.parse_method()
 
             self.parse_workflow(program, run)
+
+            self.traj_parser.close()

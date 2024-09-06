@@ -42,6 +42,9 @@ class TrajParser(FileParser):
                 self._file_handler = Trajectory(self.mainfile, 'r')
                 # check if traj file is really asap
                 if 'calculator' in self._file_handler.backend.keys():
+                    if self._file_handler.backend.calculator.name == 'VASP':
+                        self.logger.error('Trajectory is from a VASP calculation.')
+                        self._file_handler = None
                     if self._file_handler.backend.calculator.name != 'emt':  # pylint: disable=E1101
                         self.logger.error('Trajectory is not ASAP.')
                         self._file_handler = None

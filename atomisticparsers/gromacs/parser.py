@@ -54,7 +54,7 @@ from .metainfo.gromacs import (
     x_gromacs_section_input_output_files,
 )
 from atomisticparsers.utils import MDAnalysisParser, MDParser
-from nomad.atomutils import get_bond_list_from_model_contributions
+from simulationworkflowschema.molecular_dynamics import get_bond_list_from_model_contributions
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
 re_n = r'[\n\r]'

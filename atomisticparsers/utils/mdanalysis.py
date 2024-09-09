@@ -35,7 +35,8 @@ from scipy.stats import linregress
 
 from nomad.units import ureg
 from nomad.parsing.file_parser import FileParser
-from nomad.atomutils import BeadGroup, shifted_correlation_average
+from simulationworkflowschema.molecular_dynamics import BeadGroup, shifted_correlation_average
+
 
 MOL = 6.022140857e23
 

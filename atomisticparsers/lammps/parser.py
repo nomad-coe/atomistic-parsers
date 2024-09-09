@@ -46,7 +46,7 @@ from .metainfo.lammps import (
     x_lammps_section_control_parameters,
 )
 from atomisticparsers.utils import MDAnalysisParser, MDParser
-from nomad.atomutils import get_bond_list_from_model_contributions
+from simulationworkflowschema.molecular_dynamics import get_bond_list_from_model_contributions
 
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'

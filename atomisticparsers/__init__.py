@@ -74,7 +74,7 @@ asap_parser_entry_point = EntryPoint(
     python_package='atomisticparsers.asap',
     mainfile_binary_header_re=b'AFFormatASE\\-Trajectory',
     mainfile_mime_re='application/octet-stream',
-    mainfile_name_re=r'.*.traj$', # can this be specified here? to directly check for the emt calculator maybe? somehow we need to seperate the traj parser from asap parser
+    mainfile_name_re=r'.*.traj$', # can this be specified here? to directly check for the emt calculator maybe? somehow we need to seperate the general ase/traj parser from the asap parser
     parser_class_name='atomisticparsers.asap.AsapParser',
     code_name='ASAP',
     code_homepage='https://wiki.fysik.dtu.dk/asap',
@@ -86,6 +86,33 @@ asap_parser_entry_point = EntryPoint(
         'codeName': 'asap',
         'codeUrl': 'https://wiki.fysik.dtu.dk/asap',
         'parserDirName': 'dependencies/parsers/atomistic/atomisticparsers/asap/',
+        'parserGitUrl': 'https://github.com/nomad-coe/atomistic-parsers.git',
+        'parserSpecific': '',
+        'preamble': '',
+        'status': 'production',
+        'tableOfFiles': '',
+    },
+)
+
+ase_parser_entry_point = EntryPoint(
+    name='parsers/ase',
+    aliases=['parsers/ase'],
+    description='NOMAD parser for ASE.',
+    python_package='atomisticparsers.ase',
+    mainfile_binary_header_re=b'AFFormatASE\\-Trajectory',
+    mainfile_mime_re='application/octet-stream',
+    mainfile_name_re=r'.*.traj$',
+    parser_class_name='atomisticparsers.ase.AseParser',
+    code_name='ASE',
+    code_homepage='https://wiki.fysik.dtu.dk/ase',
+    code_category='Atomistic code',
+    metadata={
+        'codeCategory': 'Atomistic code',
+        'codeLabel': 'ASE',
+        'codeLabelStyle': 'all in capitals',
+        'codeName': 'ase',
+        'codeUrl': 'https://wiki.fysik.dtu.dk/ase',
+        'parserDirName': 'dependencies/parsers/atomistic/atomisticparsers/ase/',
         'parserGitUrl': 'https://github.com/nomad-coe/atomistic-parsers.git',
         'parserSpecific': '',
         'preamble': '',

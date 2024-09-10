@@ -11,7 +11,7 @@ authors = [{ name = "The NOMAD Authors" }]
 license = { file = "LICENSE" }
 dependencies = [
     "nomad-lab>=1.3.6.dev1",
-    "nomad-schema-plugin-simulation-workflow@git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@move-mdanalysis",
+    "nomad-schema-plugin-simulation-workflow@git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@develop",
     "nomad-schema-plugin-run@git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@develop",
     "simulationparsers@git+https://github.com/nomad-coe/simulation-parsers.git@develop",
     "lxml>=5.2",

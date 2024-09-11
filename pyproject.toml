@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "atomisticparsers"
+name = "nomad-parser-plugins-atomistic"
 version = "1.0"
 description = "Collection of NOMAD parsers for atomistic codes."
 readme = "README.md"
@@ -11,9 +11,9 @@ authors = [{ name = "The NOMAD Authors" }]
 license = { file = "LICENSE" }
 dependencies = [
     "nomad-lab>=1.3.6.dev1",
-    "nomad-schema-plugin-simulation-workflow@git+https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git@develop",
-    "nomad-schema-plugin-run@git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@develop",
-    "simulationparsers@git+https://github.com/nomad-coe/simulation-parsers.git@develop",
+    "nomad-schema-plugin-simulation-workflow>=1.0.1",
+    "nomad-schema-plugin-run@>=1.0.1",
+    "nomad-parser-plugins-simulation>=1.0.2",
     "lxml>=5.2",
     "mdanalysis==2.7.0",
     "panedr>=0.2",

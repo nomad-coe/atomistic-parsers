@@ -17,6 +17,6 @@
 # limitations under the License.
 
 from .mdanalysis import MDAnalysisParser
-from .parsers import MDParser
+from .parsers import MDParser, ASETrajParser
 
 MOL = 6.022140857e23

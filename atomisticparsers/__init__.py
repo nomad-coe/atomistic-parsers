@@ -40,7 +40,11 @@ class EntryPoint(ParserEntryPoint):
     def load(self):
         from nomad.parsing import MatchingParserInterface
 
-        return MatchingParserInterface(**self.dict())
+        return MatchingParserInterface(
+            **self.dict(),
+            mainfile_binary_header=self.mainfile_binary_header,
+            mainfile_binary_header_re=self.mainfile_binary_header_re,
+        )
 
 
 amber_parser_entry_point = EntryPoint(
@@ -99,7 +103,7 @@ ase_parser_entry_point = EntryPoint(
     aliases=['parsers/ase'],
     description='NOMAD parser for ASE.',
     python_package='atomisticparsers.ase',
-    mainfile_binary_header_re=b'AFFormatASE\\-Trajectory',
+    mainfile_binary_header_re=b'.+?ASE\\-Trajectory',
     mainfile_mime_re='application/octet-stream',
     mainfile_name_re=r'.*.traj$',
     parser_class_name='atomisticparsers.ase.AseParser',

@@ -94,6 +94,7 @@ include = [
 [project.entry-points.'nomad.plugin']
 amberparser = "atomisticparsers:amber_parser_entry_point"
 asapparser = "atomisticparsers:asap_parser_entry_point"
+aseparser = "atomisticparsers:ase_parser_entry_point"
 bopfoxparser = "atomisticparsers:bopfox_parser_entry_point"
 dftbplusparser = "atomisticparsers:dftbplus_parser_entry_point"
 dlpolyparser = "atomisticparsers:dlpoly_parser_entry_point"

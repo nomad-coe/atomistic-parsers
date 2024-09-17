@@ -36,7 +36,6 @@ from simulationworkflowschema.geometry_optimization import (
 )
 from simulationworkflowschema.molecular_dynamics import (
     MolecularDynamics,
-    MolecularDynamicsMethod,
 )
 
 
@@ -183,7 +182,7 @@ class MDParser(Parser):
         if self.archive is None:
             return
 
-        sec_workflow = self.archive.workflow2 or MolecularDynamics()
+        sec_workflow = MolecularDynamics()
         self.parse_section(data, sec_workflow)
         self.archive.workflow2 = sec_workflow
 

@@ -40,11 +40,7 @@ class EntryPoint(ParserEntryPoint):
     def load(self):
         from nomad.parsing import MatchingParserInterface
 
-        return MatchingParserInterface(
-            **self.dict(),
-            mainfile_binary_header=self.mainfile_binary_header,
-            mainfile_binary_header_re=self.mainfile_binary_header_re,
-        )
+        return MatchingParserInterface(**self.dict())
 
 
 amber_parser_entry_point = EntryPoint(
@@ -78,7 +74,7 @@ asap_parser_entry_point = EntryPoint(
     python_package='atomisticparsers.asap',
     mainfile_binary_header_re=b'AFFormatASE\\-Trajectory',
     mainfile_mime_re='application/octet-stream',
-    mainfile_name_re=r'.*.traj$', # can this be specified here? to directly check for the emt calculator maybe? somehow we need to seperate the general ase/traj parser from the asap parser
+    mainfile_name_re=r'.*.traj$',  # can this be specified here? to directly check for the emt calculator maybe? somehow we need to seperate the general ase/traj parser from the asap parser
     parser_class_name='atomisticparsers.asap.AsapParser',
     code_name='ASAP',
     code_homepage='https://wiki.fysik.dtu.dk/asap',

@@ -272,6 +272,8 @@ class ASETrajParser(MDParser):
             sec_method.force_field = ForceField(model=[Model(name=traj[0].calc.name)])
 
         description = traj.description if hasattr(traj, 'description') else dict()
+        if not description:
+            return
 
         calc_type = description.get('type')
         if calc_type == 'optimization':

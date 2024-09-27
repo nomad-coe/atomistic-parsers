@@ -38,7 +38,7 @@ authors:
   - given-names: Markus
     family-names: Scheidgen
     orcid: 'https://orcid.org/0000-0002-8038-2277'
-doi:
+doi: 10.5281/zenodo.13851190
 repository-code: 'https://github.com/nomad-coe/atomistic-parsers'
 abstract: >-
   `atomistic-parsers` is a plugin for the NOMAD software (https://zenodo.org/doi/10.5281/zenodo.8366162)

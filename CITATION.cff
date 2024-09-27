@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+title: Atomistic Parsers
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Alvin Noe
+    family-names: Ladines
+    orcid: 'https://orcid.org/0000-0003-0077-2097'
+  - given-names: Theodore
+    family-names: Chang
+    orcid: 'https://orcid.org/0000-0002-4911-0230'
+  - given-names: Nathan
+    family-names: Daelman
+    orcid: 'https://orcid.org/0000-0002-7647-1816'
+  - given-names: Adam
+    family-names: Fekete
+    orcid: ''
+  - given-names: Luca M.
+    family-names: Ghiringhelli
+    orcid: 'https://orcid.org/0000-0001-5099-3029'
+  - given-names: Lauri
+    family-names: Himanen
+    orcid: 'https://orcid.org/0000-0002-3130-8193'
+  - given-names: Ahmed
+    family-names: Ilyas
+    orcid: 'https://orcid.org/0009-0009-8636-5740'
+  - given-names: Bernadette
+    family-names: Mohr
+    orcid: 'https://orcid.org/0000-0003-0903-0073'
+  - given-names: José M.
+    family-names: Pizarro
+    orcid: 'https://orcid.org/0000-0002-6751-8192'
+  - given-names: Joseph F.
+    family-names: Rudzinski
+    orcid: 'https://orcid.org/0000-0003-3403-640X'
+  - given-names: Markus
+    family-names: Scheidgen
+    orcid: 'https://orcid.org/0000-0002-8038-2277'
+doi:
+repository-code: 'https://github.com/nomad-coe/atomistic-parsers'
+abstract: >-
+  `atomistic-parsers` is a plugin for the NOMAD software (https://zenodo.org/doi/10.5281/zenodo.8366162)
+  providing parsers for a variety of simulation codes, primarily focused on those supporting classical
+  representations or methods.
+
+license: Apache-2.0

@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/461062665.svg)](https://zenodo.org/badge/latestdoi/461062665)
+
 This is a collection of the NOMAD parsers for the following atomistic codes.
 
 1. [Amber](http://ambermd.org/)
@@ -93,3 +95,5 @@ git clone https://github.com/nomad-coe/atomistic-parsers.git atomistic-parsers
 pip install -e "atomistic-parsers[dev]"
 ```
 
+## How to cite this work
+Ladines, A.N., Chang, T., Daelman, N., Fekete, A., Ghiringhelli, L.M., Himanen, L., Ilyas, A., Mohr, B. Pizarro, Rudzinski, J.F., & Scheidgen, M Atomistic Parsers [Computer software]. https://zenodo.org/doi/xxx

@@ -817,11 +817,11 @@ class GromacsParser(MDParser):
 
         # TODO read also from ene
         edr_file = self.get_gromacs_file('edr')
-        self.energy_parser.mainfile = edr_file
-
-        # get it from edr file
-        if self.energy_parser.keys():
-            thermo_data = self.energy_parser
+        if edr_file:
+            self.energy_parser.mainfile = edr_file
+            # get it from edr file
+            if self.energy_parser.keys():
+                thermo_data = self.energy_parser
         else:
             # try to get it from log file
             steps = self.input_parameters.get('step', [])
@@ -1617,7 +1617,11 @@ class GromacsParser(MDParser):
         trajectory_file = os.path.basename(self.traj_parser.auxilliary_files[0])
         sec_input_output_files.x_gromacs_inout_file_trajtrr = trajectory_file
 
-        edr_file = os.path.basename(self.energy_parser.mainfile)
+        try:
+            edr_file = os.path.basename(self.energy_parser.mainfile)
+        except TypeError:
+            edr_file = None
+
         sec_input_output_files.x_gromacs_inout_file_eneredr = edr_file
 
         sec_control_parameters = x_gromacs_section_control_parameters()
@@ -1628,6 +1632,50 @@ class GromacsParser(MDParser):
             'x_gromacs_all_input_parameters'
         )
         sec_control_parameters.m_set(quantity_def, input_parameters)
+
+    def find_trajectory_files(self):
+        """
+        Find and set trajectory files following the priority:
+        "trr" > "xtc" > "pdb" > "gro".
+        """
+
+        def _get_file_or_fallback(primary_ext, secondary_ext):
+            """Helper function to get primary file, or fallback to secondary."""
+            primary_file = self.get_gromacs_file(primary_ext)
+            primary_file_nopath = primary_file.rsplit('.', 1)[0]
+            primary_file_nopath = primary_file_nopath.rsplit('/')[-1]
+            secondary_file = self.get_gromacs_file(secondary_ext)
+            secondary_file_nopath = secondary_file.rsplit('.', 1)[0]
+            secondary_file_nopath = secondary_file_nopath.rsplit('/')[-1]
+
+            trajectory_file = None
+
+            if not primary_file_nopath.startswith(self._basename):
+                trajectory_file = (
+                    secondary_file
+                    if secondary_file_nopath.startswith(self._basename)
+                    else primary_file
+                )
+            else:
+                trajectory_file = primary_file
+
+            return trajectory_file
+
+        try:
+            # Try to get trr file first, fallback to xtc
+            trajectory_file = _get_file_or_fallback('trr', 'xtc')
+
+            if trajectory_file:
+                return [trajectory_file]
+
+            else:
+                # Try pdb first, fallback to gro
+                trajectory_file = _get_file_or_fallback('pdb', 'gro')
+                if trajectory_file:
+                    return [trajectory_file]
+
+        except FileNotFoundError:
+            logging.warning(f'No coordinates found, no visualization possible.')
 
     def write_to_archive(self):
         self._maindir = os.path.dirname(self.mainfile)
@@ -1690,22 +1738,9 @@ class GromacsParser(MDParser):
                     param.lower() if isinstance(param, str) else param
                 )
 
-        # I have no idea if output trajectory file can be specified in input
-        trr_file = self.get_gromacs_file('trr')
-        trr_file_nopath = trr_file.rsplit('.', 1)[0]
-        trr_file_nopath = trr_file_nopath.rsplit('/')[-1]
-        xtc_file = self.get_gromacs_file('xtc')
-        xtc_file_nopath = xtc_file.rsplit('.', 1)[0]
-        xtc_file_nopath = xtc_file_nopath.rsplit('/')[-1]
-        if not trr_file_nopath.startswith(self._basename):
-            trajectory_file = (
-                xtc_file if xtc_file_nopath.startswith(self._basename) else trr_file
-            )
-        else:
-            trajectory_file = trr_file
-
         self.traj_parser.mainfile = topology_file
-        self.traj_parser.auxilliary_files = [trajectory_file]
+        # I have no idea if output trajectory file can be specified in input
+        self.traj_parser.auxilliary_files = self.find_trajectory_files()
 
         # check to see if the trr file can be read properly (and has positions), otherwise try xtc file instead
         positions = None

@@ -816,6 +816,7 @@ class GromacsParser(MDParser):
         n_frames = self.traj_parser.get('n_frames')
 
         # TODO read also from ene
+        # Make sure *.edr file is part of upload before attempting to parse it.
         edr_file = self.get_gromacs_file('edr')
         if edr_file:
             self.energy_parser.mainfile = edr_file
@@ -840,7 +841,10 @@ class GromacsParser(MDParser):
 
         if not thermo_data:
             # get it from edr file
-            thermo_data = self.energy_parser
+            try:
+                thermo_data = self.energy_parser
+            except Exception as e:
+                self.logger.warning(f'Error parsing edr file: {e}')
 
         calculation_times = thermo_data.get('Time', [])
         time_step = self.input_parameters.get('dt')
@@ -1619,10 +1623,9 @@ class GromacsParser(MDParser):
 
         try:
             edr_file = os.path.basename(self.energy_parser.mainfile)
+            sec_input_output_files.x_gromacs_inout_file_eneredr = edr_file
         except TypeError:
-            edr_file = None
-
-        sec_input_output_files.x_gromacs_inout_file_eneredr = edr_file
+            logging.warning(f'Error parsing *.edr file, no energy data available.')
 
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
@@ -1667,13 +1670,11 @@ class GromacsParser(MDParser):
 
             if trajectory_file:
                 return [trajectory_file]
-
             else:
                 # Try pdb first, fallback to gro
                 trajectory_file = _get_file_or_fallback('pdb', 'gro')
                 if trajectory_file:
                     return [trajectory_file]
-
         except FileNotFoundError:
             logging.warning(f'No coordinates found, no visualization possible.')
 

@@ -844,7 +844,7 @@ class GromacsParser(MDParser):
             try:
                 thermo_data = self.energy_parser
             except Exception as e:
-                self.logger.warning(f'Error parsing edr file: {e}')
+                self.logger.warning('Error parsing edr file:', exec_info=True)
 
         calculation_times = thermo_data.get('Time', [])
         time_step = self.input_parameters.get('dt')
@@ -1625,7 +1625,7 @@ class GromacsParser(MDParser):
             edr_file = os.path.basename(self.energy_parser.mainfile)
             sec_input_output_files.x_gromacs_inout_file_eneredr = edr_file
         except TypeError:
-            logging.warning(f'Error parsing *.edr file, no energy data available.')
+            logging.warning('Error parsing *.edr file, no energy data available.')
 
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
@@ -1639,44 +1639,29 @@ class GromacsParser(MDParser):
     def find_trajectory_files(self):
         """
         Find and set trajectory files following the priority:
-        "trr" > "xtc" > "pdb" > "gro".
+        "trr" > "xtc", fall back "pdb" > "gro".
         """
 
-        def _get_file_or_fallback(primary_ext, secondary_ext):
-            """Helper function to get primary file, or fallback to secondary."""
-            primary_file = self.get_gromacs_file(primary_ext)
+        def _get_traj_file(ext):
+            primary_file = self.get_gromacs_file(ext)
+            if primary_file is None:
+                return None
             primary_file_nopath = primary_file.rsplit('.', 1)[0]
             primary_file_nopath = primary_file_nopath.rsplit('/')[-1]
-            secondary_file = self.get_gromacs_file(secondary_ext)
-            secondary_file_nopath = secondary_file.rsplit('.', 1)[0]
-            secondary_file_nopath = secondary_file_nopath.rsplit('/')[-1]
+            # Returns a trajectory file with same filename as the mainfile, prevents wrong stage of workflow being used
+            if primary_file_nopath == self._basename:
+                return primary_file
 
-            trajectory_file = None
-
-            if not primary_file_nopath.startswith(self._basename):
-                trajectory_file = (
-                    secondary_file
-                    if secondary_file_nopath.startswith(self._basename)
-                    else primary_file
-                )
+        # Enumerate over copy of list to avoid skipping elements
+        for ext in self.traj_file_priority_list[:]:
+            traj_file = _get_traj_file(ext)
+            if traj_file:
+                return [traj_file]
             else:
-                trajectory_file = primary_file
+                # Remove the missing file format from priority list
+                self.traj_file_priority_list.remove(ext)
 
-            return trajectory_file
-
-        try:
-            # Try to get trr file first, fallback to xtc
-            trajectory_file = _get_file_or_fallback('trr', 'xtc')
-
-            if trajectory_file:
-                return [trajectory_file]
-            else:
-                # Try pdb first, fallback to gro
-                trajectory_file = _get_file_or_fallback('pdb', 'gro')
-                if trajectory_file:
-                    return [trajectory_file]
-        except FileNotFoundError:
-            logging.warning(f'No coordinates found, no visualization possible.')
+        return []
 
     def write_to_archive(self):
         self._maindir = os.path.dirname(self.mainfile)
@@ -1740,16 +1725,49 @@ class GromacsParser(MDParser):
                 )
 
         self.traj_parser.mainfile = topology_file
-        # I have no idea if output trajectory file can be specified in input
+        # JFR comment: I have no idea if output trajectory file can be specified in input
+        # ? Do you mean, e.g., a flag in the *.log file that specifies the output trajectory format?
+        self.traj_file_priority_list = ['trr', 'xtc', 'pdb', 'gro']
         self.traj_parser.auxilliary_files = self.find_trajectory_files()
+        if self.traj_parser.auxilliary_files:
+            # Iterate through available trajectory formats until a valid one is found
+            while self.traj_file_priority_list:
+                # Check if the selected trajectory file can be read properly
+                positions = None
+                if (universe := self.traj_parser.universe) is not None:
+                    atoms = getattr(universe, 'atoms', None)
+                    positions = getattr(atoms, 'positions', None)
 
-        # check to see if the trr file can be read properly (and has positions), otherwise try xtc file instead
-        positions = None
-        if (universe := self.traj_parser.universe) is not None:
-            atoms = getattr(universe, 'atoms', None)
-            positions = getattr(atoms, 'positions', None)
-        if positions is None:
-            self.traj_parser.auxilliary_files = [xtc_file] if xtc_file else [trr_file]
+                if positions is not None:
+                    # A readable, complete trajectory has been found, break the loop
+                    break
+
+                # If positions are None, log a warning
+                self.logger.warning(
+                    'No positions in trajectory file: {}'.format(
+                        self.traj_parser.auxilliary_files[0].split('/')[-1]
+                    )
+                )
+
+                # Remove the failed file format from priority list
+                self.traj_file_priority_list.remove(
+                    self.traj_parser.auxilliary_files[0].split('.')[-1]
+                )
+
+                # Try the next trajectory file format in the priority list
+                if self.traj_file_priority_list:
+                    self.traj_parser.auxilliary_files = self.find_trajectory_files()
+                else:
+                    # If no options are left, log a warning and exit loop
+                    self.logger.error('No valid trajectory files found.')
+                    break
+
+        else:
+            self.logger.error('No recognized trajectory file is part of the upload.')
+            # ! If parsing is not stopped here, it fails in parse_system() due to MDAnalysis universe not being created
+            raise FileNotFoundError(
+                'No recognized trajectory file is part of the upload.'
+            )
 
         self.parse_method()
 

@@ -1660,7 +1660,7 @@ class GromacsParser(MDParser):
             else:
                 # Remove the missing file format from priority list
                 self.traj_file_priority_list.remove(ext)
-
+        # If no matching trajectory file is found, return an empty list
         return []
 
     def write_to_archive(self):
@@ -1760,7 +1760,10 @@ class GromacsParser(MDParser):
                 else:
                     # If no options are left, log a warning and exit loop
                     self.logger.error('No valid trajectory files found.')
-                    break
+                    # ! If parsing is not stopped here, it fails in parse_system() due to MDAnalysis universe not being created
+                    raise FileNotFoundError(
+                        'No recognized trajectory file is part of the upload.'
+                    )
 
         else:
             self.logger.error('No recognized trajectory file is part of the upload.')

@@ -1648,9 +1648,8 @@ class GromacsParser(MDParser):
                 return None
             primary_file_nopath = primary_file.rsplit('.', 1)[0]
             primary_file_nopath = primary_file_nopath.rsplit('/')[-1]
-            # Returns a trajectory file with same filename as the mainfile, prevents wrong stage of workflow being used
-            if primary_file_nopath == self._basename:
-                return primary_file
+
+            return primary_file
 
         # Enumerate over copy of list to avoid skipping elements
         for ext in self.traj_file_priority_list[:]:
@@ -1749,21 +1748,30 @@ class GromacsParser(MDParser):
                     )
                 )
 
-                # Remove the failed file format from priority list
-                self.traj_file_priority_list.remove(
-                    self.traj_parser.auxilliary_files[0].split('.')[-1]
-                )
-
-                # Try the next trajectory file format in the priority list
-                if self.traj_file_priority_list:
+                # Check if other files with the same extension are available, attempt to generate universe from them
+                failed_ext = self.traj_parser.auxilliary_files[0].split('.')[-1]
+                failed_file = self.traj_parser.auxilliary_files[0].split('/')[-1]
+                _files = [f for f in self._gromacs_files if f.endswith(failed_ext)]
+                _files.remove(failed_file)
+                if _files:
+                    self._gromacs_files.remove(failed_file)
+                    # Try the next trajectory file with the same extension
                     self.traj_parser.auxilliary_files = self.find_trajectory_files()
                 else:
-                    # If no options are left, log a warning and exit loop
-                    self.logger.error('No valid trajectory files found.')
-                    # ! If parsing is not stopped here, it fails in parse_system() due to MDAnalysis universe not being created
-                    raise FileNotFoundError(
-                        'No recognized trajectory file is part of the upload.'
+                    # Remove the failed file format from priority list
+                    self.traj_file_priority_list.remove(
+                        self.traj_parser.auxilliary_files[0].split('.')[-1]
                     )
+                    if self.traj_file_priority_list:
+                        # Try the next trajectory file format in the priority list
+                        self.traj_parser.auxilliary_files = self.find_trajectory_files()
+                    else:
+                        # If no options are left, log a warning and exit loop
+                        self.logger.error('No valid trajectory files found.')
+                        # ! If parsing is not stopped here, it fails in parse_system() due to MDAnalysis universe not being created
+                        raise FileNotFoundError(
+                            'No recognized trajectory file is part of the upload.'
+                        )
 
         else:
             self.logger.error('No recognized trajectory file is part of the upload.')

@@ -819,11 +819,14 @@ class GromacsParser(MDParser):
         # Make sure *.edr file is part of upload before attempting to parse it.
         edr_file = self.get_gromacs_file('edr')
         if edr_file:
-            self.energy_parser.mainfile = edr_file
-            # get it from edr file
-            if self.energy_parser.keys():
+            # If the edr file can't be read or there are no keys, an error will be raised by the energy parser
+            try:
+                self.energy_parser.keys()
+                self.energy_parser.mainfile = edr_file
                 thermo_data = self.energy_parser
-        else:
+            except Exception:
+                thermo_data = None
+        if not thermo_data:
             # try to get it from log file
             steps = self.input_parameters.get('step', [])
             thermo_data = dict()
@@ -838,13 +841,6 @@ class GromacsParser(MDParser):
                 info = step.get('step_info', {})
                 thermo_data.setdefault('Time', [None] * n_frames)
                 thermo_data['Time'][n] = info.get('Time', None)
-
-        if not thermo_data:
-            # get it from edr file
-            try:
-                thermo_data = self.energy_parser
-            except Exception as e:
-                self.logger.warning('Error parsing edr file:', exec_info=True)
 
         calculation_times = thermo_data.get('Time', [])
         time_step = self.input_parameters.get('dt')

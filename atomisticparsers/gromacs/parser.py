@@ -820,9 +820,9 @@ class GromacsParser(MDParser):
         edr_file = self.get_gromacs_file('edr')
         if edr_file:
             # If the edr file can't be read or there are no keys, an error will be raised by the energy parser
+            self.energy_parser.mainfile = edr_file
             try:
                 self.energy_parser.keys()
-                self.energy_parser.mainfile = edr_file
                 thermo_data = self.energy_parser
             except Exception:
                 thermo_data = None
@@ -849,6 +849,9 @@ class GromacsParser(MDParser):
         self.thermodynamics_steps = [
             int(time / time_step if time_step else 1) for time in calculation_times
         ]
+        if not self.thermodynamics_steps:
+            self.logger.error('No thermodynamic data can be found.')
+            return
 
         for n, step in enumerate(self.thermodynamics_steps):
             data = {
@@ -1647,7 +1650,7 @@ class GromacsParser(MDParser):
 
             return primary_file
 
-        # Enumerate over copy of list to avoid skipping elements
+        # Iterate over copy of list to avoid skipping elements
         for ext in self.traj_file_priority_list[:]:
             traj_file = _get_traj_file(ext)
             if traj_file:

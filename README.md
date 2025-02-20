@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/461062665.svg)](https://doi.org/10.5281/zenodo.13851190)
+[![DOI](https://zenodo.org/badge/461062665.svg)](https://zenodo.org/badge/latestdoi/461062665)
 
 This is a collection of the NOMAD parsers for the following atomistic codes.
 

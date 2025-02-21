@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 import os
+import sys
 import numpy as np
 import logging
 import re
@@ -774,8 +775,37 @@ class GromacsParser(MDParser):
 
         return self.get_gromacs_file(self.mdp_ext)
 
-    def get_gromacs_file(self, ext):
+    def get_gromacs_file(self, ext, return_all=False):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
+
+        if return_all:
+            all_files = {}
+            no_basename_match, counts = [], []
+            for f in files:
+                # we assume that the file has the same basename as the log file e.g.
+                # out.log would correspond to out.tpr and out.trr and out.edr
+                if f.rsplit('.', 1)[0] == self._basename:
+                    all_files[0] = os.path.join(self._maindir, f)
+                elif f.rsplit('.', 1)[0].startswith(self._basename):
+                    all_files[1] = os.path.join(self._maindir, f)
+                else:
+                    # if the files are all named differently, we guess that the one that does not
+                    # share the same basename would be file we are more likely interested in and sort
+                    # the results accordingly
+                    count = 0
+                    for reff in self._gromacs_files:
+                        if f.rsplit('.', 1)[0] == reff.rsplit('.', 1)[0]:
+                            count += 1
+                    counts.append(count)
+                    no_basename_match.append(os.path.join(self._maindir, f))
+            if no_basename_match:
+                for idx, val in enumerate(
+                    [x for _, x in sorted(zip(counts, no_basename_match))]
+                ):
+                    all_files[idx + 2] = val
+            sorted(all_files.items())
+
+            return all_files
 
         if len(files) == 0:
             return ''
@@ -805,7 +835,10 @@ class GromacsParser(MDParser):
                 if f.rsplit('.', 1)[0] == reff.rsplit('.', 1)[0]:
                     count += 1
             if count == 1:
-                return os.path.join(self._maindir, f)
+                if return_all:
+                    all_files.extend(os.path.join(self._maindir, f))
+                else:
+                    return os.path.join(self._maindir, f)
             counts.append(count)
 
         return os.path.join(self._maindir, files[counts.index(min(counts))])
@@ -1639,26 +1672,52 @@ class GromacsParser(MDParser):
         """
         Find and set trajectory files following the priority:
         "trr" > "xtc", fall back "pdb" > "gro".
+        Prioritize files with exact basename match over files with partial basename match over other files.
         """
+        traj_priority_list = ['trr', 'xtc', 'pdb', 'gro']
 
-        def _get_traj_file(ext):
-            primary_file = self.get_gromacs_file(ext)
-            if primary_file is None:
-                return None
-            primary_file_nopath = primary_file.rsplit('.', 1)[0]
-            primary_file_nopath = primary_file_nopath.rsplit('/')[-1]
+        def is_readable(file_path):
+            positions = None
+            test_universe = MDAnalysis.Universe(self.traj_parser.mainfile, file_path)
+            if test_universe is not None:
+                atoms = getattr(test_universe, 'atoms', None)
+                positions = getattr(atoms, 'positions', None)
 
-            return primary_file
-
-        # Iterate over copy of list to avoid skipping elements
-        for ext in self.traj_file_priority_list[:]:
-            traj_file = _get_traj_file(ext)
-            if traj_file:
-                return [traj_file]
+            if positions is not None:
+                # A readable, the correct trajectory has been found
+                return True
             else:
-                # Remove the missing file format from priority list
-                self.traj_file_priority_list.remove(ext)
-        # If no matching trajectory file is found, return an empty list
+                # If positions are None, log a warning
+                self.logger.warning(
+                    'No positions in trajectory file: {}'.format(
+                        self.traj_parser.auxilliary_files[0].rsplit('/')[1]
+                    )
+                )
+                return False
+
+        def sort_by_priority(files_dicts):
+            seen_keys = []
+            for d in files_dicts:
+                for key in d:
+                    if key not in seen_keys:
+                        seen_keys.append(key)
+            sorted_values = [
+                d.get(key, None) for key in sorted(seen_keys) for d in files_dicts
+            ]
+            sorted_values = list(filter(lambda x: x is not None, sorted_values))
+
+            return sorted_values
+
+        # sort all entries in self.gromacs_files by priority_list and filename match
+        files = []
+        for p in traj_priority_list:
+            results = self.get_gromacs_file(p, return_all=True)
+            files.append(results)
+        if files:
+            files = sort_by_priority(files)
+            for file_path in files:
+                if is_readable(file_path):
+                    return [file_path]
         return []
 
     def write_to_archive(self):
@@ -1723,61 +1782,8 @@ class GromacsParser(MDParser):
                 )
 
         self.traj_parser.mainfile = topology_file
-        # JFR comment: I have no idea if output trajectory file can be specified in input
-        # ? Do you mean, e.g., a flag in the *.log file that specifies the output trajectory format?
-        self.traj_file_priority_list = ['trr', 'xtc', 'pdb', 'gro']
         self.traj_parser.auxilliary_files = self.find_trajectory_files()
-        if self.traj_parser.auxilliary_files:
-            # Iterate through available trajectory formats until a valid one is found
-            while self.traj_file_priority_list:
-                # Check if the selected trajectory file can be read properly
-                positions = None
-                if (universe := self.traj_parser.universe) is not None:
-                    atoms = getattr(universe, 'atoms', None)
-                    positions = getattr(atoms, 'positions', None)
-
-                if positions is not None:
-                    # A readable, complete trajectory has been found, break the loop
-                    break
-
-                # If positions are None, log a warning
-                self.logger.warning(
-                    'No positions in trajectory file: {}'.format(
-                        self.traj_parser.auxilliary_files[0].split('/')[-1]
-                    )
-                )
-
-                # Check if other files with the same extension are available, attempt to generate universe from them
-                failed_ext = self.traj_parser.auxilliary_files[0].split('.')[-1]
-                failed_file = self.traj_parser.auxilliary_files[0].split('/')[-1]
-                _files = [f for f in self._gromacs_files if f.endswith(failed_ext)]
-                _files.remove(failed_file)
-                if _files:
-                    self._gromacs_files.remove(failed_file)
-                    # Try the next trajectory file with the same extension
-                    self.traj_parser.auxilliary_files = self.find_trajectory_files()
-                else:
-                    # Remove the failed file format from priority list
-                    self.traj_file_priority_list.remove(
-                        self.traj_parser.auxilliary_files[0].split('.')[-1]
-                    )
-                    if self.traj_file_priority_list:
-                        # Try the next trajectory file format in the priority list
-                        self.traj_parser.auxilliary_files = self.find_trajectory_files()
-                    else:
-                        # If no options are left, log a warning and exit loop
-                        self.logger.error('No valid trajectory files found.')
-                        # ! If parsing is not stopped here, it fails in parse_system() due to MDAnalysis universe not being created
-                        raise FileNotFoundError(
-                            'No recognized trajectory file is part of the upload.'
-                        )
-
-        else:
-            self.logger.error('No recognized trajectory file is part of the upload.')
-            # ! If parsing is not stopped here, it fails in parse_system() due to MDAnalysis universe not being created
-            raise FileNotFoundError(
-                'No recognized trajectory file is part of the upload.'
-            )
+        sys.exit()
 
         self.parse_method()
 

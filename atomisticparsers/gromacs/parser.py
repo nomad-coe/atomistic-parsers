@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import os
-import sys
 import numpy as np
 import logging
 import re
@@ -1783,7 +1782,6 @@ class GromacsParser(MDParser):
 
         self.traj_parser.mainfile = topology_file
         self.traj_parser.auxilliary_files = self.find_trajectory_files()
-        sys.exit()
 
         self.parse_method()
 

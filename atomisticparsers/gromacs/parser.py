@@ -1711,15 +1711,20 @@ class GromacsParser(MDParser):
         def sort_by_priority(files_dicts):
             # accounting for multiple files starting with the basename (priority 1)
             # we expect each dict to contain the exact basename match (priority 0)
-            n_keys = max([len(d[1]) if d.get(1) else 0 for d in files_dicts]) + 1
+            n_keys = [len(d[1]) if d.get(1) else 0 for d in files_dicts]
+            m_keys = [len(d[2]) if d.get(2) else 0 for d in files_dicts]
             seen_keys = []
             dicts_list = []
-            for d in files_dicts:
+            n_add = 1
+            m_add = sum(n_keys) + 1
+            for d_idx, d in enumerate(files_dicts):
                 for key in d:
                     if key == 1:
-                        d[key] = {idx + 1: val for idx, val in d[key].items()}
+                        d[key] = {idx + n_add: val for idx, val in d[key].items()}
+                        n_add += n_keys[d_idx]
                     if key == 2:
-                        d[key] = {idx + n_keys: val for idx, val in d[key].items()}
+                        d[key] = {idx + m_add: val for idx, val in d[key].items()}
+                        m_add += m_keys[d_idx]
                     dicts_list.append(d.get(key, None))
                     for idx in d[key].keys():
                         if idx not in seen_keys:

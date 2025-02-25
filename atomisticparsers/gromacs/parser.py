@@ -1739,12 +1739,9 @@ class GromacsParser(MDParser):
             results = self.get_gromacs_file(p, return_all=True)
             # if files with the correct extension are found, add to the list
             if results:
-                print(p, len(results.keys()))
                 traj_files_list.append(results)
         if traj_files_list:
-            print(traj_files_list)
             traj_files_list = sort_by_priority(traj_files_list)
-            print(traj_files_list)
             for file_path in traj_files_list:
                 if is_readable(file_path):
                     return [file_path]

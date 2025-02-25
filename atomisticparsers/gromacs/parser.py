@@ -777,37 +777,47 @@ class GromacsParser(MDParser):
     def get_gromacs_file(self, ext, return_all=False):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
 
+        if len(files) == 0:
+            return ''
+
         if return_all:
             all_files = {}
-            no_basename_match, counts = [], []
+            contain_basename, no_basename_match, counts = [], [], []
             for f in files:
-                # we assume that the file has the same basename as the log file e.g.
-                # out.log would correspond to out.tpr and out.trr and out.edr
+                # We assume that the matching trajectory file has (or starts with)
+                # the same basename as the log file, e.g., out.log would correspond to
+                # out.tpr and out.trr and out.edr (or out_some.tpr ...).
+                # These files are therefore given first (second... ) priority in the dictionary.
                 if f.rsplit('.', 1)[0] == self._basename:
-                    all_files[0] = os.path.join(self._maindir, f)
+                    all_files[0] = {0: os.path.join(self._maindir, f)}
                 elif f.rsplit('.', 1)[0].startswith(self._basename):
-                    all_files[1] = os.path.join(self._maindir, f)
+                    contain_basename.append(os.path.join(self._maindir, f))
                 else:
-                    # if the files are all named differently, we guess that the one that does not
-                    # share the same basename would be file we are more likely interested in and sort
-                    # the results accordingly
+                    # if potential files are named differently, we guess that the ones with a unique name
+                    # would be the files we are more likely interested in, and sort the results accordingly
                     count = 0
                     for reff in self._gromacs_files:
                         if f.rsplit('.', 1)[0] == reff.rsplit('.', 1)[0]:
                             count += 1
                     counts.append(count)
                     no_basename_match.append(os.path.join(self._maindir, f))
+            # add the files starting with the same basename in the order they were encountered
+            if contain_basename:
+                all_files[1] = {
+                    idx: file_path for idx, file_path in enumerate(contain_basename)
+                }
+            # sort files with the correct format, but different basename:
+            # according to the number of other files with the same name
+            # (fewer files with same name: higher priority)
             if no_basename_match:
-                for idx, val in enumerate(
-                    [x for _, x in sorted(zip(counts, no_basename_match))]
-                ):
-                    all_files[idx + 2] = val
-            sorted(all_files.items())
+                all_files[2] = {
+                    idx: file_path
+                    for idx, file_path in enumerate(
+                        [x for _, x in sorted(zip(counts, no_basename_match))]
+                    )
+                }
 
             return all_files
-
-        if len(files) == 0:
-            return ''
 
         if len(files) == 1:
             return os.path.join(self._maindir, files[0])
@@ -850,6 +860,7 @@ class GromacsParser(MDParser):
         # TODO read also from ene
         # Make sure *.edr file is part of upload before attempting to parse it.
         edr_file = self.get_gromacs_file('edr')
+        thermo_data = None
         if edr_file:
             # If the edr file can't be read or there are no keys, an error will be raised by the energy parser
             self.energy_parser.mainfile = edr_file
@@ -857,7 +868,11 @@ class GromacsParser(MDParser):
                 self.energy_parser.keys()
                 thermo_data = self.energy_parser
             except Exception:
-                thermo_data = None
+                self.logger.error('Error reading edr file.')
+            # self.energy_parser.mainfile = edr_file
+            # self.energy_parser.keys()
+            # thermo_data = self.energy_parser
+
         if not thermo_data:
             # try to get it from log file
             steps = self.input_parameters.get('step', [])
@@ -1656,7 +1671,7 @@ class GromacsParser(MDParser):
             edr_file = os.path.basename(self.energy_parser.mainfile)
             sec_input_output_files.x_gromacs_inout_file_eneredr = edr_file
         except TypeError:
-            logging.warning('Error parsing *.edr file, no energy data available.')
+            logging.warning('Error parsing `edr` file, no energy data available.')
 
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
@@ -1677,44 +1692,60 @@ class GromacsParser(MDParser):
 
         def is_readable(file_path):
             positions = None
-            test_universe = MDAnalysis.Universe(self.traj_parser.mainfile, file_path)
-            if test_universe is not None:
+            try:
+                test_universe = MDAnalysis.Universe(
+                    self.traj_parser.mainfile, file_path
+                )
                 atoms = getattr(test_universe, 'atoms', None)
                 positions = getattr(atoms, 'positions', None)
-
-            if positions is not None:
-                # A readable, the correct trajectory has been found
-                return True
-            else:
-                # If positions are None, log a warning
+            except Exception:
                 self.logger.warning(
-                    'No positions in trajectory file: {}'.format(
-                        self.traj_parser.auxilliary_files[0].rsplit('/')[1]
-                    )
+                    'Error reading positions from trajectory file: {}'.format(file_path)
                 )
-                return False
+            if positions is not None:
+                # If readable, the correct trajectory has been found
+                return True
+
+            return False
 
         def sort_by_priority(files_dicts):
+            # accounting for multiple files starting with the basename (priority 1)
+            # we expect each dict to contain the exact basename match (priority 0)
+            n_keys = max([len(d[1]) if d.get(1) else 0 for d in files_dicts]) + 1
             seen_keys = []
+            dicts_list = []
             for d in files_dicts:
                 for key in d:
-                    if key not in seen_keys:
-                        seen_keys.append(key)
+                    if key == 1:
+                        d[key] = {idx + 1: val for idx, val in d[key].items()}
+                    if key == 2:
+                        d[key] = {idx + n_keys: val for idx, val in d[key].items()}
+                    dicts_list.append(d.get(key, None))
+                    for idx in d[key].keys():
+                        if idx not in seen_keys:
+                            seen_keys.append(idx)
+            # make sure the returned list is sorted by our priority order
             sorted_values = [
-                d.get(key, None) for key in sorted(seen_keys) for d in files_dicts
+                d.get(key, None) for key in sorted(seen_keys) for d in dicts_list
             ]
+            # remove None values from not present files
             sorted_values = list(filter(lambda x: x is not None, sorted_values))
 
             return sorted_values
 
         # sort all entries in self.gromacs_files by priority_list and filename match
-        files = []
+        traj_files_list = []
         for p in traj_priority_list:
             results = self.get_gromacs_file(p, return_all=True)
-            files.append(results)
-        if files:
-            files = sort_by_priority(files)
-            for file_path in files:
+            # if files with the correct extension are found, add to the list
+            if results:
+                print(p, len(results.keys()))
+                traj_files_list.append(results)
+        if traj_files_list:
+            print(traj_files_list)
+            traj_files_list = sort_by_priority(traj_files_list)
+            print(traj_files_list)
+            for file_path in traj_files_list:
                 if is_readable(file_path):
                     return [file_path]
         return []

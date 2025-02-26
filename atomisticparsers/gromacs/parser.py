@@ -819,18 +819,18 @@ class GromacsParser(MDParser):
         all_files = {}
         contain_basename, match_priority, no_basename_match, counts = [], [], [], []
         for f in files:
-            file_name = f.rsplit('.', 1)[0]
+            filename = f.rsplit('.', 1)[0]
             # Sort all files with extension `ext` into three priority categories:
             # 1. files with exact basename match to the main file
-            if file_name == self._basename:
+            if filename == self._basename:
                 all_files[0] = [os.path.join(self._maindir, f)]
             # 2. files containing the basename of the main file, order: startswith  > endswith > in
-            elif self._basename in file_name:
+            elif self._basename in filename:
                 priority = (
                     0
-                    if file_name.startswith(self._basename)
+                    if filename.startswith(self._basename)
                     else 1
-                    if file_name.endswith(self._basename)
+                    if filename.endswith(self._basename)
                     else 2
                 )
                 match_priority.append(priority)
@@ -839,7 +839,7 @@ class GromacsParser(MDParser):
             else:
                 count = 0
                 for reff in self._gromacs_files:
-                    if file_name == reff.rsplit('.', 1)[0]:
+                    if filename == reff.rsplit('.', 1)[0]:
                         count += 1
                 counts.append(count)
                 no_basename_match.append(os.path.join(self._maindir, f))
@@ -1717,7 +1717,6 @@ class GromacsParser(MDParser):
         fallback_files = []
         for file_ext in traj_priority_list:
             results = self.get_all_gromacs_files(file_ext)
-            print(results)
             if results:
                 traj_files_list = [*results.get(0, []), *results.get(1, [])]
                 for file_path in traj_files_list:

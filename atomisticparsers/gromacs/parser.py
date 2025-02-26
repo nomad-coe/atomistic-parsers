@@ -814,35 +814,39 @@ class GromacsParser(MDParser):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
 
         if len(files) == 0:
-            return ''
+            return None
 
         all_files = {}
-        contain_basename, no_basename_match, counts = [], [], []
+        contain_basename, match_priority, no_basename_match, counts = [], [], [], []
         for f in files:
-            # We assume that the matching trajectory file has (or starts with)
-            # the same basename as the log file, e.g., out.log would correspond to
-            # out.tpr and out.trr and out.edr (or out_some.tpr ...).
-            # These files are therefore given first (second... ) priority in the dictionary.
-            if f.rsplit('.', 1)[0] == self._basename:
+            file_name = f.rsplit('.', 1)[0]
+            # Sort all files with extension `ext` into three priority categories:
+            # 1. files with exact basename match to the main file
+            if file_name == self._basename:
                 all_files[0] = [os.path.join(self._maindir, f)]
-            # ? `a in b` or `b.startswith(a) or b.endswith(a)`? How generic/specific do we want to be?
-            elif self._basename in f.rsplit('.', 1)[0]:
+            # 2. files containing the basename of the main file, order: startswith  > endswith > in
+            elif self._basename in file_name:
+                priority = (
+                    0
+                    if file_name.startswith(self._basename)
+                    else 1
+                    if file_name.endswith(self._basename)
+                    else 2
+                )
+                match_priority.append(priority)
                 contain_basename.append(os.path.join(self._maindir, f))
+            # 3. files with the same extension but no basename match, more unique names get higher priority
             else:
-                # if potential files are named differently, we guess that the ones with a unique name
-                # would be the files we are more likely interested in, and sort the results accordingly
                 count = 0
                 for reff in self._gromacs_files:
-                    if f.rsplit('.', 1)[0] == reff.rsplit('.', 1)[0]:
+                    if file_name == reff.rsplit('.', 1)[0]:
                         count += 1
                 counts.append(count)
                 no_basename_match.append(os.path.join(self._maindir, f))
-        # add the files starting with the same basename in the order they were encountered
+        # add the files containing the same basename sorted by priority
         if contain_basename:
-            all_files[1] = contain_basename
-        # sort files with the correct format, but different basename:
-        # according to the number of other files with the same name
-        # (fewer files with same name: higher priority)
+            all_files[1] = [x for _, x in sorted(zip(match_priority, contain_basename))]
+        # add the files with different basenames sorted by uniqueness
         if no_basename_match:
             all_files[2] = [x for _, x in sorted(zip(counts, no_basename_match))]
 
@@ -1686,8 +1690,8 @@ class GromacsParser(MDParser):
         Test other files only if no true trajectory format with exact or partial
         basename match is found.
 
-        Example: out.log -> out.trr > out_1.trr > 2_out.trr > out.xtc > ... > out.pdb > out.gro
-
+        Example - For out.log: out.trr > out_1.trr > 2_out.trr > 2_out_some.trr > out.xtc
+                               > ... > out.pdb > ... > out.gro > ...
         """
         traj_priority_list = ['trr', 'xtc', 'pdb', 'gro']
 
@@ -1713,11 +1717,11 @@ class GromacsParser(MDParser):
         fallback_files = []
         for file_ext in traj_priority_list:
             results = self.get_all_gromacs_files(file_ext)
+            print(results)
             if results:
                 traj_files_list = [*results.get(0, []), *results.get(1, [])]
                 for file_path in traj_files_list:
                     if is_readable(file_path):
-                        print(file_path)
                         return [file_path]
                 fallback_files.extend(results.get(2, []))
         for file_path in fallback_files:

@@ -225,7 +225,9 @@ class GenParser(FileParser):
         positions = np.array(positions, dtype=np.float64) * ureg.angstrom
         if lattice_type == 'F':
             # fractional coordinates
-            positions = np.dot(positions, lattice_vectors)
+            positions = np.dot(
+                positions.magnitude, lattice_vectors.magnitude
+            ) * ureg.angstrom
 
         self._results['symbols'] = symbols
         self._results['positions'] = positions

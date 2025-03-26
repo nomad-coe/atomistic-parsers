@@ -27,7 +27,6 @@ try:
 except Exception:
     MDAnalysis = None
 from typing import Any, Dict
-from nptyping import NDArray
 from collections import namedtuple
 from array import array
 from scipy import sparse
@@ -488,7 +487,7 @@ class MDAnalysisParser(FileParser):
 
         return interactions
 
-    def __calc_diffusion_constant(self, times: NDArray, values: NDArray, dim: int = 3):
+    def __calc_diffusion_constant(self, times: np.ndarray, values: np.ndarray, dim: int = 3):
         """
         Determines the diffusion constant from a fit of the mean squared displacement
         vs. time according to the Einstein relation.

@@ -1695,7 +1695,9 @@ class GromacsParser(MDParser):
         """
         traj_priority_list = ['trr', 'xtc', 'pdb', 'gro']
 
-        def is_readable(file_path):
+        # Check if the number of particles in the current trajectory file matches
+        # the number of particles in self.mainfile (topology).
+        def matches_mainfile(file_path):
             positions = None
             try:
                 test_universe = MDAnalysis.Universe(
@@ -1713,18 +1715,20 @@ class GromacsParser(MDParser):
 
             return False
 
-        # sort all entries in self.gromacs_files by priority_list and filename match
+        # Sort all entries in self.gromacs_files by priority_list and filename match,
+        # return matching trajectory with highest priority.
         fallback_files = []
         for file_ext in traj_priority_list:
             results = self.get_all_gromacs_files(file_ext)
             if results:
                 traj_files_list = [*results.get(0, []), *results.get(1, [])]
                 for file_path in traj_files_list:
-                    if is_readable(file_path):
+                    if matches_mainfile(file_path):
                         return [file_path]
                 fallback_files.extend(results.get(2, []))
+        # return the first match from fallback_files only if no higher-priority match was found
         for file_path in fallback_files:
-            if is_readable(file_path):
+            if matches_mainfile(file_path):
                 return [file_path]
         return []
 

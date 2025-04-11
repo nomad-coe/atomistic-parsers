@@ -31,7 +31,7 @@ dev = [
     "pytest-timeout==1.4.2",
     "pytest-cov==2.7.1",
     "astroid>=2.5.1",
-    'mypy==1.0.1',
+    'mypy>=1.15',
     'ruff>=0.6',
     'typing-extensions>=4.12',
 ]

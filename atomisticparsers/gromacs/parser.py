@@ -1695,28 +1695,24 @@ class GromacsParser(MDParser):
         """
         traj_priority_list = ['trr', 'xtc', 'pdb', 'gro']
 
-        # Check if the number of particles in the current trajectory file matches
-        # the number of particles in self.mainfile (topology).
+        # Check if an MDAnalysis universe can be created from the mainfile and the current trajectory file
         def matches_mainfile(file_path):
-            positions = None
+            # set the trajectory file to the current file_path, the traj_parser attempts to create a universe
             try:
-                test_universe = MDAnalysis.Universe(
-                    self.traj_parser.mainfile, file_path
-                )
-                atoms = getattr(test_universe, 'atoms', None)
-                positions = getattr(atoms, 'positions', None)
-            except Exception:
+                self.traj_parser.auxilliary_files = [file_path]
+            except Exception as e:
+                # If the trajectory file does not match the topology, the trajectory file remains None
                 self.logger.warning(
-                    'Error reading positions from trajectory file: {}'.format(file_path)
+                    'Trajectory file does not match topology: {}, {}'.format(
+                        file_path, e
+                    )
                 )
-            if positions is not None:
-                # If readable, the correct trajectory has been found
+                return False
+            else:
                 return True
 
-            return False
-
-        # Sort all entries in self.gromacs_files by priority_list and filename match,
-        # return matching trajectory with highest priority.
+        # Get all trajectory files in self.gromacs_files sorted by extension priority (priority_list) and filename,
+        # select matching trajectory with highest priority.
         fallback_files = []
         for file_ext in traj_priority_list:
             results = self.get_all_gromacs_files(file_ext)
@@ -1724,13 +1720,14 @@ class GromacsParser(MDParser):
                 traj_files_list = [*results.get(0, []), *results.get(1, [])]
                 for file_path in traj_files_list:
                     if matches_mainfile(file_path):
-                        return [file_path]
+                        return
                 fallback_files.extend(results.get(2, []))
-        # return the first match from fallback_files only if no higher-priority match was found
+        # Search `fallback_files` only if no higher-priority match was found
         for file_path in fallback_files:
             if matches_mainfile(file_path):
-                return [file_path]
-        return []
+                return
+        # If no matching trajectory file is found, self.trajectory_parser.auxilliary_files remains default (None,).
+        return
 
     def write_to_archive(self):
         self._maindir = os.path.dirname(self.mainfile)
@@ -1794,7 +1791,7 @@ class GromacsParser(MDParser):
                 )
 
         self.traj_parser.mainfile = topology_file
-        self.traj_parser.auxilliary_files = self.find_trajectory_files()
+        self.find_trajectory_files()
 
         self.parse_method()
 

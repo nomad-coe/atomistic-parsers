@@ -37,6 +37,7 @@ from simulationworkflowschema.geometry_optimization import (
 from simulationworkflowschema.molecular_dynamics import (
     MolecularDynamics,
 )
+from simulationworkflowschema.single_point import SinglePoint
 
 
 class MDParser(Parser):
@@ -271,9 +272,9 @@ class ASETrajParser(MDParser):
         if traj[0].calc is not None:
             sec_method.force_field = ForceField(model=[Model(name=traj[0].calc.name)])
 
-        description = traj.description if hasattr(traj, 'description') else dict()
-        if not description:
-            return
+        description = dict()
+        if hasattr(traj, 'description'):
+            description = traj.description if traj.description else description
 
         calc_type = description.get('type')
         if calc_type == 'optimization':
@@ -294,6 +295,8 @@ class ASETrajParser(MDParser):
                 thermodynamic_ensemble = 'NPT'
             data['method'] = {'thermodynamic_ensemble': thermodynamic_ensemble}
             self.parse_md_workflow(data)
+        elif len(self.traj_parser.traj) == 1:
+            self.archive.workflow2 = SinglePoint()
 
     def write_to_archive(self):
         self.traj_parser.mainfile = self.mainfile

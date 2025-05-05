@@ -363,6 +363,8 @@ class GromacsEDRParser(FileParser):
         self._results[key] = val
 
     def keys(self):
+        if self.fileedr is None:
+            return []
         return list(self.fileedr.keys())
 
     @property
@@ -860,19 +862,10 @@ class GromacsParser(MDParser):
         # TODO read also from ene
         # Make sure *.edr file is part of upload before attempting to parse it.
         edr_file = self.get_gromacs_file('edr')
-        thermo_data = None
         if edr_file:
-            # If the edr file can't be read or there are no keys, an error will be raised by the energy parser
+            self.energy_parser.keys()
             self.energy_parser.mainfile = edr_file
-            try:
-                self.energy_parser.keys()
-                thermo_data = self.energy_parser
-            except Exception:
-                self.logger.error('Error reading edr file.')
-            # self.energy_parser.mainfile = edr_file
-            # self.energy_parser.keys()
-            # thermo_data = self.energy_parser
-
+            thermo_data = self.energy_parser
         if not thermo_data:
             # try to get it from log file
             steps = self.input_parameters.get('step', [])

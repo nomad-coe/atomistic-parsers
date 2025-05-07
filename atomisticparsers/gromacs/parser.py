@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 import os
+import sys
 import numpy as np
 import logging
 import re
@@ -369,6 +370,8 @@ class GromacsEDRParser(FileParser):
 
     @property
     def length(self):
+        if self.fileedr is None:
+            return None
         return self.fileedr.shape[0]
 
 
@@ -774,7 +777,14 @@ class GromacsParser(MDParser):
             if self.mdp_std_filename in filename:
                 return os.path.join(self._maindir, f)
 
-        return self.get_gromacs_file(self.mdp_ext)
+        return next(
+            (
+                v[0]
+                for v in (self.get_all_gromacs_files(self.mdp_ext) or {}).values()
+                if v
+            ),
+            None,
+        )
 
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
@@ -816,7 +826,7 @@ class GromacsParser(MDParser):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
 
         if len(files) == 0:
-            return None
+            return
 
         all_files = {}
         contain_basename, match_priority, no_basename_match, counts = [], [], [], []
@@ -861,7 +871,10 @@ class GromacsParser(MDParser):
 
         # TODO read also from ene
         # Make sure *.edr file is part of upload before attempting to parse it.
-        edr_file = self.get_gromacs_file('edr')
+        edr_file = next(
+            (v[0] for v in (self.get_all_gromacs_files('edr') or {}).values() if v),
+            None,
+        )
         if edr_file:
             self.energy_parser.keys()
             self.energy_parser.mainfile = edr_file
@@ -1143,7 +1156,10 @@ class GromacsParser(MDParser):
         try:
             n_atoms = self.traj_parser.get('n_atoms', 0)
         except Exception:
-            gro_file = self.get_gromacs_file('gro')
+            gro_file = next(
+                (v[0] for v in (self.get_all_gromacs_files('gro') or {}).values() if v),
+                None,
+            )
             self.traj_parser.mainfile = gro_file
             n_atoms = self.traj_parser.get('n_atoms', 0)
         atoms_info = self.traj_parser.get('atoms_info', {})
@@ -1552,7 +1568,10 @@ class GromacsParser(MDParser):
             params_key = 'free_energy_calculation_parameters'
             method[params_key] = self.get_free_energy_calculation_parameters()
 
-            self.xvg_parser.mainfile = self.get_gromacs_file('xvg')
+            self.xvg_parser.mainfile = next(
+                (v[0] for v in (self.get_all_gromacs_files('xvg') or {}).values() if v),
+                None,
+            )
             free_energies = self.xvg_parser.get('results')
 
             title = free_energies.get('title', '') if free_energies is not None else ''
@@ -1675,7 +1694,7 @@ class GromacsParser(MDParser):
         )
         sec_control_parameters.m_set(quantity_def, input_parameters)
 
-    def find_trajectory_files(self):
+    def find_trajectory_file(self):
         """
         Find and set trajectory files following the priority:
         "trr" > "xtc", fallback "pdb" > "gro". Prioritize files with exact basename
@@ -1733,8 +1752,10 @@ class GromacsParser(MDParser):
         self._frame_rate = None
 
         header = self.log_parser.get('header', {})
-
-        topology_file = self.get_gromacs_file('tpr')
+        topology_file = next(
+            (v[0] for v in (self.get_all_gromacs_files('tpr') or {}).values() if v),
+            None,
+        )
 
         sec_run = Run()
         sec_run.program = Program(
@@ -1784,7 +1805,8 @@ class GromacsParser(MDParser):
                 )
 
         self.traj_parser.mainfile = topology_file
-        self.find_trajectory_files()
+        # Trajectory file is passed to MDAnalysisParser parser under the hood
+        self.find_trajectory_file()
 
         self.parse_method()
 

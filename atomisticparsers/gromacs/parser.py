@@ -776,7 +776,7 @@ class GromacsParser(MDParser):
             if self.mdp_std_filename in filename:
                 return os.path.join(self._maindir, f)
 
-        return self.get_all_gromacs_files(self.mdp_ext)
+        return next(iter(self.get_all_gromacs_files(self.mdp_ext)), None)
 
     def get_gromacs_file(self, ext):
         files = [d for d in self._gromacs_files if d.endswith(ext)]
@@ -816,7 +816,7 @@ class GromacsParser(MDParser):
 
     def get_all_gromacs_files(
         self, ext, return_all=False
-    ) -> Union[Tuple[List[str], List[str]], str, None]:
+    ) -> Union[Tuple[List[str], List[str]], List[str]]:
         """
         Tries to find all the Gromacs output files with the given extension.
         return_all: if True, return all files with the given extension, sorted by basename similarity
@@ -830,7 +830,7 @@ class GromacsParser(MDParser):
         """
         files = [d for d in self._gromacs_files if d.endswith(ext)]
         if len(files) == 0:
-            return
+            return []
 
         all_files = ([], [])
         contain_basename, match_priority, no_basename_match, counts = [], [], [], []
@@ -839,9 +839,9 @@ class GromacsParser(MDParser):
             # Sort all files with extension `ext` into three priority categories:
             # 1. files with exact basename match to the main file
             if filename == self._basename:
-                if not return_all:
-                    return os.path.join(self._maindir, f)
                 all_files[0].append(os.path.join(self._maindir, f))
+                if not return_all:
+                    return all_files[0]
             # 2. files containing the basename of the main file, order: startswith  > endswith > in
             elif self._basename in filename:
                 priority = (
@@ -863,18 +863,16 @@ class GromacsParser(MDParser):
                 no_basename_match.append(os.path.join(self._maindir, f))
         # add the files containing the same basename sorted by priority
         if contain_basename:
-            contain_basename = [
-                x for _, x in sorted(zip(match_priority, contain_basename))
-            ]
+            all_files[0].extend(
+                [x for _, x in sorted(zip(match_priority, contain_basename))]
+            )
             if not return_all:
-                return contain_basename[0]
-            all_files[0].extend(contain_basename)
+                return all_files[0]
         # add the files with different basenames sorted by uniqueness
         if no_basename_match:
-            no_basename_match = [x for _, x in sorted(zip(counts, no_basename_match))]
+            all_files[1].extend([x for _, x in sorted(zip(counts, no_basename_match))])
             if not return_all:
-                return no_basename_match[0]
-            all_files[1].extend(no_basename_match)
+                return all_files[1]
 
         return all_files
 
@@ -885,7 +883,7 @@ class GromacsParser(MDParser):
 
         # TODO read also from ene
         # Make sure *.edr file is part of upload before attempting to parse it.
-        edr_file = self.get_all_gromacs_files('edr')
+        edr_file = next(iter(self.get_all_gromacs_files('edr')), None)
         if edr_file:
             self.energy_parser.keys()
             self.energy_parser.mainfile = edr_file
@@ -1167,7 +1165,7 @@ class GromacsParser(MDParser):
         try:
             n_atoms = self.traj_parser.get('n_atoms', 0)
         except Exception:
-            gro_file = self.get_all_gromacs_files('gro')
+            gro_file = next(iter(self.get_all_gromacs_files('gro')), None)
             self.traj_parser.mainfile = gro_file
             n_atoms = self.traj_parser.get('n_atoms', 0)
         atoms_info = self.traj_parser.get('atoms_info', {})
@@ -1576,7 +1574,9 @@ class GromacsParser(MDParser):
             params_key = 'free_energy_calculation_parameters'
             method[params_key] = self.get_free_energy_calculation_parameters()
 
-            self.xvg_parser.mainfile = self.get_all_gromacs_files('xvg')
+            self.xvg_parser.mainfile = next(
+                iter(self.get_all_gromacs_files('xvg')), None
+            )
             free_energies = self.xvg_parser.get('results')
 
             title = free_energies.get('title', '') if free_energies is not None else ''
@@ -1699,7 +1699,7 @@ class GromacsParser(MDParser):
         )
         sec_control_parameters.m_set(quantity_def, input_parameters)
 
-    def find_trajectory_file(self):
+    def find_trajectory_file(self) -> Union[str, None]:
         """
         Find and set trajectory files following the priority:
         "trr" > "xtc", fallback "pdb" > "gro". Prioritize files with exact basename
@@ -1761,7 +1761,7 @@ class GromacsParser(MDParser):
         self._frame_rate = None
 
         header = self.log_parser.get('header', {})
-        topology_file = self.get_all_gromacs_files('tpr')
+        topology_file = next(iter(self.get_all_gromacs_files('tpr')), None)
         sec_run = Run()
         sec_run.program = Program(
             name='GROMACS',

@@ -832,7 +832,7 @@ class GromacsParser(MDParser):
         if len(files) == 0:
             return []
 
-        all_files = ([], [])
+        all_files: Tuple[List, List] = ([], [])
         contain_basename, match_priority, no_basename_match, counts = [], [], [], []
         for f in files:
             filename = f.rsplit('.', 1)[0]
@@ -1729,18 +1729,18 @@ class GromacsParser(MDParser):
         # Get all MDAnalysis-compatible trajectory files in self.gromacs_files,
         # sorted by extension priority (priority_list) and filename.
         # Select matching trajectory with highest priority.
-        fallback_files = []
+        fallback_files: List[str] = []
         for file_ext in traj_priority_list:
             traj_files_tup = self.get_all_gromacs_files(file_ext, return_all=True)
             if traj_files_tup:
                 for file_path in traj_files_tup[0]:
                     if matches_mainfile(file_path):
-                        return
+                        return None
                 fallback_files.extend(traj_files_tup[1])
         # Search `fallback_files` only if no higher-priority match was found
         for file_path in fallback_files:
             if matches_mainfile(file_path):
-                return
+                return None
         # If no matching trajectory file is found, self.trajectory_parser.auxilliary_files remains default (None,).
         # Mismatched trajectory files are logged as a warning.
         self.logger.warning(
@@ -1748,7 +1748,7 @@ class GromacsParser(MDParser):
             # TODO: decide wether returning the offending file is useful.
             extra={'file_paths': failed_files},
         )
-        return
+        return None
 
     def write_to_archive(self):
         self._maindir = os.path.dirname(self.mainfile)

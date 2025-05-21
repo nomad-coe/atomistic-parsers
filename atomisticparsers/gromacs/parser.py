@@ -819,14 +819,18 @@ class GromacsParser(MDParser):
     ) -> Union[Tuple[List[str], List[str]], List[str]]:
         """
         Tries to find all the Gromacs output files with the given extension.
-        return_all: if True, return all files with the given extension, sorted by basename similarity
-        and uniqueness. If False, return the first file that matches the basename of the main file.
+        return_all: If True, return all files with the given extension, sorted
+        by basename similarity and uniqueness. If False, return the first file
+        that matches the basename of the main file.
         Returns:
-            - tuple: A tuple of two lists, the first list contains the files with at least partially
-            the same basename as the main file, the second list contains the files with different
-            basenames, sorted by uniqueness. (return_all == True)
-            - str: the first file that matches the basename of the main file. (return_all == False)
-            - None: if no file with the given extension is found.
+        - tuple: A tuple of two lists. The first list contains the files with
+          at least partially the same basename as the main file, sorted by
+          descending match priority.
+          The second list contains the files with different basenames, sorted
+          by uniqueness. (return_all == True)
+        - [str]: A list of files with the best match to the basename of the main
+          file found, sorted by descending match priority. (return_all == False)
+        - []: An empty list if no file with the given extension is found.
         """
         files = [d for d in self._gromacs_files if d.endswith(ext)]
         if len(files) == 0:

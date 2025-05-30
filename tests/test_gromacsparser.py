@@ -550,19 +550,19 @@ def test_str_to_input_parameters(path: str, input_log_fnm: str, result_json_fnm:
                 assert_dict_equal(d1[key], d2[key])
             else:
                 if isinstance(d1[key], (str, bool)):
-                    assert (
-                        d1[key] == d2[key]
-                    ), f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    assert d1[key] == d2[key], (
+                        f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    )
                 elif isinstance(d1[key], np.ndarray):
-                    assert np.isclose(
-                        d1[key], d2[key]
-                    ).all(), f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    assert np.isclose(d1[key], d2[key]).all(), (
+                        f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    )
                 elif abs(d1[key]) == float('inf'):
                     assert 'inf' == d2[key] if d1[key] > 0 else '-inf' == d2[key]
                 else:
-                    assert d1[key] == approx(
-                        d2[key]
-                    ), f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    assert d1[key] == approx(d2[key]), (
+                        f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    )
 
     log_parser = GromacsLogParser()
     log_parser.mainfile = f'{path}/{input_log_fnm}'
@@ -577,3 +577,8 @@ def test_str_to_input_parameters(path: str, input_log_fnm: str, result_json_fnm:
     __ = result.pop('mdp_unique_params')
 
     assert_dict_equal(parsed_parameters, result)
+
+
+def test_find_trajectory_file():
+    # TODO: Implement test cases
+    pass

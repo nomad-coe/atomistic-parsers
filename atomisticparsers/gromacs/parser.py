@@ -816,27 +816,27 @@ class GromacsParser(MDParser):
 
     def get_all_gromacs_files(
         self, ext, return_all=False
-    ) -> Union[Tuple[List[str], List[str]], List[str]]:
+    ) -> Union[Tuple[List[str], List[str], List[str]], List[str]]:
         """
         Tries to find all the Gromacs output files with the given extension.
         return_all: If True, return all files with the given extension, sorted
         by basename similarity and uniqueness. If False, return the first file
         that matches the basename of the main file.
         Returns:
-        - tuple: A tuple of two lists. The first list contains the files with
-          at least partially the same basename as the main file, sorted by
-          descending match priority.
-          The second list contains the files with different basenames, sorted
-          by uniqueness. (return_all == True)
-        - [str]: A list of files with the best match to the basename of the main
-          file found, sorted by descending match priority. (return_all == False)
+        - tuple: return_all == True. A tuple of two lists.
+          The first list contains the files with at least partially the same
+          basename as the main file, sorted by descending match priority.
+          The second list contains the files with different basenames,
+          sorted by descending uniqueness.
+        - [str]: return_all == False. A list of files with the best match to the
+          basename of the main file found, sorted by descending match priority.
         - []: An empty list if no file with the given extension is found.
         """
         files = [d for d in self._gromacs_files if d.endswith(ext)]
         if len(files) == 0:
             return []
 
-        all_files: Tuple[List, List] = ([], [])
+        all_files: Tuple[List, List, List] = ([], [], [])
         contain_basename, match_priority, no_basename_match, counts = [], [], [], []
         for f in files:
             filename = f.rsplit('.', 1)[0]
@@ -867,16 +867,16 @@ class GromacsParser(MDParser):
                 no_basename_match.append(os.path.join(self._maindir, f))
         # add the files containing the same basename sorted by priority
         if contain_basename:
-            all_files[0].extend(
+            all_files[1].extend(
                 [x for _, x in sorted(zip(match_priority, contain_basename))]
             )
             if not return_all:
-                return all_files[0]
+                return all_files[1]
         # add the files with different basenames sorted by uniqueness
         if no_basename_match:
-            all_files[1].extend([x for _, x in sorted(zip(counts, no_basename_match))])
+            all_files[2].extend([x for _, x in sorted(zip(counts, no_basename_match))])
             if not return_all:
-                return all_files[1]
+                return all_files[2]
 
         return all_files
 
@@ -1715,16 +1715,20 @@ class GromacsParser(MDParser):
                                > ... > out.pdb > ... > out.gro > ...
         """
         traj_priority_list = ['trr', 'xtc', 'pdb', 'gro']
-
-        # Check if an MDAnalysis universe can be created from the mainfile and the current trajectory file
         failed_files = []
 
-        def matches_mainfile(file_path):
-            # set the trajectory file to the current file_path, the traj_parser attempts to create a universe
+        def matches_mainfile(file_path) -> bool:
+            """
+            Check if an MDAnalysis universe can be created from the mainfile (topology)
+            and the current trajectory file.
+            """
+            # set the trajectory file to the current file_path,
+            # the traj_parser attempts to create a MDAnalysis universe
             try:
                 self.traj_parser.auxilliary_files = [file_path]
             except Exception as e:
-                # If the trajectory file does not match the topology, the trajectory file remains None
+                # If the trajectory file does not match the topology,
+                # the trajectory file remains None
                 failed_files.append(file_path)
                 return False
             else:
@@ -1734,13 +1738,33 @@ class GromacsParser(MDParser):
         # sorted by extension priority (priority_list) and filename.
         # Select matching trajectory with highest priority.
         fallback_files: List[str] = []
-        for file_ext in traj_priority_list:
-            traj_files_tup = self.get_all_gromacs_files(file_ext, return_all=True)
-            if traj_files_tup:
-                for file_path in traj_files_tup[0]:
-                    if matches_mainfile(file_path):
-                        return None
-                fallback_files.extend(traj_files_tup[1])
+
+        def try_priority_group(traj_priority_group) -> bool:
+            contains_files: List[str] = []
+            for file_ext in traj_priority_group:
+                print(file_ext)
+                traj_files_tup = self.get_all_gromacs_files(file_ext, return_all=True)
+                print(traj_files_tup)
+                if traj_files_tup:
+                    for file_path in traj_files_tup[0]:
+                        if matches_mainfile(file_path):
+                            return True
+                    contains_files.extend(traj_files_tup[1])
+                    fallback_files.extend(traj_files_tup[2])
+            # If no exact filename match was found, check for files containing the mainfile name
+            for file_path in contains_files:
+                if matches_mainfile(file_path):
+                    return True
+            # No match found in this priority group
+            return False
+
+        # Check 'trr' and 'xtc' first
+        if try_priority_group(traj_priority_list[:2]):
+            return None
+        # Then check 'pdb' and 'gro'
+        if try_priority_group(traj_priority_list[2:]):
+            return None
+
         # Search `fallback_files` only if no higher-priority match was found
         for file_path in fallback_files:
             if matches_mainfile(file_path):
@@ -1749,7 +1773,7 @@ class GromacsParser(MDParser):
         # Mismatched trajectory files are logged as a warning.
         self.logger.warning(
             'Trajectory files do not match topology.',
-            # TODO: decide wether returning the offending file is useful.
+            # TODO: decide wether knowing the mismatched trajectory files is useful for the user.
             extra={'file_paths': failed_files},
         )
         return None

@@ -288,51 +288,23 @@ class GromacsMdpParser(TextParser):
 
 
 class GromacsXvgParser(TextParser):
-    def __init__(self):
-        super().__init__(None)
-        self.re_columns = re.compile(r'@\s*s\d{1,2}\s*legend\s*\".*\"')
-        self.re_comment = re.compile(r'^[@#]')
-        self.re_quotes = re.compile(r'\"(.*)\"')
-        self.re_label = re.compile(r'@\s*(title|xaxis|yaxis)\s*(?: label)?\s*"(.*)"')
-
-        def str_to_results(val_in):
-            results = {
-                'column_vals': None,
-                'title': '',
-                'xaxis': '',
-                'yaxis': '',
-                'column_headers': [],
-            }
-
-            val = val_in.strip().splitlines()
-            val = [line.strip() for line in val]
-            for val_n in val:
-                val_label = self.re_label.match(val_n)
-                val_legend = self.re_columns.match(val_n)
-                val_comment = self.re_comment.match(val_n)
-                if val_label:
-                    key, label = val_label.groups()
-                    results[key] = label
-                elif val_legend:  # TODO convert out of xmgrace notation
-                    column = val_legend.group()
-                    column = self.re_quotes.findall(column)
-                    column = column[0] if column else None
-                    results['column_headers'].append(column)
-                elif not val_comment:
-                    results['column_vals'] = (
-                        np.vstack((results['column_vals'], [val_n.split()]))
-                        if results['column_vals'] is not None
-                        else [val_n.split()]
-                    )
-            return results
-
+    def init_quantities(self):
         self._quantities = [
+            Quantity('title', r'@\s+title\s+\"(.+?)\"', flatten=False),
+            Quantity('xaxis', r'xaxis\s+label\s+\"(.+?)\"', flatten=False),
+            Quantity('yaxis', r'yaxis\s+label\s+\"(.+?)\"', flatten=False),
             Quantity(
-                'results',
-                r'([\s\S]+)',
-                str_operation=str_to_results,
+                'column_headers',
+                r'@\s+s\d{1,2}\s+legend\s+\"(.+?)\"',
+                repeats=True,
+                flatten=False,
             ),
         ]
+
+    def parse(self, key=None):
+        super().parse(key)
+        # TODO extend DataTextParser so it takes in kwarg comments
+        self._results['column_vals'] = np.loadtxt(self.mainfile, comments=['@', '#'])
 
 
 class GromacsEDRParser(FileParser):
@@ -363,6 +335,8 @@ class GromacsEDRParser(FileParser):
         self._results[key] = val
 
     def keys(self):
+        if self.fileedr is None:
+            return []
         return list(self.fileedr.keys())
 
     @property
@@ -1390,7 +1364,7 @@ class GromacsParser(MDParser):
 
     def parse_workflow(self):
         sec_run = self.archive.run[-1]
-        sec_calc = sec_run.get('calculation')
+        sec_calc = sec_run.calculation
         input_parameters = self.input_parameters
 
         workflow = None
@@ -1510,9 +1484,8 @@ class GromacsParser(MDParser):
             method[params_key] = self.get_free_energy_calculation_parameters()
 
             self.xvg_parser.mainfile = self.get_gromacs_file('xvg')
-            free_energies = self.xvg_parser.get('results')
 
-            title = free_energies.get('title', '') if free_energies is not None else ''
+            title = self.xvg_parser.get('title', '')
             flag_fe = False
             if (
                 r'dH/d\xl\f{}' in title and r'\xD\f{}H' in title
@@ -1520,7 +1493,7 @@ class GromacsParser(MDParser):
                 flag_fe = True
                 results_key = 'free_energy_calculations'
                 results[results_key] = {}
-                columns = free_energies.get('column_vals')
+                columns = self.xvg_parser.get('column_vals')
                 results[results_key]['n_frames'] = len(columns)
                 lambdas = method[params_key].get('lambdas', None)
                 results[results_key]['n_states'] = (
@@ -1530,7 +1503,7 @@ class GromacsParser(MDParser):
                     'lambda_index', None
                 )
                 results[results_key]['value_unit'] = str(self._gro_energy_units.units)
-                xaxis = free_energies.get('xaxis', '').lower()
+                xaxis = self.xvg_parser.get('xaxis', '').lower()
                 # The expected columns of the xvg file are:
                 # Total Energy
                 # dH/dlambda current lambda
@@ -1617,8 +1590,9 @@ class GromacsParser(MDParser):
         trajectory_file = os.path.basename(self.traj_parser.auxilliary_files[0])
         sec_input_output_files.x_gromacs_inout_file_trajtrr = trajectory_file
 
-        edr_file = os.path.basename(self.energy_parser.mainfile)
-        sec_input_output_files.x_gromacs_inout_file_eneredr = edr_file
+        if self.energy_parser.mainfile is not None:
+            edr_file = os.path.basename(self.energy_parser.mainfile)
+            sec_input_output_files.x_gromacs_inout_file_eneredr = edr_file
 
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters
@@ -1728,3 +1702,6 @@ class GromacsParser(MDParser):
         self.traj_parser.clean()
         self.traj_parser.close()
         self.energy_parser.close()
+        self.log_parser.close()
+        self.mdp_parser.close()
+        self.xvg_parser.close()

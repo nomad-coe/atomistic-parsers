@@ -795,12 +795,6 @@ def test_str_to_input_parameters(path: str, input_log_fnm: str, result_json_fnm:
             'other_0_1.trr',
         ),
         ('prod', ['other.gro', 'other.pdb', 'other.xtc'], 'other.xtc'),
-        (
-            'prod',
-            ['other.gro', 'other.pdb', 'other.xtc', 'other_0_1.trr'],
-            'other_0_1.trr',
-        ),
-        ('prod', ['other.gro', 'other.pdb', 'other.xtc'], 'other.xtc'),
         ('prod', ['other.gro', 'other.pdb', 'other_0_1.xtc'], 'other_0_1.xtc'),
         ('prod', ['other.gro', 'other.pdb'], 'other.pdb'),
         ('prod', ['other.gro'], 'other.gro'),

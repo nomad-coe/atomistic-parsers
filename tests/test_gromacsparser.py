@@ -16,10 +16,11 @@
 # limitations under the License.
 #
 
-import pytest
-import numpy as np
 import h5py
 import json
+import numpy as np
+import os
+import pytest
 
 from typing import (
     Any,
@@ -579,6 +580,336 @@ def test_str_to_input_parameters(path: str, input_log_fnm: str, result_json_fnm:
     assert_dict_equal(parsed_parameters, result)
 
 
-def test_find_trajectory_file():
-    # TODO: Implement test cases
-    pass
+@pytest.mark.parametrize(
+    'basename, files, expected',
+    [
+        # === Suffix priority ===
+        ('prod', ['prod.gro', 'prod.pdb', 'prod.xtc', 'prod.trr'], 'prod.trr'),
+        ('prod', ['prod.gro', 'prod.pdb', 'prod.xtc', 'prod_0_1.trr'], 'prod.xtc'),
+        ('prod', ['prod.gro', 'prod.pdb'], 'prod.pdb'),
+        ('prod', ['prod.gro', 'prod_0_1.pdb'], 'prod.gro'),
+        # === Prefix match priority for TRR ===
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'prod.xtc',
+                'test_prod_0_1.trr',
+                'prod_0_1.trr',
+                'test_0_1_prod.trr',
+                'prod.trr',
+            ],
+            'prod.trr',
+        ),
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'test_prod_0_1.trr',
+                'prod_0_1.trr',
+                'test_0_1_prod.trr',
+                'other.trr',
+                'other.xtc',
+            ],
+            'prod_0_1.trr',
+        ),
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'test_prod_0_1.trr',
+                'other_0_1.trr',
+                'test_0_1_prod.trr',
+                'other.trr',
+                'other.xtc',
+            ],
+            'test_0_1_prod.trr',
+        ),
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'test_prod_0_1.trr',
+                'other_0_1.trr',
+                'test_0_1_other.trr',
+                'other.trr',
+                'other.xtc',
+            ],
+            'test_prod_0_1.trr',
+        ),
+        # === Prefix match priority for XTC ===
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'test_prod_0_1.xtc',
+                'prod_0_1.xtc',
+                'test_0_1_prod.xtc',
+                'prod.xtc',
+                'prod_0_1.trr',
+                'other.trr',
+                'other.xtc',
+            ],
+            'prod.xtc',
+        ),
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'test_prod_0_1.xtc',
+                'prod_0_1.xtc',
+                'test_0_1_prod.xtc',
+                'other.trr',
+                'other.xtc',
+            ],
+            'prod_0_1.xtc',
+        ),
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'test_prod_0_1.xtc',
+                'other_0_1.xtc',
+                'test_0_1_prod.xtc',
+                'other.trr',
+                'other.xtc',
+            ],
+            'test_0_1_prod.xtc',
+        ),
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'test_prod_0_1.xtc',
+                'other_0_1.xtc',
+                'test_0_1_other.xtc',
+                'other.trr',
+                'other.xtc',
+            ],
+            'test_prod_0_1.xtc',
+        ),
+        # === Prefix match for PDB ===
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'prod_0_1.pdb',
+                'test_0_1_prod.pdb',
+                'test_prod_0_1.pdb',
+            ],
+            'prod.pdb',
+        ),
+        (
+            'prod',
+            [
+                'other.gro',
+                'other.pdb',
+                'prod_0_1.pdb',
+                'test_0_1_prod.pdb',
+                'test_prod_0_1.pdb',
+            ],
+            'prod_0_1.pdb',
+        ),
+        (
+            'prod',
+            [
+                'other.gro',
+                'other.pdb',
+                'other_0_1.pdb',
+                'test_0_1_prod.pdb',
+                'test_prod_0_1.pdb',
+            ],
+            'test_0_1_prod.pdb',
+        ),
+        (
+            'prod',
+            [
+                'other.gro',
+                'other.pdb',
+                'other_0_1.pdb',
+                'test_0_1_other.pdb',
+                'test_prod_0_1.pdb',
+            ],
+            'test_prod_0_1.pdb',
+        ),
+        # === Prefix match for GRO ===
+        ('prod', ['prod.gro', 'other.pdb', 'prod_0_1.pdb'], 'prod.gro'),
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod_0_1.gro',
+                'test_0_1_prod.gro',
+                'test_prod_0_1.gro',
+                'other.pdb',
+            ],
+            'prod.gro',
+        ),
+        (
+            'prod',
+            [
+                'other.gro',
+                'prod_0_1.gro',
+                'test_0_1_prod.gro',
+                'test_prod_0_1.gro',
+                'other.pdb',
+            ],
+            'prod_0_1.gro',
+        ),
+        (
+            'prod',
+            [
+                'other.gro',
+                'other_0_1.gro',
+                'test_0_1_prod.gro',
+                'test_prod_0_1.gro',
+                'other.pdb',
+            ],
+            'test_0_1_prod.gro',
+        ),
+        (
+            'prod',
+            [
+                'other.gro',
+                'other_0_1.gro',
+                'test_0_1_other.gro',
+                'test_prod_0_1.gro',
+                'other.pdb',
+            ],
+            'test_prod_0_1.gro',
+        ),
+        # === Unrelated fallback ===
+        ('prod', ['other.gro', 'other.pdb', 'other.xtc', 'other.trr'], 'other.trr'),
+        (
+            'prod',
+            ['other.gro', 'other.pdb', 'other.xtc', 'other_0_1.trr'],
+            'other_0_1.trr',
+        ),
+        ('prod', ['other.gro', 'other.pdb', 'other.xtc'], 'other.xtc'),
+        (
+            'prod',
+            ['other.gro', 'other.pdb', 'other.xtc', 'other_0_1.trr'],
+            'other_0_1.trr',
+        ),
+        ('prod', ['other.gro', 'other.pdb', 'other.xtc'], 'other.xtc'),
+        ('prod', ['other.gro', 'other.pdb', 'other_0_1.xtc'], 'other_0_1.xtc'),
+        ('prod', ['other.gro', 'other.pdb'], 'other.pdb'),
+        ('prod', ['other.gro'], 'other.gro'),
+        # === Sorting within multiple equal-priority files ===
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'prod_0_3.xtc',
+                'prod_0_2.xtc',
+                'prod_0_1.xtc',
+                'prod_0_4.xtc',
+                'prod_0_3.trr',
+                'prod_0_2.trr',
+                'prod_0_1.trr',
+                'prod_0_4.trr',
+                'test_prod_0_1.trr',
+                'test_0_1_prod.trr',
+                'other.trr',
+                'other.xtc',
+            ],
+            'prod_0_1.trr',
+        ),
+        (
+            'prod',
+            [
+                'prod.gro',
+                'prod.pdb',
+                'prod_0_3.xtc',
+                'prod_0_2.xtc',
+                'prod_0_1.xtc',
+                'prod_0_4.xtc',
+                'other.trr',
+            ],
+            'prod_0_1.xtc',
+        ),
+        (
+            'prod',
+            [
+                'other.gro',
+                'prod_0_3.pdb',
+                'prod_0_2.pdb',
+                'prod_0_1.pdb',
+                'prod_0_4.pdb',
+            ],
+            'prod_0_1.pdb',
+        ),
+        (
+            'prod',
+            [
+                'other.pdb',
+                'prod_0_3.gro',
+                'prod_0_2.gro',
+                'prod_0_1.gro',
+                'prod_0_4.gro',
+            ],
+            'prod_0_1.gro',
+        ),
+        # === Fallback uniqueness ===
+        (
+            'prod',
+            [
+                'test.trr',
+                'test.log',
+                'test.mdp',
+                'other.trr',
+                'unrelated.trr',
+                'unrelated.log',
+                'unrelated.mdp',
+                'unrelated.tpr',
+                'unrelated.edr',
+            ],
+            'other.trr',
+        ),
+        (
+            'prod',
+            [
+                'unrelated.trr',
+                'unrelated.log',
+                'unrelated.mdp',
+                'unrelated.tpr',
+                'unrelated.edr',
+                'test.trr',
+                'test.log',
+                'test.mdp',
+            ],
+            'test.trr',
+        ),
+        # === Fallback with mixed suffixes ===
+        ('prod', ['test.pdb', 'other.xtc'], 'other.xtc'),
+        ('prod', ['test.gro', 'other.xtc'], 'other.xtc'),
+        ('prod', ['test.pdb', 'other.gro'], 'test.pdb'),
+        ('prod', ['test.xtc', 'other.trr', 'unrelated.trr'], 'other.trr'),
+    ],
+)
+def test_find_trajectory_file_parametrized(parser, basename, files, expected):
+    """
+    Parametrized test of find_trajectory_file using real suffix and prefix priority rules.
+    """
+    parser._basename = basename
+    parser._maindir = 'upload'
+    parser._gromacs_files = files
+
+    parser.find_trajectory_file()
+
+    result = parser.traj_parser.auxilliary_files
+    assert isinstance(result, list), f'Expected list, got {type(result)}'
+    assert len(result) == 1, f'Expected 1 file, got {len(result)}'
+    assert result[0] == os.path.join(parser._maindir, expected), (
+        f'Expected {os.path.join(parser._maindir, expected)}, got {result[0]}'
+    )

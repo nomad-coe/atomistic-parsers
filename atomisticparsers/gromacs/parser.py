@@ -1737,14 +1737,11 @@ class GromacsParser(MDParser):
         # Get all MDAnalysis-compatible trajectory files in self.gromacs_files,
         # sorted by extension priority (priority_list) and filename.
         # Select matching trajectory with highest priority.
-        fallback_files: List[str] = []
-
         def try_priority_group(traj_priority_group) -> bool:
             contains_files: List[str] = []
+            fallback_files: List[str] = []
             for file_ext in traj_priority_group:
-                print(file_ext)
                 traj_files_tup = self.get_all_gromacs_files(file_ext, return_all=True)
-                print(traj_files_tup)
                 if traj_files_tup:
                     for file_path in traj_files_tup[0]:
                         if matches_mainfile(file_path):
@@ -1753,6 +1750,10 @@ class GromacsParser(MDParser):
                     fallback_files.extend(traj_files_tup[2])
             # If no exact filename match was found, check for files containing the mainfile name
             for file_path in contains_files:
+                if matches_mainfile(file_path):
+                    return True
+            # Search `fallback_files` only if no higher-priority match was found
+            for file_path in fallback_files:
                 if matches_mainfile(file_path):
                     return True
             # No match found in this priority group
@@ -1765,10 +1766,6 @@ class GromacsParser(MDParser):
         if try_priority_group(traj_priority_list[2:]):
             return None
 
-        # Search `fallback_files` only if no higher-priority match was found
-        for file_path in fallback_files:
-            if matches_mainfile(file_path):
-                return None
         # If no matching trajectory file is found, self.trajectory_parser.auxilliary_files remains default (None,).
         # Mismatched trajectory files are logged as a warning.
         self.logger.warning(

@@ -1688,11 +1688,9 @@ class GromacsParser(MDParser):
         trajectory_file = os.path.basename(self.traj_parser.auxilliary_files[0])
         sec_input_output_files.x_gromacs_inout_file_trajtrr = trajectory_file
 
-        try:
+        if self.energy_parser.mainfile is not None:
             edr_file = os.path.basename(self.energy_parser.mainfile)
             sec_input_output_files.x_gromacs_inout_file_eneredr = edr_file
-        except TypeError:
-            logging.warning('Error parsing `edr` file, no energy data available.')
 
         sec_control_parameters = x_gromacs_section_control_parameters()
         sec_run.x_gromacs_section_control_parameters = sec_control_parameters

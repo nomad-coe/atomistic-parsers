@@ -776,45 +776,9 @@ class GromacsParser(MDParser):
             if self.mdp_std_filename in filename:
                 return os.path.join(self._maindir, f)
 
-        return next(iter(self.get_all_gromacs_files(self.mdp_ext)), None)
+        return next(iter(self.get_gromacs_files(self.mdp_ext)), None)
 
-    def get_gromacs_file(self, ext):
-        files = [d for d in self._gromacs_files if d.endswith(ext)]
-
-        if len(files) == 0:
-            return ''
-
-        if len(files) == 1:
-            return os.path.join(self._maindir, files[0])
-
-        # we assume that the file has the same basename as the log file e.g.
-        # out.log would correspond to out.tpr and out.trr and out.edr
-        for f in files:
-            if f.rsplit('.', 1)[0] == self._basename:
-                return os.path.join(self._maindir, f)
-
-        for f in files:
-            if f.rsplit('.', 1)[0].startswith(self._basename):
-                return os.path.join(self._maindir, f)
-
-        # if the files are all named differently, we guess that the one that does not
-        # share the same basename would be file we are interested in
-        # e.g. in a list of files out.log someout.log out.tpr out.trr another.tpr file.trr
-        # we guess that the out.* files belong together and the rest that does not share
-        # a basename would be grouped together
-        counts = []
-        for f in files:
-            count = 0
-            for reff in self._gromacs_files:
-                if f.rsplit('.', 1)[0] == reff.rsplit('.', 1)[0]:
-                    count += 1
-            if count == 1:
-                return os.path.join(self._maindir, f)
-            counts.append(count)
-
-        return os.path.join(self._maindir, files[counts.index(min(counts))])
-
-    def get_all_gromacs_files(
+    def get_gromacs_files(
         self, ext, return_all=False
     ) -> Union[Tuple[List[str], List[str], List[str]], List[str]]:
         """
@@ -887,7 +851,7 @@ class GromacsParser(MDParser):
 
         # TODO read also from ene
         # Make sure *.edr file is part of upload before attempting to parse it.
-        edr_file = next(iter(self.get_all_gromacs_files('edr')), None)
+        edr_file = next(iter(self.get_gromacs_files('edr')), None)
         if edr_file:
             self.energy_parser.keys()
             self.energy_parser.mainfile = edr_file
@@ -1169,7 +1133,7 @@ class GromacsParser(MDParser):
         try:
             n_atoms = self.traj_parser.get('n_atoms', 0)
         except Exception:
-            gro_file = next(iter(self.get_all_gromacs_files('gro')), None)
+            gro_file = next(iter(self.get_gromacs_files('gro')), None)
             self.traj_parser.mainfile = gro_file
             n_atoms = self.traj_parser.get('n_atoms', 0)
         atoms_info = self.traj_parser.get('atoms_info', {})
@@ -1578,9 +1542,7 @@ class GromacsParser(MDParser):
             params_key = 'free_energy_calculation_parameters'
             method[params_key] = self.get_free_energy_calculation_parameters()
 
-            self.xvg_parser.mainfile = next(
-                iter(self.get_all_gromacs_files('xvg')), None
-            )
+            self.xvg_parser.mainfile = next(iter(self.get_gromacs_files('xvg')), None)
             free_energies = self.xvg_parser.get('results')
 
             title = free_energies.get('title', '') if free_energies is not None else ''
@@ -1739,7 +1701,7 @@ class GromacsParser(MDParser):
             contains_files: List[str] = []
             fallback_files: List[str] = []
             for file_ext in traj_priority_group:
-                traj_files_tup = self.get_all_gromacs_files(file_ext, return_all=True)
+                traj_files_tup = self.get_gromacs_files(file_ext, return_all=True)
                 if traj_files_tup:
                     for file_path in traj_files_tup[0]:
                         if matches_mainfile(file_path):
@@ -1784,7 +1746,7 @@ class GromacsParser(MDParser):
         self._frame_rate = None
 
         header = self.log_parser.get('header', {})
-        topology_file = next(iter(self.get_all_gromacs_files('tpr')), None)
+        topology_file = next(iter(self.get_gromacs_files('tpr')), None)
         sec_run = Run()
         sec_run.program = Program(
             name='GROMACS',

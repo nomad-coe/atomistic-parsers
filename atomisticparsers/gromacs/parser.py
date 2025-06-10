@@ -370,7 +370,7 @@ class GromacsEDRParser(FileParser):
     @property
     def length(self):
         if self.fileedr is None:
-            return None
+            return 0
         return self.fileedr.shape[0]
 
 
@@ -787,7 +787,7 @@ class GromacsParser(MDParser):
         by basename similarity and uniqueness. If False, return the first file
         that matches the basename of the main file.
         Returns:
-        - tuple: return_all == True. A tuple of two lists.
+        - tuple: return_all == True. A tuple of three lists.
           The first list contains the files with at least partially the same
           basename as the main file, sorted by descending match priority.
           The second list contains the files with different basenames,
@@ -853,7 +853,6 @@ class GromacsParser(MDParser):
         # Make sure *.edr file is part of upload before attempting to parse it.
         edr_file = next(iter(self.get_gromacs_files('edr')), None)
         if edr_file:
-            self.energy_parser.keys()
             self.energy_parser.mainfile = edr_file
             thermo_data = self.energy_parser
         if not thermo_data:
@@ -1663,7 +1662,7 @@ class GromacsParser(MDParser):
         )
         sec_control_parameters.m_set(quantity_def, input_parameters)
 
-    def find_trajectory_file(self) -> Union[str, None]:
+    def find_trajectory_file(self) -> str:
         """
         Find and set trajectory files following the priority:
         "trr" > "xtc", fallback "pdb" > "gro". Prioritize files with exact basename
@@ -1685,46 +1684,52 @@ class GromacsParser(MDParser):
             # set the trajectory file to the current file_path,
             # the traj_parser attempts to create a MDAnalysis universe
             try:
-                self.traj_parser.auxilliary_files = [file_path]
+                print(
+                    f'In matches_mainfile: {self.traj_parser.mainfile}, {file_path}\n'
+                )
+                u = MDAnalysis.Universe(self.traj_parser.mainfile, file_path)
+                if u.atoms:
+                    return True
             except Exception as e:
                 # If the trajectory file does not match the topology,
                 # the trajectory file remains None
                 failed_files.append(file_path)
                 return False
-            else:
-                return True
 
         # Get all MDAnalysis-compatible trajectory files in self.gromacs_files,
         # sorted by extension priority (priority_list) and filename.
         # Select matching trajectory with highest priority.
-        def try_priority_group(traj_priority_group) -> bool:
+        def try_priority_group(traj_priority_group) -> str:
             contains_files: List[str] = []
             fallback_files: List[str] = []
             for file_ext in traj_priority_group:
+                print(f'\nChecking for {file_ext} files...\n')
                 traj_files_tup = self.get_gromacs_files(file_ext, return_all=True)
                 if traj_files_tup:
                     for file_path in traj_files_tup[0]:
                         if matches_mainfile(file_path):
-                            return True
+                            return file_path
                     contains_files.extend(traj_files_tup[1])
                     fallback_files.extend(traj_files_tup[2])
             # If no exact filename match was found, check for files containing the mainfile name
             for file_path in contains_files:
                 if matches_mainfile(file_path):
-                    return True
+                    return file_path
             # Search `fallback_files` only if no higher-priority match was found
             for file_path in fallback_files:
                 if matches_mainfile(file_path):
-                    return True
+                    return file_path
             # No match found in this priority group
-            return False
+            return ''
 
         # Check 'trr' and 'xtc' first
-        if try_priority_group(traj_priority_list[:2]):
-            return None
+        traj_file = try_priority_group(traj_priority_list[:2])
+        if traj_file:
+            return traj_file
         # Then check 'pdb' and 'gro'
-        if try_priority_group(traj_priority_list[2:]):
-            return None
+        traj_file = try_priority_group(traj_priority_list[2:])
+        if traj_file:
+            return traj_file
 
         # If no matching trajectory file is found, self.trajectory_parser.auxilliary_files remains default (None,).
         # Mismatched trajectory files are logged as a warning.
@@ -1733,7 +1738,7 @@ class GromacsParser(MDParser):
             # TODO: decide wether knowing the mismatched trajectory files is useful for the user.
             extra={'file_paths': failed_files},
         )
-        return None
+        return ''
 
     def write_to_archive(self):
         self._maindir = os.path.dirname(self.mainfile)
@@ -1746,6 +1751,7 @@ class GromacsParser(MDParser):
         self._frame_rate = None
 
         header = self.log_parser.get('header', {})
+        # ? Should we allow 'gro' as fallback for topology?
         topology_file = next(iter(self.get_gromacs_files('tpr')), None)
         sec_run = Run()
         sec_run.program = Program(
@@ -1795,8 +1801,8 @@ class GromacsParser(MDParser):
                 )
 
         self.traj_parser.mainfile = topology_file
-        # Trajectory file is passed to MDAnalysisParser parser under the hood
-        self.find_trajectory_file()
+
+        self.traj_parser.auxilliary_files = self.find_trajectory_file()
 
         self.parse_method()
 

@@ -666,8 +666,8 @@ class LogParser(TextParser):
 
         self._quantities = [
             Quantity(
-                name,
-                r'\n\s*%s\s+(?!.*\$\{)([${}\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*' % name,
+                name, # LB - Edited regex (added \b \b)
+                r'\n\s*\b%s\b\s+(?!.*\$\{)([${}\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*' % name,
                 str_operation=str_op,
                 comment='#',
                 repeats=True,
@@ -678,7 +678,7 @@ class LogParser(TextParser):
         self._quantities.append(
             Quantity(
                 'program_version',
-                r'\s*LAMMPS\s*\(([\w ]+)\)\n',
+                r'\s*LAMMPS\s*\(([^)]+)\)\n', # LB - Edited regex for '(2 Aug 2023 - Update 1)'
                 dtype=str,
                 repeats=False,
                 flatten=False,
@@ -724,7 +724,7 @@ class LogParser(TextParser):
         self._quantities.append(
             Quantity(
                 'thermo_data',
-                r'\s*\-*(\s*Step\s*[\-\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop',
+                r'([ \-]*Step\s*[\-/\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop', # LB - altered to allow for more thermo formats (\s*.*(\s*Step\s*[\-/\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop)
                 str_operation=str_to_thermo,
                 repeats=False,
                 convert=False,
@@ -795,6 +795,7 @@ class LogParser(TextParser):
             return re.search(regex_pattern, file_header_str)
 
         read_data = self.get('read_data')
+        # TODO: chop out 'CPU' before, then just check none
         if read_data is None or 'CPU' in read_data:
             self.logger.warning('Data file not specified in directory, will scan.')
             data_files = os.listdir(self.maindir)
@@ -811,7 +812,7 @@ class LogParser(TextParser):
                 prefix = (
                     prefix[1] if len(prefix) > 1 and prefix[1] != 'log' else prefix[0]
                 )
-                data_files = [f for f in data_files if prefix in f]
+                data_files = [f for f in data_files if prefix in f]  # LB - This seems 
         else:
             data_files = read_data
 
@@ -1568,14 +1569,14 @@ class LammpsParser(MDParser):
                 'lj' in pairstyle and 'coul' not in pairstyle
             ):  # only cover the simplest case
                 sec_force_calculations.vdw_cutoff = (
-                    float(pairstyle_args[-1]) * ureg.nanometer
+                    float(pairstyle_args[-1]) * ureg.angstrom # LB - changed nanometer to angstrom
                 )
             if 'coul' in pairstyle:
                 if 'streitz' in pairstyle:
                     cutoff = float(pairstyle_args[0])
                 else:
                     cutoff = float(pairstyle_args[-1])
-                sec_force_calculations.coulomb_cutoff = cutoff * ureg.nanometer
+                sec_force_calculations.coulomb_cutoff = cutoff * ureg.angstrom # LB - changed nanometer to angstrom
             val = self.log_parser.get('kspace_style', None)
             if val is not None:
                 kspacestyle = val[0][0].lower()
@@ -1660,7 +1661,7 @@ class LammpsParser(MDParser):
         sec_run.program = Program(
             name='LAMMPS', version=self.log_parser.get('program_version', '')
         )
-
+   
         # parse data file associated with calculation
         data_files = self.log_parser.get_data_files()
         if len(data_files) > 1:
@@ -1687,6 +1688,11 @@ class LammpsParser(MDParser):
                 self._mdanalysistraj_parser = traj_parser
             elif file_type == 'xyz' and data_files:
                 traj_parser = MDAnalysisParser(topology_format='DATA', format='XYZ')
+                traj_parser.mainfile = data_files[0]
+                traj_parser.auxilliary_files = [traj_file]
+                self._mdanalysistraj_parser = traj_parser
+            elif file_type == 'atom' and data_files:   # LB - Added logic for the 'data' format
+                traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP')
                 traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
                 self._mdanalysistraj_parser = traj_parser
@@ -1720,7 +1726,8 @@ class LammpsParser(MDParser):
                         self._mdanalysistraj_parser = traj_parser
                     traj_parser = TrajParser()
                     traj_parser.mainfile = traj_file
-            else:
+            else: # TODO - LB - Check what this else is for - does it ever work? - Add log warning (no specific options to build MDAnalysis)
+                self.logger.warning('No file_type found for traj_file.')
                 traj_parser = TrajParser()
                 traj_parser.mainfile = traj_file
                 # TODO provide support for other file types

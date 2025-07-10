@@ -180,11 +180,24 @@ def get_unit(units_type, property_type=None, dimension=3):
             density=ureg.ag / ureg.nm**dimension,
         )
 
+    elif units_type == 'lj':
+        units = dict(
+            mass=1,
+            distance=1,
+            time=1,
+            energy=1,
+            velocity=1,
+            force=1,
+            torque=1,
+            temperature=1,
+            pressure=1,
+            dynamic_viscosity=1,
+            charge=1,
+            dipole=1,
+            electric_field=1,
+            density=1,
+        )
     else:
-        # units = dict(
-        #     mass=1, distance=1, time=1, energy=1, velocity=1, force=1,
-        #     torque=1, temperature=1, pressure=1, dynamic_viscosity=1, charge=1,
-        #     dipole=1, electric_field=1, density=1)
         units = dict()
 
     if property_type:

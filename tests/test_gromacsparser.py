@@ -891,13 +891,18 @@ def test_str_to_input_parameters(path: str, input_log_fnm: str, result_json_fnm:
         ('prod', ['test.xtc', 'other.trr', 'unrelated.trr'], 'other.trr'),
     ],
 )
-def test_find_trajectory_file_parametrized(parser, basename, files, expected):
+def test_find_trajectory_file(parser, basename, files, expected):
     """
     Parametrized test of find_trajectory_file using real suffix and prefix priority rules.
     """
     parser._basename = basename
     parser._maindir = 'upload'
     parser._gromacs_files = files
+
+    # === MOCK: Patch MDAnalysis.Universe to always return a mock with `atoms` truthy ===
+    mock_univ = mocker.patch('MDAnalysis.Universe')
+    mock_univ.return_value.atoms = [1]  # anything truthy
+    # parser.traj_parser.mainfile = os.path.join(parser._maindir, f'{basename}.tpr')
 
     parser.find_trajectory_file()
 

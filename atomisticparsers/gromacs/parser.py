@@ -21,6 +21,7 @@ import numpy as np
 import logging
 import re
 import datetime
+from itertools import chain
 from typing import List, Dict, Tuple, Union
 
 import panedr
@@ -1702,7 +1703,7 @@ class GromacsParser(MDParser):
         exact_matches: List[str] = []
         contains_files: List[str] = []
         fallback_files: List[str] = []
-        for file_ext in traj_priority_list:
+        for file_ext in chain(traj_priority_list[:2], traj_priority_list[2:]):
             traj_files_tup = self.get_gromacs_files(file_ext, return_all=True)
             if traj_files_tup:
                 exact_matches.extend(traj_files_tup[0])
@@ -1718,7 +1719,7 @@ class GromacsParser(MDParser):
                 return file_path
 
         # If no matching trajectory file is found, self.trajectory_parser.auxilliary_files remains default (None,).
-        # Mismatched trajectory files are logged as a warning.
+        # Mismatched trajectory files are appended as 'extra' information to the logged warning.
         self.logger.warning(
             'Provided trajectory files do not match topology.',
             # TODO: decide wether knowing the mismatched trajectory files is useful for the user.

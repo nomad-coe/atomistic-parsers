@@ -891,18 +891,38 @@ def test_str_to_input_parameters(path: str, input_log_fnm: str, result_json_fnm:
         ('prod', ['test.xtc', 'other.trr', 'unrelated.trr'], 'other.trr'),
     ],
 )
-def test_find_trajectory_file(parser, basename, files, expected):
+def test_find_trajectory_file(monkeypatch, parser, basename, files, expected):
     """
     Parametrized test of find_trajectory_file using real suffix and prefix priority rules.
     """
+    archive = {}
     parser._basename = basename
     parser._maindir = 'upload'
+    logfile_path = f'{parser._maindir}/{basename}.log'
+    monkeypatch.setattr(parser, 'parse', lambda path, archive, _: None)
+    print(parser._basename)
+    print(parser._maindir)
+    print(parser.traj_parser.mainfile)
+    print(type(parser.traj_parser).__dict__.get('mainfile'))
+    print(
+        [cls for cls in type(parser.traj_parser).__mro__ if 'mainfile' in cls.__dict__]
+    )
+
+    # logfile = f'{parser._maindir}/{basename}.log'
+    # pytest.MonkeyPatch.setattr(
+    #     parser.parse, parser.parse.mainfile, lambda path, archive, logfile: None
+    # )
+    # print(parser.parse.__dict__)
+
+    # pytest.MonkeyPatch.setattr(
+    #     parser.traj_parser.mainfile,
+    #     parser.traj_parser.mainfile,
+    #     lambda: f'{parser._maindir}/{basename}.tpr',
+    # )
     parser._gromacs_files = files
 
-    # === MOCK: Patch MDAnalysis.Universe to always return a mock with `atoms` truthy ===
-    mock_univ = mocker.patch('MDAnalysis.Universe')
-    mock_univ.return_value.atoms = [1]  # anything truthy
-    # parser.traj_parser.mainfile = os.path.join(parser._maindir, f'{basename}.tpr')
+    print(parser.traj_parser.mainfile)
+    print(parser._gromacs_files)
 
     parser.find_trajectory_file()
 

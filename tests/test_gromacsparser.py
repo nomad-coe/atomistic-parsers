@@ -42,6 +42,12 @@ def parser():
     return GromacsParser()
 
 
+# fixture for parser instance that is not shared across tests
+@pytest.fixture(scope='function')
+def isolated_parser():
+    return GromacsParser()
+
+
 def test_md_verbose(parser):
     archive = EntryArchive()
     parser.parse('tests/data/gromacs/fe_test/md.log', archive, None)
@@ -891,44 +897,47 @@ def test_str_to_input_parameters(path: str, input_log_fnm: str, result_json_fnm:
         ('prod', ['test.xtc', 'other.trr', 'unrelated.trr'], 'other.trr'),
     ],
 )
-def test_find_trajectory_file(monkeypatch, parser, basename, files, expected):
+def test_find_trajectory_file(monkeypatch, isolated_parser, basename, files, expected):
     """
     Parametrized test of find_trajectory_file using real suffix and prefix priority rules.
     """
-    archive = {}
-    parser._basename = basename
-    parser._maindir = 'upload'
-    logfile_path = f'{parser._maindir}/{basename}.log'
-    monkeypatch.setattr(parser, 'parse', lambda path, archive, _: None)
-    print(parser._basename)
-    print(parser._maindir)
-    print(parser.traj_parser.mainfile)
-    print(type(parser.traj_parser).__dict__.get('mainfile'))
-    print(
-        [cls for cls in type(parser.traj_parser).__mro__ if 'mainfile' in cls.__dict__]
+
+    # Patch the parse method to avoid actual file parsing
+    monkeypatch.setattr(isolated_parser, 'parse', lambda path, archive, _: None)
+    isolated_parser._basename = basename
+    isolated_parser._maindir = 'upload'
+
+    isolated_parser._gromacs_files = files
+
+    # Need to patch the trajectory parser, otherwise I can't overwrite the 'mainfile' property
+    PatchedParser = type(
+        'PatchedParser',
+        (type(isolated_parser.traj_parser),),
+        {
+            'mainfile': property(
+                lambda self: f'{isolated_parser._maindir}/{isolated_parser._basename}.tpr'
+            )
+        },
     )
 
-    # logfile = f'{parser._maindir}/{basename}.log'
-    # pytest.MonkeyPatch.setattr(
-    #     parser.parse, parser.parse.mainfile, lambda path, archive, logfile: None
-    # )
-    # print(parser.parse.__dict__)
+    # Patch the MDAnalysis Universe to avoid check failing because of non-existing files
+    monkeypatch.setattr(
+        'atomisticparsers.gromacs.parser.MDAnalysis.Universe',
+        lambda top, traj=None: type('MockU', (), {'atoms': [1]})(),
+    )
 
-    # pytest.MonkeyPatch.setattr(
-    #     parser.traj_parser.mainfile,
-    #     parser.traj_parser.mainfile,
-    #     lambda: f'{parser._maindir}/{basename}.tpr',
-    # )
-    parser._gromacs_files = files
+    isolated_parser.traj_parser = PatchedParser()
 
-    print(parser.traj_parser.mainfile)
-    print(parser._gromacs_files)
-
-    parser.find_trajectory_file()
-
-    result = parser.traj_parser.auxilliary_files
-    assert isinstance(result, list), f'Expected list, got {type(result)}'
-    assert len(result) == 1, f'Expected 1 file, got {len(result)}'
-    assert result[0] == os.path.join(parser._maindir, expected), (
-        f'Expected {os.path.join(parser._maindir, expected)}, got {result[0]}'
+    result = isolated_parser.find_trajectory_file()
+    isolated_parser.traj_parser.auxilliary_files = [result]
+    assert isinstance(isolated_parser.traj_parser.auxilliary_files, list), (
+        f'Expected list, got {type(isolated_parser.traj_parser.auxilliary_files)}'
+    )
+    assert len(isolated_parser.traj_parser.auxilliary_files) == 1, (
+        f'Expected 1 file, got {len(isolated_parser.traj_parser.auxilliary_files)}'
+    )
+    assert isolated_parser.traj_parser.auxilliary_files[0] == os.path.join(
+        isolated_parser._maindir, expected
+    ), (
+        f'Expected {os.path.join(isolated_parser._maindir, expected)}, got {isolated_parser.traj_parser.auxilliary_files[0]}'
     )

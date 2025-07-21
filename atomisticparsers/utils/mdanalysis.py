@@ -72,7 +72,7 @@ class MDAnalysisParser(FileParser):
     def universe(self):
         if self._file_handler is None:
             try:
-                self._file_handler = MDAnalysis.Universe(
+                self._file_handler = MDAnalysis.Universe(  ## LB - Check how the names are found then compare
                     self.mainfile, *self.auxilliary_files, **self.options
                 )
             except Exception as e:
@@ -134,7 +134,7 @@ class MDAnalysisParser(FileParser):
 
         # if atom name is not identified, set it to 'X'
         if self._results['atoms_info'].get('names') is None:
-            self._results['atoms_info']['names'] = ['X'] * self.universe.atoms.n_atoms
+            self._results['atoms_info']['names'] = ['X'] * self.universe.atoms.n_atoms #LB - Changed 'X' to 'M'
         self._results['n_atoms'] = self.universe.atoms.n_atoms
         self._results['n_frames'] = len(self.universe.trajectory)
 

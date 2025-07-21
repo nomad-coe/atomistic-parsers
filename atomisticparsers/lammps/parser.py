@@ -399,7 +399,7 @@ class TrajParser(TextParser):
             return
 
         atoms_id = atoms_info[idx].get('id')
-        default = ['X' for _ in atoms_id] if atoms_id is not None else None
+        default = ['X' for _ in atoms_id] if atoms_id is not None else None # LB 'X' to 'D' for debug
         atoms_type = atoms_info[idx].get('type')
         if atoms_type is None:
             return default
@@ -666,7 +666,7 @@ class LogParser(TextParser):
 
         self._quantities = [
             Quantity(
-                name, # LB - Edited regex (added \b \b)
+                name, # LB - Edited regex (added \b \b) - word boundaries
                 r'\n\s*\b%s\b\s+(?!.*\$\{)([${}\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*' % name,
                 str_operation=str_op,
                 comment='#',
@@ -678,7 +678,7 @@ class LogParser(TextParser):
         self._quantities.append(
             Quantity(
                 'program_version',
-                r'\s*LAMMPS\s*\(([^)]+)\)\n', # LB - Edited regex for '(2 Aug 2023 - Update 1)'
+                r'\s*LAMMPS\s*\(([^)]+)\)\n', # LB - Edited regex for '(2 Aug 2023 - Update 1)' searches for any character except ')' now, not just word chars
                 dtype=str,
                 repeats=False,
                 flatten=False,
@@ -796,11 +796,16 @@ class LogParser(TextParser):
 
         read_data = self.get('read_data')
         # TODO: chop out 'CPU' before, then just check none
-        if read_data is None or 'CPU' in read_data:
+        if read_data is not None: 
+            try:
+                read_data.remove('CPU')
+            except Exception:
+                pass
+        if read_data is None: #  or 'CPU' in read_data
             self.logger.warning('Data file not specified in directory, will scan.')
             data_files = os.listdir(self.maindir)
             data_files = [
-                f for f in data_files if f.endswith('data') or f.startswith('data')
+                f for f in data_files if f.endswith('data') or f.startswith('data') or f.endswith('dat')
             ]
             if not data_files:
                 data_files = os.listdir(self.maindir)
@@ -812,10 +817,12 @@ class LogParser(TextParser):
                 prefix = (
                     prefix[1] if len(prefix) > 1 and prefix[1] != 'log' else prefix[0]
                 )
-                data_files = [f for f in data_files if prefix in f]  # LB - This seems 
+                data_files = [f for f in data_files if prefix in f]  # LB - This seems odd
         else:
             data_files = read_data
 
+        if not data_files:
+            self.logger.warning('No data_files found to match the log file.')
         return [os.path.join(self.maindir, f) for f in data_files]
 
     def get_pbc(self):
@@ -1413,13 +1420,13 @@ class LammpsParser(MDParser):
             atoms_moltypes = np.array(atoms_info.get('moltypes', []))
             atoms_molnums = np.array(atoms_info.get('molnums', []))
             atoms_resids = np.array(atoms_info.get('resids', []))
-            atoms_elements = np.array(atoms_info.get('elements', ['X'] * self.n_atoms))
+            atoms_elements = np.array(atoms_info.get('elements', ['Qs'] * self.n_atoms))
             atoms_types = np.array(atoms_info.get('types', []))
             atom_labels = sec_system.atoms.get('labels')
             if 'X' in atoms_elements:
                 atoms_elements = (
                     np.array(atom_labels)
-                    if atom_labels and 'X' not in atom_labels
+                    if atom_labels and not 'X' in atom_labels # not(all([it == 'X' for it in atom_labels])) # LB - Change to see if having all X vs some (meaning it parsed) makes some difference
                     else atoms_types
                 )
             atoms_resnames = np.array(atoms_info.get('resnames', []))
@@ -1692,10 +1699,19 @@ class LammpsParser(MDParser):
                 traj_parser.auxilliary_files = [traj_file]
                 self._mdanalysistraj_parser = traj_parser
             elif file_type == 'atom' and data_files:   # LB - Added logic for the 'data' format
+                # TODO: double check logic - specifically the change for n==0
                 traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP')
                 traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
-                self._mdanalysistraj_parser = traj_parser
+                # LB - Same as in custom - checking if universe can be construct
+                if traj_parser.universe is None or 'X' in traj_parser.get(
+                    'atoms_info', {}
+                ).get('names', []):
+                    # mda necessary to calculate rdf and atomsgroup
+                    if n == 0:
+                        self._mdanalysistraj_parser = traj_parser
+                    traj_parser = TrajParser()
+                    traj_parser.mainfile = traj_file
             elif file_type == 'custom' and data_files:
                 custom_options = self.log_parser.get('dump')[n][5:]
                 custom_options = [
@@ -1726,8 +1742,8 @@ class LammpsParser(MDParser):
                         self._mdanalysistraj_parser = traj_parser
                     traj_parser = TrajParser()
                     traj_parser.mainfile = traj_file
-            else: # TODO - LB - Check what this else is for - does it ever work? - Add log warning (no specific options to build MDAnalysis)
-                self.logger.warning('No file_type found for traj_file.')
+            else: # TODO - LB - Check what this else is for - does it ever work? 
+                self.logger.warning('No file_type found for traj_file.') # Added log warning (no specific options to build MDAnalysis)
                 traj_parser = TrajParser()
                 traj_parser.mainfile = traj_file
                 # TODO provide support for other file types

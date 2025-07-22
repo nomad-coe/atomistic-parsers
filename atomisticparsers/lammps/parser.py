@@ -1420,7 +1420,7 @@ class LammpsParser(MDParser):
             atoms_moltypes = np.array(atoms_info.get('moltypes', []))
             atoms_molnums = np.array(atoms_info.get('molnums', []))
             atoms_resids = np.array(atoms_info.get('resids', []))
-            atoms_elements = np.array(atoms_info.get('elements', ['Qs'] * self.n_atoms))
+            atoms_elements = np.array(atoms_info.get('elements', ['X'] * self.n_atoms))
             atoms_types = np.array(atoms_info.get('types', []))
             atom_labels = sec_system.atoms.get('labels')
             if 'X' in atoms_elements:
@@ -1466,7 +1466,7 @@ class LammpsParser(MDParser):
                     mol_resids = np.unique(atoms_resids[sec_molecule.atom_indices])
                     n_res = mol_resids.shape[0]
                     if n_res == 1:
-                        elements = atoms_elements[sec_molecule.atom_indices]
+                        elements = atoms_elements[sec_molecule.atom_indices] # LB TODO: check indexerror: index 500 out of bounds for axis 0 with size 500
                         sec_molecule.composition_formula = get_composition(elements)
                     else:
                         mol_resnames = atoms_resnames[sec_molecule.atom_indices]
@@ -1550,11 +1550,22 @@ class LammpsParser(MDParser):
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
         if n_atoms is not None:
             atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
+            # LB - TODO: line 1400 
+            labels = self.traj_parsers.eval('labels')
+            if labels is None or 'X' in labels:
+                atom_types = self._mdanalysistraj_parser.get('types', None) # atom_types = self._mdanalysis.get('atom_types')
+                #check if none and revert to X's if none
+                if atom_types is None:
+                    atom_types = atoms_info.get('types', None)
+                    #atom_types = ['X']*n_atoms
+                else: 
+                    labels = [f'X_{atom_type}' for atom_type in atom_types]
             for n in range(n_atoms):
                 sec_atom = AtomParameters()
                 sec_method.atom_parameters.append(sec_atom)
                 sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
                 sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+                sec_atom.label = labels[n] if labels is not None else f'X_{atom_types[n]}'#*[n]
 
         # TODO address case types are numbered instead of giving atom labels (fix tests accordingly)
         interactions = self._mdanalysistraj_parser.get_interactions()

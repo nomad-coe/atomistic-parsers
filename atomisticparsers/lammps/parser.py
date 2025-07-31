@@ -180,6 +180,25 @@ def get_unit(units_type, property_type=None, dimension=3):
             density=ureg.ag / ureg.nm**dimension,
         )
 
+    # LB - TODO: Add in lj units
+    #elif units_type == 'lj':
+    #    units = dict(
+    #        mass=ureg('dimensionless'),
+    #        distance=ureg('dimensionless'),
+    #        time=ureg('dimensionless'),
+    #        energy=ureg('dimensionless'),
+    #        velocity=ureg('dimensionless'),
+    #        force=ureg('dimensionless'),
+    #        torque=ureg('dimensionless'),
+    #        temperature=ureg('dimensionless'),
+    #        pressure=ureg('dimensionless'),
+    #        dynamic_viscosity=ureg('dimensionless'),
+    #        charge=ureg('dimensionless'),
+    #        dipole=ureg('dimensionless'),
+    #        electric_field=ureg('dimensionless'),
+    #        density=ureg('dimensionless'),
+    #    )
+
     else:
         # units = dict(
         #     mass=1, distance=1, time=1, energy=1, velocity=1, force=1,
@@ -317,14 +336,34 @@ class TrajParser(TextParser):
 
     def init_quantities(self):
         def get_pbc_cell(val):
+            # LB - TODO: Add in logic to handle the various pbc formats
             val = val.split()
-
-            pbc = [v == 'pp' for v in val[:3]]
-
+            # dim = len()
             cell = np.zeros((3, 3))
-            for i in range(3):
-                cell[i][i] = float(val[i * 2 + 4]) - float(val[i * 2 + 3])
 
+            if 'xy' == val[0]:
+                pbc = [v == 'pp' for v in val[3:6]]
+                tilt_factors = np.zeros(3)
+                for i in range(3):
+                    tilt_factors[i] = float(val[i*3 + 8])
+                    cell[i][i] = float(val[i * 3 + 7]) - float(val[i * 3 + 6])
+                xy, yz, xz = tilt_factors
+                cell[1][0] = xy
+                cell[2][0] = xz
+                cell[2][1] = yz
+            #elif 'xx' == val[0] or 'pp' == val[0]:
+            else: # orthogonal can have ff or ss ^
+                pbc = [v == 'pp' for v in val[:3]]
+                for i in range(3):
+                    cell[i][i] = float(val[i * 2 + 4]) - float(val[i * 2 + 3])
+            #else:
+            #    self.logger.warning('PBC box style not orthogonal or triclinic. Setting to no pbc and 0.')
+            #    pbc = ['False', 'False', 'False']
+            #    cell = np.zeros((3,3))
+
+            # LB - logger warning about 2D systems - is this necessary?
+            #if cell[2][2] < tol:
+            #    self.logger.warning('Z range is small - may be 2D system.')
             return pbc, cell
 
         def get_atoms_info(val):
@@ -349,7 +388,7 @@ class TrajParser(TextParser):
             ),
             Quantity(
                 'pbc_cell',
-                r'\s*ITEM: BOX BOUNDS\s*([\s\w]+)\n([\+\-\d\.eE\s]+)\n',
+                r'\s*ITEM: BOX BOUNDS\s*([\s\w]+)\n([\+\-\d\.eE\s]+)\n', # TODO: CHeck why pbc none for atom_run
                 str_operation=get_pbc_cell,
                 comment='#',
                 repeats=True,
@@ -422,6 +461,7 @@ class TrajParser(TextParser):
         atoms_info = atoms_info[idx]
 
         cell = self.get('pbc_cell')
+        
         cell = None if cell is None else cell[idx][1]
         if 'xs' in atoms_info and 'ys' in atoms_info and 'zs' in atoms_info:
             if cell is None:
@@ -796,6 +836,8 @@ class LogParser(TextParser):
 
         read_data = self.get('read_data')
         # TODO: chop out 'CPU' before, then just check none
+
+
         if read_data is not None: 
             try:
                 read_data.remove('CPU')
@@ -1040,12 +1082,13 @@ class LammpsParser(MDParser):
                 'Unit information not available. Assuming "real" units in workflow metainfo!'
             )
             units = get_unit('real')
-        energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule)
-        force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton)
+        # LB - changed conversion to if statements
+        energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule) if units != 'dimensionless' else 1
+        force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton) if units != 'dimensionless' else 1
         temperature_conversion = ureg.convert(
             1.0, units.get('temperature'), ureg.kelvin
-        )
-        pressure_conversion = ureg.convert(1.0, units.get('pressure'), ureg.pascal)
+        ) if units != 'dimensionless' else 1
+        pressure_conversion = ureg.convert(1.0, units.get('pressure'), ureg.pascal) if units != 'dimensionless' else 1
 
         minimization_stats = self.log_parser.get('minimization_stats', None)
         workflow = None
@@ -1388,6 +1431,7 @@ class LammpsParser(MDParser):
                 bond_list = get_bond_list_from_model_contributions(
                     sec_run, method_index=-1, model_index=-1
                 )
+            positions = self.traj_parsers.eval('get_positions', traj_n)
             self.parse_trajectory_step(
                 {
                     'atoms': {
@@ -1466,7 +1510,7 @@ class LammpsParser(MDParser):
                     mol_resids = np.unique(atoms_resids[sec_molecule.atom_indices])
                     n_res = mol_resids.shape[0]
                     if n_res == 1:
-                        elements = atoms_elements[sec_molecule.atom_indices] # LB TODO: check indexerror: index 500 out of bounds for axis 0 with size 500
+                        elements = atoms_elements[sec_molecule.atom_indices] 
                         sec_molecule.composition_formula = get_composition(elements)
                     else:
                         mol_resnames = atoms_resnames[sec_molecule.atom_indices]
@@ -1505,7 +1549,7 @@ class LammpsParser(MDParser):
                                 sec_residue.label = str(restype)
                                 sec_residue.type = 'monomer'
                                 sec_residue.is_molecule = False
-                                elements = atoms_elements[sec_residue.atom_indices]
+                                elements = atoms_elements[sec_residue.atom_indices] # LB TODO: check indexerror: index 500 out of bounds for axis 0 with size 500 - 2_xyz_files
                                 sec_residue.composition_formula = get_composition(
                                     elements
                                 )
@@ -1712,7 +1756,8 @@ class LammpsParser(MDParser):
             elif file_type == 'atom' and data_files:   # LB - Added logic for the 'data' format
                 # TODO: double check logic - specifically the change for n==0
                 traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP')
-                traj_parser.mainfile = data_files[0]
+                if data_files:
+                    traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
                 # LB - Same as in custom - checking if universe can be construct
                 if traj_parser.universe is None or 'X' in traj_parser.get(
@@ -1722,7 +1767,7 @@ class LammpsParser(MDParser):
                     if n == 0:
                         self._mdanalysistraj_parser = traj_parser
                     traj_parser = TrajParser()
-                    traj_parser.mainfile = traj_file
+                    traj_parser.mainfile = traj_file # LB TODO: Comment this out
             elif file_type == 'custom' and data_files:
                 custom_options = self.log_parser.get('dump')[n][5:]
                 custom_options = [

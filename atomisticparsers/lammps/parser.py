@@ -180,7 +180,7 @@ def get_unit(units_type, property_type=None, dimension=3):
             density=ureg.ag / ureg.nm**dimension,
         )
 
-    # LB - TODO: Add in lj units
+    # LB - TODO: Add in lj units - hold off / big task 
     #elif units_type == 'lj':
     #    units = dict(
     #        mass=ureg('dimensionless'),
@@ -338,9 +338,8 @@ class TrajParser(TextParser):
         def get_pbc_cell(val):
             # LB - TODO: Add in logic to handle the various pbc formats
             val = val.split()
-            # dim = len()
             cell = np.zeros((3, 3))
-
+            # 'xy' in the first position means a triclinic cell (2D or 3D)
             if 'xy' == val[0]:
                 pbc = [v == 'pp' for v in val[3:6]]
                 tilt_factors = np.zeros(3)
@@ -351,19 +350,10 @@ class TrajParser(TextParser):
                 cell[1][0] = xy
                 cell[2][0] = xz
                 cell[2][1] = yz
-            #elif 'xx' == val[0] or 'pp' == val[0]:
             else: # orthogonal can have ff or ss ^
                 pbc = [v == 'pp' for v in val[:3]]
                 for i in range(3):
                     cell[i][i] = float(val[i * 2 + 4]) - float(val[i * 2 + 3])
-            #else:
-            #    self.logger.warning('PBC box style not orthogonal or triclinic. Setting to no pbc and 0.')
-            #    pbc = ['False', 'False', 'False']
-            #    cell = np.zeros((3,3))
-
-            # LB - logger warning about 2D systems - is this necessary?
-            #if cell[2][2] < tol:
-            #    self.logger.warning('Z range is small - may be 2D system.')
             return pbc, cell
 
         def get_atoms_info(val):
@@ -835,9 +825,8 @@ class LogParser(TextParser):
             return re.search(regex_pattern, file_header_str)
 
         read_data = self.get('read_data')
-        # TODO: chop out 'CPU' before, then just check none
-
-
+        
+        # Chop out 'CPU' before, then just check none
         if read_data is not None: 
             try:
                 read_data.remove('CPU')
@@ -859,7 +848,7 @@ class LogParser(TextParser):
                 prefix = (
                     prefix[1] if len(prefix) > 1 and prefix[1] != 'log' else prefix[0]
                 )
-                data_files = [f for f in data_files if prefix in f]  # LB - This seems odd
+                data_files = [f for f in data_files if prefix in f] 
         else:
             data_files = read_data
 
@@ -1594,7 +1583,7 @@ class LammpsParser(MDParser):
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
         if n_atoms is not None:
             atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
-            # LB - TODO: line 1400 
+ 
             labels = self.traj_parsers.eval('labels')
             if labels is None or 'X' in labels:
                 atom_types = self._mdanalysistraj_parser.get('types', None) # atom_types = self._mdanalysis.get('atom_types')
@@ -1759,7 +1748,7 @@ class LammpsParser(MDParser):
                 if data_files:
                     traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
-                # LB - Same as in custom - checking if universe can be construct
+                # LB - Same as in custom - checking if universe can be constructed
                 if traj_parser.universe is None or 'X' in traj_parser.get(
                     'atoms_info', {}
                 ).get('names', []):
@@ -1767,7 +1756,7 @@ class LammpsParser(MDParser):
                     if n == 0:
                         self._mdanalysistraj_parser = traj_parser
                     traj_parser = TrajParser()
-                    traj_parser.mainfile = traj_file # LB TODO: Comment this out
+                    traj_parser.mainfile = traj_file
             elif file_type == 'custom' and data_files:
                 custom_options = self.log_parser.get('dump')[n][5:]
                 custom_options = [
@@ -1798,8 +1787,8 @@ class LammpsParser(MDParser):
                         self._mdanalysistraj_parser = traj_parser
                     traj_parser = TrajParser()
                     traj_parser.mainfile = traj_file
-            else: # TODO - LB - Check what this else is for - does it ever work? 
-                self.logger.warning('No file_type found for traj_file.') # Added log warning (no specific options to build MDAnalysis)
+            else:  
+                self.logger.warning('No file_type found for traj_file.') # LB - Added log warning (no specific options to build MDAnalysis)
                 traj_parser = TrajParser()
                 traj_parser.mainfile = traj_file
                 # TODO provide support for other file types

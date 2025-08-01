@@ -180,7 +180,7 @@ def get_unit(units_type, property_type=None, dimension=3):
             density=ureg.ag / ureg.nm**dimension,
         )
 
-    # LB - TODO: Add in lj units - hold off / big task 
+    # LB - TODO: Add in lj units - hold off / big task
     #elif units_type == 'lj':
     #    units = dict(
     #        mass=ureg('dimensionless'),
@@ -451,7 +451,7 @@ class TrajParser(TextParser):
         atoms_info = atoms_info[idx]
 
         cell = self.get('pbc_cell')
-        
+
         cell = None if cell is None else cell[idx][1]
         if 'xs' in atoms_info and 'ys' in atoms_info and 'zs' in atoms_info:
             if cell is None:
@@ -825,9 +825,9 @@ class LogParser(TextParser):
             return re.search(regex_pattern, file_header_str)
 
         read_data = self.get('read_data')
-        
+
         # Chop out 'CPU' before, then just check none
-        if read_data is not None: 
+        if read_data is not None:
             try:
                 read_data.remove('CPU')
             except Exception:
@@ -848,7 +848,7 @@ class LogParser(TextParser):
                 prefix = (
                     prefix[1] if len(prefix) > 1 and prefix[1] != 'log' else prefix[0]
                 )
-                data_files = [f for f in data_files if prefix in f] 
+                data_files = [f for f in data_files if prefix in f]
         else:
             data_files = read_data
 
@@ -1459,7 +1459,7 @@ class LammpsParser(MDParser):
             if 'X' in atoms_elements:
                 atoms_elements = (
                     np.array(atom_labels)
-                    if atom_labels and not 'X' in atom_labels # not(all([it == 'X' for it in atom_labels])) # LB - Change to see if having all X vs some (meaning it parsed) makes some difference
+                    if atom_labels and 'X' not in atom_labels # not(all([it == 'X' for it in atom_labels])) # LB - Change to see if having all X vs some (meaning it parsed) makes some difference
                     else atoms_types
                 )
             atoms_resnames = np.array(atoms_info.get('resnames', []))
@@ -1499,7 +1499,7 @@ class LammpsParser(MDParser):
                     mol_resids = np.unique(atoms_resids[sec_molecule.atom_indices])
                     n_res = mol_resids.shape[0]
                     if n_res == 1:
-                        elements = atoms_elements[sec_molecule.atom_indices] 
+                        elements = atoms_elements[sec_molecule.atom_indices]
                         sec_molecule.composition_formula = get_composition(elements)
                     else:
                         mol_resnames = atoms_resnames[sec_molecule.atom_indices]
@@ -1583,7 +1583,7 @@ class LammpsParser(MDParser):
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
         if n_atoms is not None:
             atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
- 
+
             labels = self.traj_parsers.eval('labels')
             if labels is None or 'X' in labels:
                 atom_types = self._mdanalysistraj_parser.get('types', None) # atom_types = self._mdanalysis.get('atom_types')
@@ -1591,7 +1591,7 @@ class LammpsParser(MDParser):
                 if atom_types is None:
                     atom_types = atoms_info.get('types', None)
                     #atom_types = ['X']*n_atoms
-                else: 
+                else:
                     labels = [f'X_{atom_type}' for atom_type in atom_types]
             for n in range(n_atoms):
                 sec_atom = AtomParameters()
@@ -1712,7 +1712,7 @@ class LammpsParser(MDParser):
         sec_run.program = Program(
             name='LAMMPS', version=self.log_parser.get('program_version', '')
         )
-   
+
         # parse data file associated with calculation
         data_files = self.log_parser.get_data_files()
         if len(data_files) > 1:
@@ -1787,7 +1787,7 @@ class LammpsParser(MDParser):
                         self._mdanalysistraj_parser = traj_parser
                     traj_parser = TrajParser()
                     traj_parser.mainfile = traj_file
-            else:  
+            else:
                 self.logger.warning('No file_type found for traj_file.') # LB - Added log warning (no specific options to build MDAnalysis)
                 traj_parser = TrajParser()
                 traj_parser.mainfile = traj_file

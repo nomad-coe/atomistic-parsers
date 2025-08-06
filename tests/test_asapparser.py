@@ -22,6 +22,10 @@ import numpy as np
 from nomad.datamodel import EntryArchive
 from atomisticparsers.asap import AsapParser
 
+from importlib.metadata import version
+
+ase_version = '.'.join(version('ase').split('.')[:2])
+
 
 def approx(value, abs=0, rel=1e-6):
     return pytest.approx(value, abs=abs, rel=rel)
@@ -32,7 +36,7 @@ def parser():
     return AsapParser()
 
 
-@pytest.mark.skip('Compaibility issue with ase==3.25')
+@pytest.mark.skipif(ase_version < 3.25, reason='Compaibility issue with ase==3.25')
 def test_geometry_optimization(parser):
     archive = EntryArchive()
     parser.parse('tests/data/asap/geo_opt1.traj', archive, None)
@@ -56,7 +60,7 @@ def test_geometry_optimization(parser):
     assert sec_systems[0].constraint[0].kind == 'fix_xy'
 
 
-@pytest.mark.skip('Compaibility issue with ase==3.25')
+@pytest.mark.skipif(ase_version < 3.25, reason='Compaibility issue with ase==3.25')
 def test_molecular_dynamics(parser):
     archive = EntryArchive()
     parser.parse('tests/data/asap/moldyn1.traj', archive, None)

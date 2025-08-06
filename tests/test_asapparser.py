@@ -22,9 +22,9 @@ import numpy as np
 from nomad.datamodel import EntryArchive
 from atomisticparsers.asap import AsapParser
 
-from importlib.metadata import version
+import ase
 
-ase_version = '.'.join(version('ase').split('.')[:2])
+ase_version = float('.'.join(ase.__version__.split('.')[:2]))
 
 
 def approx(value, abs=0, rel=1e-6):

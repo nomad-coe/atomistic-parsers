@@ -32,7 +32,7 @@ def parser():
     return AsapParser()
 
 
-@pytest.skip('Compaibility issue with ase==3.25')
+@pytest.mark.skip('Compaibility issue with ase==3.25')
 def test_geometry_optimization(parser):
     archive = EntryArchive()
     parser.parse('tests/data/asap/geo_opt1.traj', archive, None)
@@ -56,7 +56,7 @@ def test_geometry_optimization(parser):
     assert sec_systems[0].constraint[0].kind == 'fix_xy'
 
 
-@pytest.skip('Compaibility issue with ase==3.25')
+@pytest.mark.skip('Compaibility issue with ase==3.25')
 def test_molecular_dynamics(parser):
     archive = EntryArchive()
     parser.parse('tests/data/asap/moldyn1.traj', archive, None)

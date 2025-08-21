@@ -408,7 +408,7 @@ class TrajParser(TextParser):
             return
 
         atoms_id = atoms_info[idx].get('id')
-        default = ['X' for _ in atoms_id] if atoms_id is not None else None 
+        default = ['X' for _ in atoms_id] if atoms_id is not None else None
         atoms_type = atoms_info[idx].get('type')
         if atoms_type is None:
             return default
@@ -688,7 +688,7 @@ class LogParser(TextParser):
         self._quantities.append(
             Quantity(
                 'program_version',
-                r'\s*LAMMPS\s*\(([^)]+)\)\n', 
+                r'\s*LAMMPS\s*\(([^)]+)\)\n',
                 dtype=str,
                 repeats=False,
                 flatten=False,
@@ -1052,8 +1052,8 @@ class LammpsParser(MDParser):
             )
             units = get_unit('real')
 
-        energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule) 
-        force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton) 
+        energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule)
+        force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton)
         temperature_conversion = ureg.convert(
             1.0, units.get('temperature'), ureg.kelvin
         )
@@ -1722,7 +1722,7 @@ class LammpsParser(MDParser):
                 traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
                 self._mdanalysistraj_parser = traj_parser
-            elif file_type == 'atom' and data_files:  
+            elif file_type == 'atom' and data_files:
                 traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP')
                 if data_files:
                     traj_parser.mainfile = data_files[0]

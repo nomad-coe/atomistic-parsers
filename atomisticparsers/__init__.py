@@ -21,8 +21,6 @@ from typing import Optional
 
 from nomad.config.models.plugins import ParserEntryPoint
 
-from nomad.parsing import MatchingParserInterface
-
 
 class EntryPoint(ParserEntryPoint):
     parser_class_name: str = Field(
@@ -41,6 +39,8 @@ class EntryPoint(ParserEntryPoint):
     )
 
     def load(self):
+        from nomad.parsing import MatchingParserInterface  # noqa
+
         return MatchingParserInterface(**self.dict())
 
 

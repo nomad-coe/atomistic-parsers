@@ -21,6 +21,8 @@ from typing import Optional
 
 from nomad.config.models.plugins import ParserEntryPoint
 
+from nomad.parsing import MatchingParserInterface
+
 
 class EntryPoint(ParserEntryPoint):
     parser_class_name: str = Field(
@@ -35,12 +37,10 @@ class EntryPoint(ParserEntryPoint):
     metadata: Optional[dict] = Field(
         None,
         description="""
-        Metadata passed to the UI. Deprecated. """
+        Metadata passed to the UI. Deprecated. """,
     )
 
     def load(self):
-        from nomad.parsing import MatchingParserInterface
-
         return MatchingParserInterface(**self.dict())
 
 
@@ -307,7 +307,7 @@ lammps_parser_entry_point = EntryPoint(
     aliases=['parsers/lammps'],
     description='NOMAD parser for LAMMPS.',
     python_package='atomisticparsers.lammps',
-    #mainfile_name_re=r'log.*',
+    # mainfile_name_re=r'log.*',
     mainfile_contents_re=r'^LAMMPS\s+\(.+\)',
     parser_class_name='atomisticparsers.lammps.LammpsParser',
     code_name='LAMMPS',

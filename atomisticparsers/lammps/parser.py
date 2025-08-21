@@ -180,25 +180,6 @@ def get_unit(units_type, property_type=None, dimension=3):
             density=ureg.ag / ureg.nm**dimension,
         )
 
-    # LB - TODO: Add in lj units - hold off / big task
-    #elif units_type == 'lj':
-    #    units = dict(
-    #        mass=ureg('dimensionless'),
-    #        distance=ureg('dimensionless'),
-    #        time=ureg('dimensionless'),
-    #        energy=ureg('dimensionless'),
-    #        velocity=ureg('dimensionless'),
-    #        force=ureg('dimensionless'),
-    #        torque=ureg('dimensionless'),
-    #        temperature=ureg('dimensionless'),
-    #        pressure=ureg('dimensionless'),
-    #        dynamic_viscosity=ureg('dimensionless'),
-    #        charge=ureg('dimensionless'),
-    #        dipole=ureg('dimensionless'),
-    #        electric_field=ureg('dimensionless'),
-    #        density=ureg('dimensionless'),
-    #    )
-
     else:
         # units = dict(
         #     mass=1, distance=1, time=1, energy=1, velocity=1, force=1,
@@ -336,7 +317,6 @@ class TrajParser(TextParser):
 
     def init_quantities(self):
         def get_pbc_cell(val):
-            # LB - TODO: Add in logic to handle the various pbc formats
             val = val.split()
             cell = np.zeros((3, 3))
             # 'xy' in the first position means a triclinic cell (2D or 3D)
@@ -378,7 +358,7 @@ class TrajParser(TextParser):
             ),
             Quantity(
                 'pbc_cell',
-                r'\s*ITEM: BOX BOUNDS\s*([\s\w]+)\n([\+\-\d\.eE\s]+)\n', # TODO: CHeck why pbc none for atom_run
+                r'\s*ITEM: BOX BOUNDS\s*([\s\w]+)\n([\+\-\d\.eE\s]+)\n',
                 str_operation=get_pbc_cell,
                 comment='#',
                 repeats=True,
@@ -428,7 +408,7 @@ class TrajParser(TextParser):
             return
 
         atoms_id = atoms_info[idx].get('id')
-        default = ['X' for _ in atoms_id] if atoms_id is not None else None # LB 'X' to 'D' for debug
+        default = ['X' for _ in atoms_id] if atoms_id is not None else None 
         atoms_type = atoms_info[idx].get('type')
         if atoms_type is None:
             return default
@@ -696,7 +676,7 @@ class LogParser(TextParser):
 
         self._quantities = [
             Quantity(
-                name, # LB - Edited regex (added \b \b) - word boundaries
+                name,
                 r'\n\s*\b%s\b\s+(?!.*\$\{)([${}\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*' % name,
                 str_operation=str_op,
                 comment='#',
@@ -708,7 +688,7 @@ class LogParser(TextParser):
         self._quantities.append(
             Quantity(
                 'program_version',
-                r'\s*LAMMPS\s*\(([^)]+)\)\n', # LB - Edited regex for '(2 Aug 2023 - Update 1)' searches for any character except ')' now, not just word chars
+                r'\s*LAMMPS\s*\(([^)]+)\)\n', 
                 dtype=str,
                 repeats=False,
                 flatten=False,
@@ -754,7 +734,7 @@ class LogParser(TextParser):
         self._quantities.append(
             Quantity(
                 'thermo_data',
-                r'([ \-]*Step\s*[\-/\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop', # LB - altered to allow for more thermo formats (\s*.*(\s*Step\s*[\-/\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop)
+                r'([ \-]*Step\s*[\-/\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop',
                 str_operation=str_to_thermo,
                 repeats=False,
                 convert=False,
@@ -1071,13 +1051,13 @@ class LammpsParser(MDParser):
                 'Unit information not available. Assuming "real" units in workflow metainfo!'
             )
             units = get_unit('real')
-        # LB - changed conversion to if statements
-        energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule) if units != 'dimensionless' else 1
-        force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton) if units != 'dimensionless' else 1
+
+        energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule) 
+        force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton) 
         temperature_conversion = ureg.convert(
             1.0, units.get('temperature'), ureg.kelvin
-        ) if units != 'dimensionless' else 1
-        pressure_conversion = ureg.convert(1.0, units.get('pressure'), ureg.pascal) if units != 'dimensionless' else 1
+        )
+        pressure_conversion = ureg.convert(1.0, units.get('pressure'), ureg.pascal)
 
         minimization_stats = self.log_parser.get('minimization_stats', None)
         workflow = None
@@ -1459,7 +1439,7 @@ class LammpsParser(MDParser):
             if 'X' in atoms_elements:
                 atoms_elements = (
                     np.array(atom_labels)
-                    if atom_labels and 'X' not in atom_labels # not(all([it == 'X' for it in atom_labels])) # LB - Change to see if having all X vs some (meaning it parsed) makes some difference
+                    if atom_labels and 'X' not in atom_labels
                     else atoms_types
                 )
             atoms_resnames = np.array(atoms_info.get('resnames', []))
@@ -1538,7 +1518,7 @@ class LammpsParser(MDParser):
                                 sec_residue.label = str(restype)
                                 sec_residue.type = 'monomer'
                                 sec_residue.is_molecule = False
-                                elements = atoms_elements[sec_residue.atom_indices] # LB TODO: check indexerror: index 500 out of bounds for axis 0 with size 500 - 2_xyz_files
+                                elements = atoms_elements[sec_residue.atom_indices]
                                 sec_residue.composition_formula = get_composition(
                                     elements
                                 )
@@ -1620,14 +1600,14 @@ class LammpsParser(MDParser):
                 'lj' in pairstyle and 'coul' not in pairstyle
             ):  # only cover the simplest case
                 sec_force_calculations.vdw_cutoff = (
-                    float(pairstyle_args[-1]) * ureg.angstrom # LB - changed nanometer to angstrom
+                    float(pairstyle_args[-1]) * ureg.angstrom
                 )
             if 'coul' in pairstyle:
                 if 'streitz' in pairstyle:
                     cutoff = float(pairstyle_args[0])
                 else:
                     cutoff = float(pairstyle_args[-1])
-                sec_force_calculations.coulomb_cutoff = cutoff * ureg.angstrom # LB - changed nanometer to angstrom
+                sec_force_calculations.coulomb_cutoff = cutoff * ureg.angstrom
             val = self.log_parser.get('kspace_style', None)
             if val is not None:
                 kspacestyle = val[0][0].lower()
@@ -1742,13 +1722,12 @@ class LammpsParser(MDParser):
                 traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
                 self._mdanalysistraj_parser = traj_parser
-            elif file_type == 'atom' and data_files:   # LB - Added logic for the 'data' format
-                # TODO: double check logic - specifically the change for n==0
+            elif file_type == 'atom' and data_files:  
                 traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP')
                 if data_files:
                     traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
-                # LB - Same as in custom - checking if universe can be constructed
+
                 if traj_parser.universe is None or 'X' in traj_parser.get(
                     'atoms_info', {}
                 ).get('names', []):
@@ -1788,10 +1767,9 @@ class LammpsParser(MDParser):
                     traj_parser = TrajParser()
                     traj_parser.mainfile = traj_file
             else:
-                self.logger.warning('No file_type found for traj_file.') # LB - Added log warning (no specific options to build MDAnalysis)
+                self.logger.warning('No file_type found for traj_file.')
                 traj_parser = TrajParser()
                 traj_parser.mainfile = traj_file
-                # TODO provide support for other file types
             parsers.append(traj_parser)
 
         self.traj_parsers = TrajParsers(parsers)

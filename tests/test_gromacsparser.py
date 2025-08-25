@@ -462,6 +462,8 @@ def test_free_energy_calculations(parser):
         None,
     )
 
+    import h5py  # noqa
+
     def get_dataset(filename_with_path):
         try:
             # Split the filename and dataset path

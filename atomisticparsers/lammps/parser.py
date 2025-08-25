@@ -318,13 +318,22 @@ class TrajParser(TextParser):
     def init_quantities(self):
         def get_pbc_cell(val):
             val = val.split()
-
-            pbc = [v == 'pp' for v in val[:3]]
-
             cell = np.zeros((3, 3))
-            for i in range(3):
-                cell[i][i] = float(val[i * 2 + 4]) - float(val[i * 2 + 3])
-
+            # 'xy' in the first position means a triclinic cell (2D or 3D)
+            if 'xy' == val[0]:
+                pbc = [v == 'pp' for v in val[3:6]]
+                tilt_factors = np.zeros(3)
+                for i in range(3):
+                    tilt_factors[i] = float(val[i*3 + 8])
+                    cell[i][i] = float(val[i * 3 + 7]) - float(val[i * 3 + 6])
+                xy, yz, xz = tilt_factors
+                cell[1][0] = xy
+                cell[2][0] = xz
+                cell[2][1] = yz
+            else: # orthogonal can have ff or ss ^
+                pbc = [v == 'pp' for v in val[:3]]
+                for i in range(3):
+                    cell[i][i] = float(val[i * 2 + 4]) - float(val[i * 2 + 3])
             return pbc, cell
 
         def get_atoms_info(val):
@@ -422,6 +431,7 @@ class TrajParser(TextParser):
         atoms_info = atoms_info[idx]
 
         cell = self.get('pbc_cell')
+
         cell = None if cell is None else cell[idx][1]
         if 'xs' in atoms_info and 'ys' in atoms_info and 'zs' in atoms_info:
             if cell is None:
@@ -667,7 +677,7 @@ class LogParser(TextParser):
         self._quantities = [
             Quantity(
                 name,
-                r'\n\s*%s\s+(?!.*\$\{)([${}\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*' % name,
+                r'\n\s*\b%s\b\s+(?!.*\$\{)([${}\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*' % name,
                 str_operation=str_op,
                 comment='#',
                 repeats=True,
@@ -678,7 +688,7 @@ class LogParser(TextParser):
         self._quantities.append(
             Quantity(
                 'program_version',
-                r'\s*LAMMPS\s*\(([\w ]+)\)\n',
+                r'\s*LAMMPS\s*\(([^)]+)\)\n',
                 dtype=str,
                 repeats=False,
                 flatten=False,
@@ -724,7 +734,7 @@ class LogParser(TextParser):
         self._quantities.append(
             Quantity(
                 'thermo_data',
-                r'\s*\-*(\s*Step\s*[\-\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop',
+                r'([ \-]*Step\s*[\-/\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop',
                 str_operation=str_to_thermo,
                 repeats=False,
                 convert=False,
@@ -795,11 +805,18 @@ class LogParser(TextParser):
             return re.search(regex_pattern, file_header_str)
 
         read_data = self.get('read_data')
-        if read_data is None or 'CPU' in read_data:
+
+        # Chop out 'CPU' before, then just check none
+        if read_data is not None:
+            try:
+                read_data.remove('CPU')
+            except Exception:
+                pass
+        if read_data is None: #  or 'CPU' in read_data
             self.logger.warning('Data file not specified in directory, will scan.')
             data_files = os.listdir(self.maindir)
             data_files = [
-                f for f in data_files if f.endswith('data') or f.startswith('data')
+                f for f in data_files if f.endswith('data') or f.startswith('data') or f.endswith('dat')
             ]
             if not data_files:
                 data_files = os.listdir(self.maindir)
@@ -815,6 +832,8 @@ class LogParser(TextParser):
         else:
             data_files = read_data
 
+        if not data_files:
+            self.logger.warning('No data_files found to match the log file.')
         return [os.path.join(self.maindir, f) for f in data_files]
 
     def get_pbc(self):
@@ -1032,6 +1051,7 @@ class LammpsParser(MDParser):
                 'Unit information not available. Assuming "real" units in workflow metainfo!'
             )
             units = get_unit('real')
+
         energy_conversion = ureg.convert(1.0, units.get('energy'), ureg.joule)
         force_conversion = ureg.convert(1.0, units.get('force'), ureg.newton)
         temperature_conversion = ureg.convert(
@@ -1380,6 +1400,7 @@ class LammpsParser(MDParser):
                 bond_list = get_bond_list_from_model_contributions(
                     sec_run, method_index=-1, model_index=-1
                 )
+            positions = self.traj_parsers.eval('get_positions', traj_n)
             self.parse_trajectory_step(
                 {
                     'atoms': {
@@ -1542,11 +1563,22 @@ class LammpsParser(MDParser):
         n_atoms = self.traj_parsers.eval('get_n_atoms', 0)
         if n_atoms is not None:
             atoms_info = self._mdanalysistraj_parser.get('atoms_info', None)
+
+            labels = self.traj_parsers.eval('labels')
+            if labels is None or 'X' in labels:
+                atom_types = self._mdanalysistraj_parser.get('types', None) # atom_types = self._mdanalysis.get('atom_types')
+                #check if none and revert to X's if none
+                if atom_types is None:
+                    atom_types = atoms_info.get('types', None)
+                    #atom_types = ['X']*n_atoms
+                else:
+                    labels = [f'X_{atom_type}' for atom_type in atom_types]
             for n in range(n_atoms):
                 sec_atom = AtomParameters()
                 sec_method.atom_parameters.append(sec_atom)
                 sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
                 sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+                sec_atom.label = labels[n] if labels is not None else f'X_{atom_types[n]}'#*[n]
 
         # TODO address case types are numbered instead of giving atom labels (fix tests accordingly)
         interactions = self._mdanalysistraj_parser.get_interactions()
@@ -1568,14 +1600,14 @@ class LammpsParser(MDParser):
                 'lj' in pairstyle and 'coul' not in pairstyle
             ):  # only cover the simplest case
                 sec_force_calculations.vdw_cutoff = (
-                    float(pairstyle_args[-1]) * ureg.nanometer
+                    float(pairstyle_args[-1]) * ureg.nanometer #ureg.angstrom
                 )
             if 'coul' in pairstyle:
                 if 'streitz' in pairstyle:
                     cutoff = float(pairstyle_args[0])
                 else:
                     cutoff = float(pairstyle_args[-1])
-                sec_force_calculations.coulomb_cutoff = cutoff * ureg.nanometer
+                sec_force_calculations.coulomb_cutoff = cutoff * ureg.nanometer # ureg.angstrom
             val = self.log_parser.get('kspace_style', None)
             if val is not None:
                 kspacestyle = val[0][0].lower()
@@ -1690,6 +1722,20 @@ class LammpsParser(MDParser):
                 traj_parser.mainfile = data_files[0]
                 traj_parser.auxilliary_files = [traj_file]
                 self._mdanalysistraj_parser = traj_parser
+            elif file_type == 'atom' and data_files:
+                traj_parser = MDAnalysisParser(topology_format='DATA', format='LAMMPSDUMP')
+                if data_files:
+                    traj_parser.mainfile = data_files[0]
+                traj_parser.auxilliary_files = [traj_file]
+
+                if traj_parser.universe is None or 'X' in traj_parser.get(
+                    'atoms_info', {}
+                ).get('names', []):
+                    # mda necessary to calculate rdf and atomsgroup
+                    if n == 0:
+                        self._mdanalysistraj_parser = traj_parser
+                    traj_parser = TrajParser()
+                    traj_parser.mainfile = traj_file
             elif file_type == 'custom' and data_files:
                 custom_options = self.log_parser.get('dump')[n][5:]
                 custom_options = [
@@ -1721,9 +1767,9 @@ class LammpsParser(MDParser):
                     traj_parser = TrajParser()
                     traj_parser.mainfile = traj_file
             else:
+                self.logger.warning('No file_type found for traj_file.')
                 traj_parser = TrajParser()
                 traj_parser.mainfile = traj_file
-                # TODO provide support for other file types
             parsers.append(traj_parser)
 
         self.traj_parsers = TrajParsers(parsers)

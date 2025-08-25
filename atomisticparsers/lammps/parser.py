@@ -1576,8 +1576,8 @@ class LammpsParser(MDParser):
             for n in range(n_atoms):
                 sec_atom = AtomParameters()
                 sec_method.atom_parameters.append(sec_atom)
-                sec_atom.charge = atoms_info.get('charges', [None] * (n + 1))[n]
-                sec_atom.mass = atoms_info.get('masses', [None] * (n + 1))[n]
+                sec_atom.charge = atoms_info.get('charges', [None] * (n))[n]#(n+1)
+                sec_atom.mass = atoms_info.get('masses', [None] * (n))[n]#(n+1)
                 sec_atom.label = labels[n] if labels is not None else f'X_{atom_types[n]}'#*[n]
 
         # TODO address case types are numbered instead of giving atom labels (fix tests accordingly)

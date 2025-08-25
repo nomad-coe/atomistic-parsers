@@ -1600,14 +1600,14 @@ class LammpsParser(MDParser):
                 'lj' in pairstyle and 'coul' not in pairstyle
             ):  # only cover the simplest case
                 sec_force_calculations.vdw_cutoff = (
-                    float(pairstyle_args[-1]) * ureg.angstrom
+                    float(pairstyle_args[-1]) * ureg.nanometer #ureg.angstrom
                 )
             if 'coul' in pairstyle:
                 if 'streitz' in pairstyle:
                     cutoff = float(pairstyle_args[0])
                 else:
                     cutoff = float(pairstyle_args[-1])
-                sec_force_calculations.coulomb_cutoff = cutoff * ureg.angstrom
+                sec_force_calculations.coulomb_cutoff = cutoff * ureg.nanometer # ureg.angstrom
             val = self.log_parser.get('kspace_style', None)
             if val is not None:
                 kspacestyle = val[0][0].lower()

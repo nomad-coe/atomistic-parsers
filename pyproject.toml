@@ -15,7 +15,7 @@ dependencies = [
     "nomad-schema-plugin-run>=1.0.1",
     "nomad-parser-plugins-simulation>=1.0.2",
     "lxml>=5.2",
-    "mdanalysis>=2.8.0,<2.10.0 ; python_full_version >= '3.10'",
+    "mdanalysis>=2.8.0,<3.0 ; python_full_version >= '3.10'",
     "mdanalysis<2.8 ; python_full_version < '3.10'",
     "panedr>=0.2",
     "scipy>=1.7.1",

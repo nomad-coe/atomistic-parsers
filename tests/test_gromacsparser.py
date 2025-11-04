@@ -20,7 +20,7 @@ import pytest
 import numpy as np
 import h5py
 import json
-
+from packaging.version import Version
 from typing import (
     Any,
     Dict,
@@ -30,6 +30,7 @@ from nomad.datamodel import EntryArchive
 from atomisticparsers.gromacs import GromacsParser
 from simulationworkflowschema.molecular_dynamics import FreeEnergyCalculationParameters
 from atomisticparsers.gromacs import GromacsLogParser
+import MDAnalysis
 
 
 def approx(value, abs=0, rel=1e-6):
@@ -196,6 +197,9 @@ def test_md_edr(parser):
     assert len(archive.run[0].calculation) == 5
 
 
+@pytest.mark.skipif(
+    Version(MDAnalysis.__version__) > Version('2.9'), reason='Incomptible tpr file.'
+)
 def test_md_atomsgroup(parser):
     archive = EntryArchive()
     parser.parse(
@@ -550,19 +554,19 @@ def test_str_to_input_parameters(path: str, input_log_fnm: str, result_json_fnm:
                 assert_dict_equal(d1[key], d2[key])
             else:
                 if isinstance(d1[key], (str, bool)):
-                    assert (
-                        d1[key] == d2[key]
-                    ), f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    assert d1[key] == d2[key], (
+                        f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    )
                 elif isinstance(d1[key], np.ndarray):
-                    assert np.isclose(
-                        d1[key], d2[key]
-                    ).all(), f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    assert np.isclose(d1[key], d2[key]).all(), (
+                        f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    )
                 elif abs(d1[key]) == float('inf'):
                     assert 'inf' == d2[key] if d1[key] > 0 else '-inf' == d2[key]
                 else:
-                    assert d1[key] == approx(
-                        d2[key]
-                    ), f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    assert d1[key] == approx(d2[key]), (
+                        f"Value mismatch for key '{key}': {d1[key]} != {d2[key]}"
+                    )
 
     log_parser = GromacsLogParser()
     log_parser.mainfile = f'{path}/{input_log_fnm}'

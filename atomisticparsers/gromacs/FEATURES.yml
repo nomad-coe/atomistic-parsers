@@ -1,0 +1,110 @@
+metadata:
+  last_updated: "2025-12-11"
+  updated_by: "GitHub Copilot"
+
+parser:
+  name: "GROMACS"
+  description: "Parser for GROMACS molecular dynamics simulation output"
+  homepage: "http://www.gromacs.org/"
+  mainfile_patterns:
+    - "*.log"
+    - "*.md.log"
+  supported_file_formats:
+    - "log" # Main output log file
+    - "tpr" # Binary topology/run input file
+    - "trr" # Trajectory file (full precision)
+    - "xtc" # Trajectory file (compressed)
+    - "edr" # Energy file (binary)
+    - "mdp" # MD parameter input file
+    - "gro" # Coordinate file
+    - "xvg" # XMGrace data files
+
+runschema_capabilities:
+  run:
+    - program # name: "GROMACS", version
+    - time_run # date_start, date_end
+
+  method:
+    - force_field # GROMACS force field description
+    - force_field.model # topology and interactions (bonds, angles, dihedrals, impropers, pairs, coulomb, lennard_jones)
+    - atom_parameters # masses, charges, labels, kinds
+    - neighbor_searching # cutoff_radius, update_frequency
+    - force_calculations # vdw_cutoff, coulomb_cutoff, vdw_method, coulomb_method
+
+  system:
+    - atoms # positions, labels, lattice_vectors, periodic
+    - atoms.velocities # atomic velocities from trajectory
+    - atoms_group # molecules, residues, chains extracted from topology
+
+  calculation:
+    # Energy components extracted from log and edr files
+    - energy.total # Total energy
+    - energy.potential # Potential energy
+    - energy.kinetic # Kinetic energy
+    - energy.coulomb # Coulombic energy (short-range)
+    - energy.van_der_waals # Van der Waals/LJ energy
+    - energy.bonded # Bonded interactions
+    - energy.angle # Angle interactions
+    - energy.dihedral # Dihedral (proper) interactions
+    - energy.improper # Improper dihedral interactions
+
+    # Thermodynamic properties
+    - thermodynamics.temperature # Instantaneous temperature
+    - thermodynamics.pressure # Instantaneous pressure
+    - thermodynamics.volume # System volume
+    - thermodynamics.enthalpy # Enthalpy (if calculated)
+
+    # Additional properties
+    - stress.total # Pressure tensor (3x3)
+    - virial # Virial tensor
+
+    # Time-dependent properties
+    - time_physical # Physical simulation time
+    - step # Time step number
+
+  workflow:
+    # Geometry Optimization
+    - geometry_optimization.method # steepest_descent, conjugate_gradient, L-BFGS
+    - geometry_optimization.method.type # atomic
+    - geometry_optimization.method.convergence_tolerance_force_maximum
+    - geometry_optimization.method.optimization_steps_maximum
+    - geometry_optimization.method.save_frequency
+    - geometry_optimization.results.energies # energy trajectory
+    - geometry_optimization.results.steps
+    - geometry_optimization.results.optimization_steps
+    - geometry_optimization.results.final_force_maximum
+
+    # Molecular Dynamics
+    - molecular_dynamics.method.ensemble_type # NVE, NVT, NPT
+    - molecular_dynamics.method.integrator_type # leap_frog, velocity_verlet, langevin, brownian
+    - molecular_dynamics.method.timestep
+    - molecular_dynamics.method.n_steps
+    - molecular_dynamics.method.coordinate_save_frequency
+    - molecular_dynamics.method.velocity_save_frequency
+    - molecular_dynamics.method.force_save_frequency
+    - molecular_dynamics.method.thermodynamics_save_frequency
+    - molecular_dynamics.method.thermostat_parameters # type, target_temperature, coupling_constant
+    - molecular_dynamics.method.barostat_parameters # type, target_pressure, coupling_constant
+    - molecular_dynamics.method.free_energy_calculation_parameters # lambda states for free energy calculations
+    - molecular_dynamics.results.free_energy_calculations # free energy calculation results (dH/dlambda, delta H)
+
+special_features:
+  - "Supports multiple trajectory formats (TRR, XTC) with automatic format detection"
+  - "Parses binary topology files (TPR) using MDAnalysis for complete system information"
+  - "Extracts force field parameters including bonds, angles, dihedrals, impropers, pairs, and non-bonded interactions (coulomb, lennard_jones)"
+  - "Reads binary energy files (EDR) for high-precision thermodynamic data"
+  - "Supports various MD ensembles: NVE, NVT (Berendsen, Nose-Hoover, velocity rescaling, Andersen), NPT (Berendsen, Parrinello-Rahman)"
+  - "Handles energy minimization with multiple algorithms: steepest descent, conjugate gradient, L-BFGS"
+  - "Extracts molecular topology including residues, chains, and molecules from TPR files"
+  - "Parses MDP parameter files for comprehensive MD method information"
+  - "Supports free energy calculations with lambda state sampling from XVG files (dH/dlambda, delta H between states, PV energy)"
+  - "Handles pressure tensor and virial tensor data for NPT simulations"
+  - "Integrates with MDAnalysis library for robust trajectory and topology parsing"
+  - "Extracts per-frame thermodynamic properties (temperature, pressure, volume, enthalpy) and energy components"
+
+notes:
+  - "Parser requires MDAnalysis package for TPR and trajectory file parsing"
+  - "Energy values are converted from GROMACS units (kJ/mol) to NOMAD standard units"
+  - "Trajectory file selection: prefers TRR over XTC if both are available, with automatic fallback"
+  - "Force field interactions are extracted from binary TPR files which contain the complete simulation setup"
+  - "Thermodynamic data can be read from both log files and binary EDR files, with EDR providing higher precision"

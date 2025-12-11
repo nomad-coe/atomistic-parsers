@@ -74,7 +74,7 @@ Describes the computational methodology used.
     - `atom_indices` - Atom indices
     - `n_interactions` - Number of interactions of this type
   - Force fields supported in this repository: AMBER, GROMOS, OPLS, COMPASS (via specific parsers or force field parameters)
-  
+
 #### Tight-Binding Methods (Semi-empirical)
 - `TB` - Tight-binding method container
   - `name` - Method name: "DFTB", "xTB"
@@ -311,10 +311,10 @@ runschema_capabilities:
     # Time-dependent properties
     - time_physical  # for MD trajectories
     - step  # time step number
-    
+
     # Vibrational properties
     - vibrational_frequencies  # if phonons/vibrations calculated
-    
+
     # Constraints
     - constraint  # geometric constraints on atoms
 
@@ -471,6 +471,99 @@ elif self.is_elastic_calculation():
     workflow.method = ElasticMethod()
     workflow.results = ElasticResults()
     workflow.results.elastic_constants_matrix_second_order = elastic_matrix * ureg.GPa
+```
+
+## Normalized MD Properties
+
+**Important**: Many MD workflow properties are automatically populated by NOMAD's normalizers, not by parsers. These normalized properties are calculated from trajectory data and thermodynamic time series stored in the `run.calculation[]` sections.
+
+### Properties Populated by Normalization
+
+The following properties are automatically calculated for all MD workflows and should **not** be populated by parsers:
+
+#### From ThermodynamicsResults (inherited by MolecularDynamicsResults):
+- `temperature` - array of temperature values from calculations
+- `pressure` - array of pressure values from calculations
+- `helmholtz_free_energy` - free energy calculations
+- `heat_capacity_c_v` / `heat_capacity_c_p` - heat capacities
+- `heat_capacity_c_v_specific` - specific heat capacity (derived)
+- `vibrational_free_energy` - vibrational contributions
+- `vibrational_internal_energy` - vibrational energy
+- `vibrational_entropy` - entropy calculations
+- `gibbs_free_energy` - Gibbs free energy
+- `entropy` - total entropy
+- `enthalpy` - enthalpy calculations
+- `internal_energy` - internal energy
+
+#### From MolecularDynamicsResults:
+- `radial_distribution_functions` (RDF) - calculated from trajectory using MDAnalysis
+  - Computed for molecular bead groups
+  - Multiple time intervals for convergence analysis
+  - Contains bins and values for each molecular pair type
+- `mean_squared_displacements` (MSD) - calculated from trajectory
+  - Computed per molecule type
+  - Includes diffusion constant calculation via Einstein relation
+  - Error estimates via Pearson correlation coefficient
+- `radius_of_gyration` - calculated from trajectory for polymers
+  - Computed per molecule/chain
+  - Stored in both calculation and workflow results
+  - Time-dependent property
+- `correlation_functions` - generic time correlation functions
+  - Can be direction-specific (x, y, z, xyz)
+- `ensemble_properties` - generic ensemble averages
+  - Any static observable from trajectory averaging
+
+### What Parsers Should Populate
+
+Parsers should focus on:
+1. **Raw trajectory data**: Store system snapshots in `run.system[]` with positions, velocities, forces
+2. **Per-frame thermodynamics**: Store temperature, pressure, volume, energy in `calculation.thermodynamics`
+3. **Workflow method parameters**: ensemble type, thermostat, barostat, timestep, etc.
+4. **Basic workflow results**: `n_steps`, `trajectory` reference, `finished_normally`
+
+The normalizers will automatically:
+- Calculate ensemble averages
+- Compute structural properties (RDF, Rg)
+- Determine transport properties (MSD, diffusion)
+- Generate correlation functions
+
+### Example: What NOT to do
+```python
+# DON'T calculate RDF in parser - normalizer does this
+workflow.results.radial_distribution_functions = compute_rdf(trajectory)
+
+# DON'T calculate MSD in parser - normalizer does this
+workflow.results.mean_squared_displacements = compute_msd(trajectory)
+
+# DON'T calculate radius of gyration in parser - normalizer does this
+workflow.results.radius_of_gyration = compute_rg(trajectory)
+```
+
+### Example: What TO do
+```python
+# DO store trajectory snapshots
+for frame in trajectory:
+    sec_system = run.m_create(System)
+    sec_atoms = sec_system.m_create(Atoms)
+    sec_atoms.positions = frame.positions * ureg.angstrom
+    sec_atoms.velocities = frame.velocities * ureg.angstrom / ureg.fs
+
+    # DO store per-frame thermodynamics
+    sec_calc = run.m_create(Calculation)
+    sec_calc.system_ref = sec_system
+    sec_thermo = sec_calc.m_create(ThermodynamicValues)
+    sec_thermo.temperature = frame.temperature * ureg.kelvin
+    sec_thermo.pressure = frame.pressure * ureg.bar
+    sec_thermo.volume = frame.volume * ureg.angstrom**3
+
+# DO set workflow method parameters
+workflow.method.ensemble_type = "NPT"
+workflow.method.timestep = 2.0 * ureg.fs
+
+# DO set basic workflow results
+workflow.results.n_steps = len(trajectory)
+workflow.results.trajectory = run.system  # reference to systems
+workflow.results.finished_normally = True
 ```
 
 ## Usage with GitHub Copilot

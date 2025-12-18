@@ -1,6 +1,6 @@
 metadata:
-  last_updated: "2025-12-11"
-  updated_by: "GitHub Copilot"
+  last_updated: "2025-12-18"
+  updated_by: "Claude Sonnet 4.5"
 
 parser:
   name: "GROMACS"
@@ -91,4 +91,3 @@ notes:
   - "Trajectory file selection: prefers TRR over XTC if both are available, with automatic fallback"
   - "Force field interactions are extracted from binary TPR files which contain the complete simulation setup"
   - "Thermodynamic data can be read from both log files and binary EDR files, with EDR providing higher precision"
-  - "Many MD workflow properties are automatically populated by NOMAD normalizers (not by this parser), including: radial_distribution_functions (RDF), mean_squared_displacements (MSD), radius_of_gyration, diffusion constants, ensemble-averaged thermodynamic properties, and correlation functions. The parser stores raw trajectory data and per-frame properties; normalizers calculate derived quantities."

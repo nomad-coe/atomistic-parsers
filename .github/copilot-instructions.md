@@ -46,6 +46,13 @@ atomisticparsers/{parser_name}/FEATURES.yml
 - Update the timestamp each time the file is modified
 - Both values must be enclosed in quotes
 
+**CRITICAL**: Document only parser-populated features:
+- Include capabilities that the parser directly extracts from output files
+- Include derived quantities that the parser computes and populates (e.g., total energy from components, unit conversions)
+- Use inline comments to tag parser-computed derived quantities with `(computed)`
+- Do NOT include properties calculated by NOMAD normalizers or workflow processors after parsing
+- Focus on what the parser writes to runschema sections, not what appears later after normalization
+
 Example metadata section:
 ```yaml
 metadata:
@@ -98,6 +105,16 @@ docs: update FEATURES.yml metadata
 - **Descriptions**: Keep concise and factual
 - **Comments**: Focus on "what" the parser extracts, not "how" it's implemented
 - **Consistency**: Use the same terminology across all parser FEATURES.yml files
+- **Tagging derived quantities**: Mark parser-computed values with `(computed)` in inline comments
+
+Examples of tagging:
+```yaml
+calculation:
+  - energy.total # Direct extraction from log file
+  - energy.potential # (computed) Sum of bonded + nonbonded terms
+  - thermodynamics.temperature # Direct extraction per frame
+  - thermodynamics.temperature_average # (computed) Mean over trajectory frames
+```
 - **Order**: Follow the template order (run, method, system, calculation, workflow)
 
 ### Common Issues and Solutions
@@ -174,17 +191,18 @@ runschema_capabilities:
     # Add other system components as applicable
 
   calculation:
-    # Energy components (list what the parser extracts)
-    - energy.total
+    # Energy components (list what the parser extracts or computes)
+    - energy.total # Direct extraction or (computed) sum
     - energy.potential
     - energy.kinetic
     - energy.coulomb
     - energy.van_der_waals
     # Add other energy components as applicable
+    # Tag parser-computed quantities with (computed) in comments
 
     # Forces and stress
-    - forces.total  # if parser extracts forces
-    - stress.total  # if parser extracts stress
+    - forces.total  # if parser extracts or computes forces
+    - stress.total  # if parser extracts or computes stress
 
     # Thermodynamics
     - thermodynamics.temperature
@@ -668,86 +686,33 @@ elif self.is_elastic_calculation():
     workflow.results.elastic_constants_matrix_second_order = elastic_matrix * ureg.GPa
 ```
 
-### Normalized MD Properties
+### What to Document in FEATURES.yml
 
-**Important**: Many MD workflow properties are automatically populated by NOMAD's normalizers, not by parsers. These normalized properties are calculated from trajectory data and thermodynamic time series stored in the `run.calculation[]` sections.
+**Critical Distinction**: FEATURES.yml files document only what the **parser** directly extracts and populates from output files.
 
-#### Properties Populated by Normalization
+#### Parser Responsibilities (document in FEATURES.yml):
+- Extract data directly from output files
+- Populate runschema sections with raw/parsed data
+- Store trajectory snapshots (positions, velocities, forces)
+- Store per-frame properties (energy, temperature, pressure per timestep)
+- Populate method parameters (force field, MD settings, basis sets, etc.)
+- Store workflow metadata (type, parameters)
+- Compute derived quantities within the parser (tag with `(computed)` in comments)
 
-The following properties are automatically calculated for all MD workflows and should **not** be populated by parsers:
-
-#### From ThermodynamicsResults (inherited by MolecularDynamicsResults):
-- `temperature` - array of temperature values from calculations
-- `pressure` - array of pressure values from calculations
-- `helmholtz_free_energy` - free energy calculations
-- `heat_capacity_c_v` / `heat_capacity_c_p` - heat capacities
-- `heat_capacity_c_v_specific` - specific heat capacity (derived)
-- `vibrational_free_energy` - vibrational contributions
-- `vibrational_internal_energy` - vibrational energy
-- `vibrational_entropy` - entropy calculations
-- `gibbs_free_energy` - Gibbs free energy
-- `entropy` - total entropy
-- `enthalpy` - enthalpy calculations
-- `internal_energy` - internal energy
-
-#### From MolecularDynamicsResults:
-- `radial_distribution_functions` (RDF) - calculated from trajectory using MDAnalysis
-  - Computed for molecular bead groups
-  - Multiple time intervals for convergence analysis
-  - Contains bins and values for each molecular pair type
-- `mean_squared_displacements` (MSD) - calculated from trajectory
-  - Computed per molecule type
-  - Includes diffusion constant calculation via Einstein relation
-  - Error estimates via Pearson correlation coefficient
-- `radius_of_gyration` - calculated from trajectory for polymers
-  - Computed per molecule/chain
-  - Stored in both calculation and workflow results
-  - Time-dependent property
-- `correlation_functions` - generic time correlation functions
-  - Can be direction-specific (x, y, z, xyz)
-- `ensemble_properties` - generic ensemble averages
-  - Any static observable from trajectory averaging
-
-#### What Parsers Should Populate
-
-Parsers should focus on:
-1. **Raw trajectory data**: Store system snapshots in `run.system[]` with positions, velocities, forces
-2. **Per-frame thermodynamics**: Store temperature, pressure, volume, energy in `calculation.thermodynamics`
-3. **Workflow method parameters**: ensemble type, thermostat, barostat, timestep, etc.
-4. **Basic workflow results**: `n_steps`, `trajectory` reference, `finished_normally`
-
-The normalizers will automatically:
-- Calculate ensemble averages
-- Compute structural properties (RDF, Rg)
-- Determine transport properties (MSD, diffusion)
-- Generate correlation functions
-
-#### Example: What NOT to do
+#### Example: Parser Code Patterns
 ```python
-# DON'T calculate RDF in parser - normalizer does this
-workflow.results.radial_distribution_functions = compute_rdf(trajectory)
-
-# DON'T calculate MSD in parser - normalizer does this
-workflow.results.mean_squared_displacements = compute_msd(trajectory)
-
-# DON'T calculate radius of gyration in parser - normalizer does this
-workflow.results.radius_of_gyration = compute_rg(trajectory)
-```
-
-#### Example: What TO do
-```python
-# DO store trajectory snapshots
+# DO: Store raw trajectory data
 for frame in trajectory:
     sec_system = run.m_create(System)
     sec_atoms = sec_system.m_create(Atoms)
     sec_atoms.positions = frame.positions * ureg.angstrom
     sec_atoms.velocities = frame.velocities * ureg.angstrom / ureg.fs
 
-    # DO store per-frame thermodynamics
+    # DO: Store per-frame instantaneous properties
     sec_calc = run.m_create(Calculation)
     sec_calc.system_ref = sec_system
-    sec_thermo = sec_calc.m_create(ThermodynamicValues)
-    sec_thermo.temperature = frame.temperature * ureg.kelvin
+    sec_thermo = sec_calc.m_create(Thermodynamics)
+    sec_thermo.temperature = frame.temperature * ureg.kelvin  # instantaneous value
     sec_thermo.pressure = frame.pressure * ureg.bar
     sec_thermo.volume = frame.volume * ureg.angstrom**3
 

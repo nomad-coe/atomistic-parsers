@@ -176,7 +176,7 @@ runschema_capabilities:
 
   method:
     - force_field  # force field description
-    - force_field.model  # topology and interactions
+    - force_field.model  # topology and interactions (bonds, angles, dihedrals, restraints, etc. stored as Interaction objects)
     - tb  # tight-binding method (for DFTB+, xTB, BOPfox)
     - tb.xtb  # extended tight-binding specifics
     - atom_parameters  # per-atom masses, charges
@@ -188,6 +188,7 @@ runschema_capabilities:
     - atoms  # positions, species, lattice_vectors, periodic
     - atoms.velocities  # if MD parser extracts velocities
     - atoms_group  # molecules, residues, chains
+    - constraint  # geometric constraints (fix_xyz, distance, angle, dihedral)
     # Add other system components as applicable
 
   calculation:
@@ -202,7 +203,7 @@ runschema_capabilities:
 
     # Forces and stress
     - forces.total  # if parser extracts or computes forces
-    - stress.total  # if parser extracts or computes stress
+    - stress.total  # if parser extracts or computes stress tensor
 
     # Thermodynamics
     - thermodynamics.temperature
@@ -216,9 +217,6 @@ runschema_capabilities:
 
     # Vibrational properties
     - vibrational_frequencies  # if phonons/vibrations calculated
-
-    # Constraints
-    - constraint  # geometric constraints on atoms
 
   workflow:
     - single_point  # if single frame/calculation
@@ -450,89 +448,7 @@ Elastic properties calculation.
   - `bulk_modulus` - Bulk modulus
   - `shear_modulus` - Shear modulus
 
-### Common Patterns in Parser Implementation
-metadata:
-  last_updated: "YYYY-MM-DD"
-  updated_by: "Model Name (e.g., GitHub Copilot)"
-
-parser:
-  name: "Parser Name"
-  description: "Brief description"
-  homepage: "https://..."
-  mainfile_patterns:
-    - "pattern1"
-    - "pattern2"
-  supported_file_formats:
-    - "format1"
-    - "format2"
-
-runschema_capabilities:
-  run:
-    - program  # name, version
-    - time_run  # timing information
-
-  method:
-    - force_field  # force field description
-    - force_field.model  # topology and interactions
-    - tb  # tight-binding method (for DFTB+, xTB, BOPfox)
-    - tb.xtb  # extended tight-binding specifics
-    - atom_parameters  # per-atom masses, charges
-    - neighbor_searching  # neighbor list parameters
-    - force_calculations  # cutoffs, methods
-    # Add other method components as applicable
-
-  system:
-    - atoms  # positions, species, lattice_vectors, periodic
-    - atoms.velocities  # if MD parser extracts velocities
-    - atoms_group  # molecules, residues, chains
-    # Add other system components as applicable
-
-  calculation:
-    # Energy components (list what the parser extracts)
-    - energy.total
-    - energy.potential
-    - energy.kinetic
-    - energy.coulomb
-    - energy.van_der_waals
-    # Add other energy components as applicable
-
-    # Forces and stress
-    - forces.total  # if parser extracts forces
-    - stress.total  # if parser extracts stress
-
-    # Thermodynamics
-    - thermodynamics.temperature
-    - thermodynamics.pressure
-    - thermodynamics.volume
-    # Add other thermodynamic properties as applicable
-
-    # Time-dependent properties
-    - time_physical  # for MD trajectories
-    - step  # time step number
-
-    # Vibrational properties
-    - vibrational_frequencies  # if phonons/vibrations calculated
-
-    # Constraints
-    - constraint  # geometric constraints on atoms
-
-  workflow:
-    - single_point  # if single frame/calculation
-    - geometry_optimization  # if energy minimization supported
-    - molecular_dynamics  # if MD supported
-    - elastic  # if elastic properties calculated
-    # Add other workflow types as applicable
-
-special_features:
-  # List parser-specific advanced capabilities
-  - "Feature description 1"
-  - "Feature description 2"
-
-notes:
-  # Optional: Additional implementation notes
-  - "Note 1"
-  - "Note 2"
-```
+---
 
 ### Guidelines for Maintaining Feature Files
 
@@ -610,6 +526,8 @@ sec_calculation.forces = sec_forces
 ```python
 sec_force_field = method.ForceField()
 sec_model = method.Model()
+
+# Bonded interactions
 sec_model.contributions.append(
     method.Interaction(
         type='bonds',
@@ -619,6 +537,17 @@ sec_model.contributions.append(
         n_interactions=n_bonds
     )
 )
+
+# Restraints are also stored as Interaction objects
+sec_model.contributions.append(
+    method.Interaction(
+        type='position_restraints',  # or 'distance_restraints', 'bond_restraints', etc.
+        parameters={'fc': force_constant, 'pos0': reference_position},
+        atom_indices=[i],
+        n_interactions=n_restraints
+    )
+)
+
 sec_force_field.model = sec_model
 sec_method.force_field = sec_force_field
 ```

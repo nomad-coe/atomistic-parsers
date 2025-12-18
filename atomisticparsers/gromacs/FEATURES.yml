@@ -1,6 +1,6 @@
 metadata:
   last_updated: "2025-12-18"
-  updated_by: "GitHub Copilot"
+  updated_by: "Claude Sonnet 4.5"
 
 parser:
   name: "GROMACS"
@@ -69,7 +69,7 @@ runschema_capabilities:
 special_features:
   - "Supports multiple trajectory formats (TRR, XTC) with automatic format detection"
   - "Parses binary topology files (TPR) using MDAnalysis for complete system information"
-  - "Extracts force field parameters including bonds, angles, dihedrals, impropers, pairs, and non-bonded interactions (coulomb, lennard_jones)"
+  - "Extracts force field parameters including bonds, angles, dihedrals, impropers, pairs, non-bonded interactions (coulomb, lennard_jones), and restraints (position restraints, distance restraints, bond restraints, dihedral restraints, orientation restraints) from TPR files"
   - "Reads binary energy files (EDR) for high-precision thermodynamic data"
   - "Supports various MD ensembles: NVE, NVT (Berendsen, Nose-Hoover, velocity rescaling, Andersen), NPT (Berendsen, Parrinello-Rahman)"
   - "Handles energy minimization with multiple algorithms: steepest descent, conjugate gradient, L-BFGS"

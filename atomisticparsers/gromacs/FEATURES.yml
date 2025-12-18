@@ -1,6 +1,6 @@
 metadata:
   last_updated: "2025-12-18"
-  updated_by: "Claude Sonnet 4.5"
+  updated_by: "GitHub Copilot"
 
 parser:
   name: "GROMACS"
@@ -41,27 +41,22 @@ runschema_capabilities:
     - energy.total # Total energy
     - energy.potential # Potential energy
     - energy.kinetic # Kinetic energy
-    - energy.coulomb # Coulombic energy (short-range)
-    - energy.van_der_waals # Van der Waals/LJ energy
-    - energy.bonded # Bonded interactions
-    - energy.angle # Angle interactions
-    - energy.dihedral # Dihedral (proper) interactions
-    - energy.improper # Improper dihedral interactions
+    - energy.electrostatic # (computed) Electrostatic/Coulomb energy from short-range and long-range components
+    - energy.van_der_waals # (computed) Van der Waals/LJ energy from short-range, long-range, and dispersion correction
+    - energy.pressure_volume_work # pV work term
+    - energy.x_gromacs_energy_contributions # Custom energy contributions (bonds, angles, dihedrals, impropers, etc.)
 
     # Thermodynamic properties
     - thermodynamics.temperature # Instantaneous temperature
     - thermodynamics.pressure # Instantaneous pressure
     - thermodynamics.volume # System volume
-    - thermodynamics.enthalpy # Enthalpy (if calculated)
+    - thermodynamics.density # System density
+    - thermodynamics.enthalpy # Enthalpy
 
     # Additional properties
-    - stress.total # Pressure tensor (3x3)
-    - virial # Virial tensor
-    - forces.total # Total forces on atoms
-    - forces.total.value # Force components (Nx3 array)
-
-    # Constraints
-    - constraints # Applied constraints (bonds, angles, etc.)
+    - pressure_tensor # Pressure tensor (3x3)
+    - virial_tensor # Virial tensor (3x3)
+    - forces.total # Total forces on atoms from trajectory
 
     # Time-dependent properties
     - time_physical # Physical simulation time
@@ -83,7 +78,8 @@ special_features:
   - "Supports free energy calculations with lambda state sampling from XVG files (dH/dlambda, delta H between states, PV energy)"
   - "Handles pressure tensor and virial tensor data for NPT simulations"
   - "Integrates with MDAnalysis library for robust trajectory and topology parsing"
-  - "Extracts per-frame thermodynamic properties (temperature, pressure, volume, enthalpy) and energy components"
+  - "Extracts per-frame thermodynamic properties (temperature, pressure, volume, density, enthalpy) and energy components"
+  - "Extracts bonded energy components (bonds, angles, dihedrals, impropers, etc.) and stores them in x_gromacs_energy_contributions as EnergyEntry objects with type identifiers"
 
 notes:
   - "Parser requires MDAnalysis package for TPR and trajectory file parsing"

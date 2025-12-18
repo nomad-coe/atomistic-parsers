@@ -57,36 +57,19 @@ runschema_capabilities:
     # Additional properties
     - stress.total # Pressure tensor (3x3)
     - virial # Virial tensor
+    - forces.total # Total forces on atoms
+    - forces.total.value # Force components (Nx3 array)
+
+    # Constraints
+    - constraints # Applied constraints (bonds, angles, etc.)
 
     # Time-dependent properties
     - time_physical # Physical simulation time
     - step # Time step number
 
   workflow:
-    # Geometry Optimization
-    - geometry_optimization.method # steepest_descent, conjugate_gradient, L-BFGS
-    - geometry_optimization.method.type # atomic
-    - geometry_optimization.method.convergence_tolerance_force_maximum
-    - geometry_optimization.method.optimization_steps_maximum
-    - geometry_optimization.method.save_frequency
-    - geometry_optimization.results.energies # energy trajectory
-    - geometry_optimization.results.steps
-    - geometry_optimization.results.optimization_steps
-    - geometry_optimization.results.final_force_maximum
-
-    # Molecular Dynamics
-    - molecular_dynamics.method.ensemble_type # NVE, NVT, NPT
-    - molecular_dynamics.method.integrator_type # leap_frog, velocity_verlet, langevin, brownian
-    - molecular_dynamics.method.timestep
-    - molecular_dynamics.method.n_steps
-    - molecular_dynamics.method.coordinate_save_frequency
-    - molecular_dynamics.method.velocity_save_frequency
-    - molecular_dynamics.method.force_save_frequency
-    - molecular_dynamics.method.thermodynamics_save_frequency
-    - molecular_dynamics.method.thermostat_parameters # type, target_temperature, coupling_constant
-    - molecular_dynamics.method.barostat_parameters # type, target_pressure, coupling_constant
-    - molecular_dynamics.method.free_energy_calculation_parameters # lambda states for free energy calculations
-    - molecular_dynamics.results.free_energy_calculations # free energy calculation results (dH/dlambda, delta H)
+    - geometry_optimization # energy minimization with steepest_descent, conjugate_gradient, L-BFGS
+    - molecular_dynamics # MD with NVE, NVT, NPT ensembles and various integrators
 
 special_features:
   - "Supports multiple trajectory formats (TRR, XTC) with automatic format detection"
@@ -108,3 +91,4 @@ notes:
   - "Trajectory file selection: prefers TRR over XTC if both are available, with automatic fallback"
   - "Force field interactions are extracted from binary TPR files which contain the complete simulation setup"
   - "Thermodynamic data can be read from both log files and binary EDR files, with EDR providing higher precision"
+  - "Many MD workflow properties are automatically populated by NOMAD normalizers (not by this parser), including: radial_distribution_functions (RDF), mean_squared_displacements (MSD), radius_of_gyration, diffusion constants, ensemble-averaged thermodynamic properties, and correlation functions. The parser stores raw trajectory data and per-frame properties; normalizers calculate derived quantities."

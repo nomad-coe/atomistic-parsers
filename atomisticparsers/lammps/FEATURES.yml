@@ -1,0 +1,90 @@
+metadata:
+  last_updated: "2025-12-20"
+  updated_by: "GitHub Copilot"
+
+parser:
+  name: "LAMMPS"
+  description: "Parser for LAMMPS (Large-scale Atomic/Molecular Massively Parallel Simulator) molecular dynamics simulation output"
+  homepage: "https://lammps.sandia.gov/"
+  mainfile_patterns:
+    - "*.log"
+    - "log.*"
+  supported_file_formats:
+    - "log" # Main output log file (primary mainfile)
+    - "data" # LAMMPS data file (topology/structure)
+    - "lammpstrj" # LAMMPS trajectory file (custom format)
+    - "dcd" # Binary DCD trajectory
+    - "xyz" # XYZ trajectory
+    - "restart" # LAMMPS restart file
+
+runschema_capabilities:
+  run:
+    - program # name: "LAMMPS", version
+    - time_run # Execution timing (not always available)
+
+  method:
+    - force_field # LAMMPS force field description
+    - force_field.model # topology and interactions (bonds, angles, dihedrals, impropers, pairs, coulomb, lennard_jones, buckingham, morse, kspace)
+    - atom_parameters # masses, charges from data file via MDAnalysis
+    - neighbor_searching # cutoff_radius, update_frequency
+    - force_calculations # vdw_cutoff, coulomb_cutoff, coulomb_type (ewald, pppm, msm)
+
+  system:
+    - atoms # positions, labels, lattice_vectors, periodic
+    - atoms.velocities # atomic velocities from trajectory files
+    - atoms.bond_list # bond connectivity from force field model
+    - atoms_group # molecules, residues, moltypes extracted from data file via MDAnalysis
+
+  calculation:
+    # Energy components extracted from thermo output
+    - energy.total # Total energy (TotEng)
+    - energy.potential # Potential energy (PotEng)
+    - energy.kinetic # Kinetic energy (KinEng)
+    - energy.coulomb # Coulombic energy (E_coul)
+    - energy.van_der_waals # Van der Waals energy (E_vdwl)
+    - energy.x_lammps_energy_contributions # Custom energy contributions (E_pair, E_bond, E_angle, E_dihed, E_impro, E_mol, E_long, E_tail)
+
+    # Forces
+    - forces.total # Forces on atoms from trajectory files (if available in dump)
+
+    # Thermodynamic properties from thermo output
+    - thermodynamics.temperature # Temperature (Temp)
+    - thermodynamics.pressure # Pressure (Press)
+
+    # Time-dependent properties
+    - time_physical # Physical simulation time (computed from step * timestep)
+    - time_calculation # Computation time (CPU)
+    - step # Time step number (Step)
+
+  workflow:
+    - geometry_optimization # energy minimization with cg, hftn, sd, quickmin, fire, spin
+    - molecular_dynamics # MD with NVE, NVT, NPT, NPH ensembles and velocity_verlet or rRESPA integrators
+
+special_features:
+  - "Supports multiple trajectory formats (LAMMPSDUMP, DCD, XYZ) with automatic format detection and fallback"
+  - "Parses LAMMPS data files via MDAnalysis for complete system topology, including molecules, residues, and atom groups"
+  - "Extracts force field parameters including bonds, angles, dihedrals, impropers, pairs, and non-bonded interactions (coulomb, lennard_jones, buckingham, morse) from data files"
+  - "Supports multiple unit systems: real, metal, si, cgs, electron, micro, nano, lj with automatic unit conversion"
+  - "Handles various MD ensembles: NVE, NVT (Nose-Hoover, Berendsen, velocity rescaling, Langevin), NPT (Nose-Hoover, Berendsen), NPH"
+  - "Supports multiple thermostat types: nose_hoover, berendsen, velocity_rescaling, velocity_rescaling_langevin, langevin_schneider, brownian"
+  - "Supports multiple barostat types: nose_hoover, berendsen with isotropic/anisotropic coupling"
+  - "Handles energy minimization with multiple algorithms: polak_ribiere_conjugant_gradient (cg), hessian_free_truncated_newton (hftn), steepest_descent (sd), damped_dynamics (quickmin, fire, spin)"
+  - "Extracts long-range electrostatic methods: ewald, particle_particle_particle_mesh (pppm), multilevel_summation (msm)"
+  - "Parses thermodynamic data from log files with automatic detection of thermo style and keywords"
+  - "Integrates with MDAnalysis library for robust data file and trajectory parsing with custom atom styles"
+  - "Extracts per-frame energy components (pair, bond, angle, dihedral, improper, molecular, kspace long range, van der Waals long range) and stores them as EnergyEntry contributions"
+  - "Supports complex molecular topologies with molecule groups, molecule types, residues, and monomer groups"
+  - "Handles auxiliary log files for thermodynamic data when specified in the main log"
+  - "Parses neighbor list parameters including update frequency and cutoff distances"
+  - "Extracts all LAMMPS control parameters from log files for comprehensive workflow reconstruction"
+
+notes:
+  - "Parser requires MDAnalysis package for data file and certain trajectory formats (DCD, XYZ with custom atom styles)"
+  - "Mainfile must be a log file; data files and trajectory files are automatically detected from log file commands or directory scanning"
+  - "Energy values are converted from LAMMPS units (depends on units command: real, metal, si, etc.) to NOMAD standard units"
+  - "Trajectory file selection: prefers LAMMPSDUMP format, with automatic fallback to text parser if MDAnalysis fails"
+  - "Force field interactions are extracted from LAMMPS data files via MDAnalysis Universe"
+  - "Thermodynamic data extraction is flexible and handles various thermo_style formats"
+  - "Workflow detection: minimization if 'minimization_stats' found in log, otherwise molecular dynamics"
+  - "For geometry optimization: extracts convergence criteria (energy tolerance, force tolerance), optimization method, and final statistics"
+  - "For MD: extracts ensemble type, integrator, timestep, thermostat/barostat parameters, and save frequencies"

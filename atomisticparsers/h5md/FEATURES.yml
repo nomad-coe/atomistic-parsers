@@ -1,0 +1,83 @@
+metadata:
+  last_updated: "2025-12-21"
+  updated_by: "GitHub Copilot"
+
+parser:
+  name: "H5MD"
+  description: "Parser for H5MD (HDF5 for Molecular Dynamics) format files - a generic schema-based format for storing MD simulation data from any code"
+  homepage: "https://www.nongnu.org/h5md/"
+  mainfile_patterns:
+    - "*.h5"
+    - "*.hdf5"
+  supported_file_formats:
+    - "h5" # H5MD HDF5 file
+    - "hdf5" # H5MD HDF5 file
+
+runschema_capabilities:
+  run:
+    - program # name (any MD code that writes H5MD), version
+    - x_h5md_version # H5MD schema version
+    - x_h5md_author # Author information (name, email)
+    - x_h5md_creator # Creator program (name, version)
+
+  method:
+    - force_field # Force field description
+    - force_field.model # Topology and interactions (bonds, angles, dihedrals, impropers)
+    - atom_parameters # Per-atom masses, charges, labels (force field types)
+    - neighbor_searching # Neighbor list parameters (cutoff, update frequency)
+    - force_calculations # Non-bonded force parameters (vdw_cutoff, coulomb_cutoff, vdw_method, coulomb_method/coulomb_type)
+
+  system:
+    - atoms # Positions, labels, lattice_vectors, periodic, bond_list
+    - atoms.velocities # Atomic velocities from trajectory
+    - atoms_group # Hierarchical molecular topology (molecules, residues, atoms with type, composition_formula, indices, is_molecule)
+
+  calculation:
+    # Energy components
+    - energy.kinetic # Kinetic energy
+    - energy.potential # Potential energy
+    - energy.x_h5md_energy_contributions # Custom energy contributions from H5MD observables
+
+    # Forces
+    - forces.total # Forces on atoms from trajectory
+
+    # Thermodynamics
+    - thermodynamics.temperature # Instantaneous temperature from observables
+
+    # Time-dependent properties
+    - time_physical # Physical simulation time (from H5MD time datasets)
+    - step # Time step number
+
+    # Custom calculations
+    - x_h5md_custom_calculations # Generic custom observables from H5MD file
+
+  workflow:
+    - molecular_dynamics # MD with NPT, NVT, NVE ensembles
+
+special_features:
+  - "Generic H5MD format parser - supports MD data from any code that writes H5MD (OpenMM, LAMMPS, ESPResSo, etc.)"
+  - "Hierarchical molecular topology support with nested atoms_group (molecule groups, molecules, monomer groups, monomers)"
+  - "Extensible observable system - parses three types of H5MD observables: configurational (per-frame), ensemble_average, correlation_function"
+  - "Radial distribution functions (RDF/g(r)) extracted from ensemble_average observables"
+  - "Mean squared displacement (MSD) and diffusion constants extracted from correlation_function observables"
+  - "Custom energy contributions and calculations stored in x_h5md_energy_contributions and x_h5md_custom_calculations"
+  - "Force calculation parameters including neighbor searching, VdW and Coulomb methods/cutoffs, PME support"
+  - "MD method parameters: thermodynamic ensemble (NPT/NVT/NVE), integrator type, timestep, save frequencies"
+  - "Thermostat parameters: type (langevin_leap_frog, etc.), reference temperature, coupling constant"
+  - "Barostat parameters: type (berendsen, etc.), coupling type (isotropic), reference pressure, coupling constant, compressibility"
+  - "Bond topology from connectivity group with bond_list"
+  - "Flexible attribute system for storing non-normalized parameters via x_h5md_parameters sections"
+  - "Time-dependent trajectories with positions, velocities, forces synchronized by step numbers"
+  - "Supports both time-dependent and static particle attributes (positions, velocities, forces vs. species labels, masses, charges)"
+
+notes:
+  - "H5MD is a specification/schema for HDF5 files, not a simulation code"
+  - "Parser uses h5py library for HDF5 file reading"
+  - "H5MD schema version is stored in x_h5md_version"
+  - "Non-standard observables are stored in x_h5md_custom_calculations and x_h5md_energy_contributions"
+  - "Topology information (bonds, angles, dihedrals, impropers) extracted from connectivity group"
+  - "Particle groups support hierarchical structure for representing molecules, residues, and other groupings"
+  - "Currently only supports static number of atoms (time-dependent n_atoms not implemented)"
+  - "Currently only supports static bond lists and topologies (first frame only)"
+  - "Ensemble properties and correlation functions are workflow results, not per-frame calculations"
+  - "Custom parameters are stored in x_h5md_parameters subsections throughout the schema"

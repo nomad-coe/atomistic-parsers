@@ -30,6 +30,11 @@ dependencies = [
 homepage = "https://github.com/nomad-coe/atomistic-parsers"
 
 [project.optional-dependencies]
+infrastructure = [
+    "nomad-lab[infrastructure]>=1.3.10",
+]
+
+[dependency-groups]
 dev = [
     "pytest",
     "pytest-cov",
@@ -37,10 +42,6 @@ dev = [
     'mypy>=1.15',
     'ruff',
     'typing-extensions>=4.12',
-]
-
-infrastructure = [
-    "nomad-lab[infrastructure]>=1.3.10",
 ]
 
 [tool.ruff]

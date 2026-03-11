@@ -1190,7 +1190,7 @@ class LammpsParser(MDParser):
                     if 'nvt' in fix_style or 'npt' in fix_style:
                         thermostat_parameters['thermostat_type'] = 'nose_hoover'
                         if 'temp' in fix:
-                            i_temp = np.where(fix == 'temp')[0]
+                            i_temp = np.where(fix == 'temp')[0][0]
                             reference_temperature = float(fix[i_temp + 2])  # stop temp
                             coupling_constant = (
                                 float(fix[i_temp + 3]) * integration_timestep
@@ -1242,38 +1242,38 @@ class LammpsParser(MDParser):
                         compressibility = None
                         barostat_type = 'nose_hoover'
                         if 'iso' in fix:
-                            i_baro = np.where(fix == 'iso')[0]
+                            i_baro = np.where(fix == 'iso')[0][0]
                             barostat_parameters['coupling_type'] = 'isotropic'
                             np.fill_diagonal(coupling_constant, float(fix[i_baro + 3]))
                             np.fill_diagonal(reference_pressure, float(fix[i_baro + 2]))
                         else:
                             barostat_parameters['coupling_type'] = 'anisotropic'
                         if 'x' in fix:
-                            i_baro = np.where(fix == 'x')[0]
+                            i_baro = np.where(fix == 'x')[0][0]
                             coupling_constant[0, 0] = float(fix[i_baro + 3])
                             reference_pressure[0, 0] = float(fix[i_baro + 2])
                         if 'y' in fix:
-                            i_baro = np.where(fix == 'y')[0]
+                            i_baro = np.where(fix == 'y')[0][0]
                             coupling_constant[1, 1] = float(fix[i_baro + 3])
                             reference_pressure[1, 1] = float(fix[i_baro + 2])
                         if 'z' in fix:
-                            i_baro = np.where(fix == 'z')[0]
+                            i_baro = np.where(fix == 'z')[0][0]
                             coupling_constant[2, 2] = float(fix[i_baro + 3])
                             reference_pressure[2, 2] = float(fix[i_baro + 2])
                         if 'xy' in fix:
-                            i_baro = np.where(fix == 'xy')[0]
+                            i_baro = np.where(fix == 'xy')[0][0]
                             coupling_constant[0, 1] = float(fix[i_baro + 3])
                             coupling_constant[1, 0] = float(fix[i_baro + 3])
                             reference_pressure[0, 1] = float(fix[i_baro + 2])
                             reference_pressure[1, 0] = float(fix[i_baro + 2])
                         if 'yz' in fix:
-                            i_baro = np.where(fix == 'yz')[0]
+                            i_baro = np.where(fix == 'yz')[0][0]
                             coupling_constant[1, 2] = float(fix[i_baro + 3])
                             coupling_constant[2, 1] = float(fix[i_baro + 3])
                             reference_pressure[1, 2] = float(fix[i_baro + 2])
                             reference_pressure[2, 1] = float(fix[i_baro + 2])
                         if 'xz' in fix:
-                            i_baro = np.where(fix == 'xz')[0]
+                            i_baro = np.where(fix == 'xz')[0][0]
                             coupling_constant[0, 3] = float(fix[i_baro + 3])
                             coupling_constant[3, 0] = float(fix[i_baro + 3])
                             reference_pressure[0, 3] = float(fix[i_baro + 2])
@@ -1289,27 +1289,27 @@ class LammpsParser(MDParser):
                     if fix_style == 'press/berendsen':
                         barostat_type = 'berendsen'
                         if 'iso' in fix:
-                            i_baro = np.where(fix == 'iso')[0]
+                            i_baro = np.where(fix == 'iso')[0][0]
                             barostat_parameters['coupling_type'] = 'isotropic'
                             np.fill_diagonal(coupling_constant, float(fix[i_baro + 3]))
                         elif 'aniso' in fix:
-                            i_baro = np.where(fix == 'aniso')[0]
+                            i_baro = np.where(fix == 'aniso')[0][0]
                             barostat_parameters['coupling_type'] = 'anisotropic'
                             coupling_constant[:3] += 1.0
                             coupling_constant[:3] *= float(fix[i_baro + 3])
                         else:
                             barostat_parameters['coupling_type'] = 'anisotropic'
                         if 'x' in fix:
-                            i_baro = np.where(fix == 'x')[0]
+                            i_baro = np.where(fix == 'x')[0][0]
                             coupling_constant[0] = float(fix[i_baro + 3])
                         if 'y' in fix:
-                            i_baro = np.where(fix == 'y')[0]
+                            i_baro = np.where(fix == 'y')[0][0]
                             coupling_constant[1] = float(fix[i_baro + 3])
                         if 'z' in fix:
-                            i_baro = np.where(fix == 'z')[0]
+                            i_baro = np.where(fix == 'z')[0][0]
                             coupling_constant[2] = float(fix[i_baro + 3])
                         if 'couple' in fix:
-                            i_baro = np.where(fix == 'couple')[0]
+                            i_baro = np.where(fix == 'couple')[0][0]
                             couple = fix[i_baro]
                             if couple == 'xyz':
                                 barostat_parameters['coupling_type'] = 'isotropic'
@@ -1604,7 +1604,7 @@ class LammpsParser(MDParser):
             neighmodify = val[0]  # just use the first instace for now
             neighmodify = np.array([str(i).lower() for i in neighmodify])
             if 'every' in neighmodify:
-                index = np.where(neighmodify == 'every')[0]
+                index = np.where(neighmodify == 'every')[0][0]
                 sec_neighbor_searching.neighbor_update_frequency = int(
                     neighmodify[index + 1]
                 )

@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nomad-parser-plugins-atomistic"
 dynamic = ["version"]
+requires-python = ">=3.10"
 description = "Collection of NOMAD parsers for atomistic codes."
 readme = "README.md"
 authors = [{ name = "The NOMAD Authors" }]

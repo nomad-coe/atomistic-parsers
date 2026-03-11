@@ -16,38 +16,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import numpy as np
 import os
-from ase import data as asedata
 import re
 
-from nomad.units import ureg
-
+import numpy as np
+from ase import data as asedata
 from nomad.parsing.file_parser import Quantity, TextParser
-from runschema.run import Run, Program
+from nomad.units import ureg
 from runschema.method import (
-    NeighborSearching,
+    AtomParameters,
     ForceCalculations,
     ForceField,
     Method,
     Model,
-    AtomParameters,
+    NeighborSearching,
 )
+from runschema.run import Program, Run
 from runschema.system import AtomsGroup
 from simulationworkflowschema import (
     GeometryOptimization,
     GeometryOptimizationMethod,
     GeometryOptimizationResults,
 )
-from .metainfo.lammps import (
-    x_lammps_section_input_output_files,
-    x_lammps_section_control_parameters,
-)
-from atomisticparsers.utils import MDAnalysisParser, MDParser
 from simulationworkflowschema.molecular_dynamics import (
     get_bond_list_from_model_contributions,
 )
 
+from atomisticparsers.utils import MDAnalysisParser, MDParser
+
+from .metainfo.lammps import (
+    x_lammps_section_control_parameters,
+    x_lammps_section_input_output_files,
+)
 
 re_float = r'[-+]?\d+\.*\d*(?:[Ee][-+]\d+)?'
 re_n = r'[\n\r]'

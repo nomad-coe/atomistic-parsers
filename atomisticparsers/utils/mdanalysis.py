@@ -44,6 +44,23 @@ MOL = 6.022140857e23
 
 
 class MDAnalysisParser(FileParser):
+    @staticmethod
+    def has_consistent_atom_group_labels(groups):
+        atom_counts = {}
+        pending_groups = list(groups or [])
+
+        while pending_groups:
+            group = pending_groups.pop()
+            label = group.label
+            indices = group.atom_indices
+            atom_count = len(indices) if indices is not None else None
+            if label in atom_counts and atom_counts[label] != atom_count:
+                return False
+            atom_counts[label] = atom_count
+            pending_groups.extend(group.atoms_group or [])
+
+        return True
+
     def __init__(self, *args, **kwargs):
         super().__init__()
         self._args = args

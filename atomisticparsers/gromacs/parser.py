@@ -1064,6 +1064,15 @@ class GromacsParser(MDParser):
                     names_firstatom = names[ids_firstatom]
                     sec_molecule.composition_formula = get_composition(names_firstatom)
 
+        if not self.traj_parser.has_consistent_atom_group_labels(
+            sec_run.system[0].atoms_group
+        ):
+            self.logger.warning(
+                'Skipping GROMACS system hierarchy because groups reuse a label '
+                'with different numbers of atoms.'
+            )
+            sec_run.system[0].atoms_group = []
+
     def parse_method(self):
         sec_method = Method()
         self.archive.run[-1].method.append(sec_method)

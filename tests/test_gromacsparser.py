@@ -27,14 +27,33 @@ from typing import (
 )
 
 from nomad.datamodel import EntryArchive
+from nomad.datamodel.metainfo import runschema
 from atomisticparsers.gromacs import GromacsParser
 from simulationworkflowschema.molecular_dynamics import FreeEnergyCalculationParameters
 from atomisticparsers.gromacs import GromacsLogParser
+from atomisticparsers.utils import MDAnalysisParser
 import MDAnalysis
 
 
 def approx(value, abs=0, rel=1e-6):
     return pytest.approx(value, abs=abs, rel=rel)
+
+
+def test_atom_group_labels_with_different_atom_counts_are_inconsistent():
+    child = runschema.system.AtomsGroup(
+        label='PEO', atom_indices=[0, 1, 2]
+    )
+    parent = runschema.system.AtomsGroup(label='PEO', atom_indices=list(range(8)))
+    parent.atoms_group.append(child)
+
+    assert not MDAnalysisParser.has_consistent_atom_group_labels([parent])
+
+
+def test_atom_group_labels_with_matching_atom_counts_are_consistent():
+    first = runschema.system.AtomsGroup(label='PEO', atom_indices=[0, 1, 2])
+    second = runschema.system.AtomsGroup(label='PEO', atom_indices=[3, 4, 5])
+
+    assert MDAnalysisParser.has_consistent_atom_group_labels([first, second])
 
 
 @pytest.fixture(scope='module')

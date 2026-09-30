@@ -49,6 +49,22 @@ def test_atom_group_labels_with_different_atom_counts_are_inconsistent():
     assert not MDAnalysisParser.has_consistent_atom_group_labels([parent])
 
 
+def test_inconsistent_atom_group_hierarchy_keeps_top_level_groups():
+    child = runschema.system.AtomsGroup(
+        label='PEO', atom_indices=[0, 1, 2]
+    )
+    parent = runschema.system.AtomsGroup(label='PEO', atom_indices=list(range(8)))
+    parent.atoms_group.append(child)
+
+    groups = [parent]
+    if not MDAnalysisParser.has_consistent_atom_group_labels(groups):
+        MDAnalysisParser.clear_atom_group_subgroups(groups)
+
+    assert groups == [parent]
+    assert parent.atom_indices.tolist() == list(range(8))
+    assert parent.atoms_group == []
+
+
 def test_atom_group_labels_with_matching_atom_counts_are_consistent():
     first = runschema.system.AtomsGroup(label='PEO', atom_indices=[0, 1, 2])
     second = runschema.system.AtomsGroup(label='PEO', atom_indices=[3, 4, 5])

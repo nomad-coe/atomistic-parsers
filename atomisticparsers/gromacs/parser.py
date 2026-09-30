@@ -1068,10 +1068,12 @@ class GromacsParser(MDParser):
             sec_run.system[0].atoms_group
         ):
             self.logger.warning(
-                'Skipping GROMACS system hierarchy because groups reuse a label '
+                'Skipping GROMACS topology subgroups because groups reuse a label '
                 'with different numbers of atoms.'
             )
-            sec_run.system[0].atoms_group = []
+            self.traj_parser.clear_atom_group_subgroups(
+                sec_run.system[0].atoms_group
+            )
 
     def parse_method(self):
         sec_method = Method()

@@ -61,6 +61,11 @@ class MDAnalysisParser(FileParser):
 
         return True
 
+    @staticmethod
+    def clear_atom_group_subgroups(groups):
+        for group in groups or []:
+            group.atoms_group = []
+
     def __init__(self, *args, **kwargs):
         super().__init__()
         self._args = args

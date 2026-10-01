@@ -32,6 +32,8 @@ from array import array
 from scipy import sparse
 from scipy.stats import linregress
 
+from runschema.system import AtomsGroup
+
 from nomad.units import ureg
 from nomad.parsing.file_parser import FileParser
 from simulationworkflowschema.molecular_dynamics import (
@@ -45,26 +47,46 @@ MOL = 6.022140857e23
 
 class MDAnalysisParser(FileParser):
     @staticmethod
-    def has_consistent_atom_group_labels(groups):
-        atom_counts = {}
-        pending_groups = list(groups or [])
+    def have_equal_particle_counts(particle_indices):
+        """Return whether all particle-index groups have equal lengths."""
+        counts = {len(indices) for indices in particle_indices}
+        return len(counts) <= 1
 
-        while pending_groups:
-            group = pending_groups.pop()
-            label = group.label
-            indices = group.atom_indices
-            atom_count = len(indices) if indices is not None else None
-            if label in atom_counts and atom_counts[label] != atom_count:
+    @staticmethod
+    def register_particle_groups(groups, label_particle_counts):
+        """Record label/count pairs atomically, rejecting conflicting repeats."""
+        candidate_counts = dict(label_particle_counts)
+        for label, particle_indices in groups:
+            particle_count = len(particle_indices)
+            previous_count = candidate_counts.get(label)
+            if previous_count is not None and previous_count != particle_count:
                 return False
-            atom_counts[label] = atom_count
-            pending_groups.extend(group.atoms_group or [])
-
+            candidate_counts[label] = particle_count
+        label_particle_counts.update(candidate_counts)
         return True
 
     @staticmethod
-    def clear_atom_group_subgroups(groups):
-        for group in groups or []:
-            group.atoms_group = []
+    def create_whole_system_atom_groups(n_atoms):
+        """Create a converter-compatible whole-system group and molecule."""
+        atom_indices = np.arange(n_atoms, dtype=np.int32)
+        molecule = AtomsGroup(
+            label='whole_system',
+            type='molecule',
+            index=0,
+            atom_indices=atom_indices,
+            n_atoms=n_atoms,
+            is_molecule=True,
+        )
+        system_group = AtomsGroup(
+            label='system',
+            type='molecule_group',
+            index=0,
+            atom_indices=atom_indices,
+            n_atoms=n_atoms,
+            is_molecule=False,
+        )
+        system_group.atoms_group.append(molecule)
+        return [system_group]
 
     def __init__(self, *args, **kwargs):
         super().__init__()

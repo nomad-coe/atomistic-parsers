@@ -27,7 +27,6 @@ from typing import (
 )
 
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo import runschema
 from atomisticparsers.gromacs import GromacsParser
 from simulationworkflowschema.molecular_dynamics import FreeEnergyCalculationParameters
 from atomisticparsers.gromacs import GromacsLogParser
@@ -40,36 +39,41 @@ def approx(value, abs=0, rel=1e-6):
 
 
 def test_atom_group_labels_with_different_atom_counts_are_inconsistent():
-    child = runschema.system.AtomsGroup(
-        label='PEO', atom_indices=[0, 1, 2]
+    assert not MDAnalysisParser.have_equal_particle_counts([np.array([0, 1, 2]), np.arange(8)])
+
+
+def test_direct_child_label_mismatch_uses_whole_system_hierarchy():
+    first = np.arange(8)
+    second = np.arange(8, 15)
+    assert not MDAnalysisParser.have_equal_particle_counts([first, second])
+
+    label_counts = {}
+    assert not MDAnalysisParser.register_particle_groups(
+        [('PEO', first), ('PEO', second)], label_counts
     )
-    parent = runschema.system.AtomsGroup(label='PEO', atom_indices=list(range(8)))
-    parent.atoms_group.append(child)
+    assert label_counts == {}
 
-    assert not MDAnalysisParser.has_consistent_atom_group_labels([parent])
+    groups = MDAnalysisParser.create_whole_system_atom_groups(n_atoms=15)
 
-
-def test_inconsistent_atom_group_hierarchy_keeps_top_level_groups():
-    child = runschema.system.AtomsGroup(
-        label='PEO', atom_indices=[0, 1, 2]
-    )
-    parent = runschema.system.AtomsGroup(label='PEO', atom_indices=list(range(8)))
-    parent.atoms_group.append(child)
-
-    groups = [parent]
-    if not MDAnalysisParser.has_consistent_atom_group_labels(groups):
-        MDAnalysisParser.clear_atom_group_subgroups(groups)
-
-    assert groups == [parent]
-    assert parent.atom_indices.tolist() == list(range(8))
-    assert parent.atoms_group == []
+    assert len(groups) == 1
+    assert groups[0].type == 'molecule_group'
+    assert groups[0].atom_indices.tolist() == list(range(15))
+    assert len(groups[0].atoms_group) == 1
+    assert groups[0].atoms_group[0].type == 'molecule'
+    assert groups[0].atoms_group[0].atom_indices.tolist() == list(range(15))
+    assert groups[0].atoms_group[0].atoms_group == []
 
 
 def test_atom_group_labels_with_matching_atom_counts_are_consistent():
-    first = runschema.system.AtomsGroup(label='PEO', atom_indices=[0, 1, 2])
-    second = runschema.system.AtomsGroup(label='PEO', atom_indices=[3, 4, 5])
-
-    assert MDAnalysisParser.has_consistent_atom_group_labels([first, second])
+    assert MDAnalysisParser.have_equal_particle_counts(
+        [np.array([0, 1, 2]), np.array([3, 4, 5])]
+    )
+    label_counts = {}
+    assert MDAnalysisParser.register_particle_groups(
+        [('PEO', np.array([0, 1, 2])), ('PEO', np.array([3, 4, 5]))],
+        label_counts,
+    )
+    assert label_counts == {'PEO': 3}
 
 
 @pytest.fixture(scope='module')

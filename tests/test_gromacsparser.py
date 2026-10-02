@@ -27,6 +27,7 @@ from typing import (
 )
 
 from nomad.datamodel import EntryArchive
+from nomad.datamodel.metainfo import runschema
 from atomisticparsers.gromacs import GromacsParser
 from simulationworkflowschema.molecular_dynamics import FreeEnergyCalculationParameters
 from atomisticparsers.gromacs import GromacsLogParser
@@ -38,42 +39,62 @@ def approx(value, abs=0, rel=1e-6):
     return pytest.approx(value, abs=abs, rel=rel)
 
 
-def test_atom_group_labels_with_different_atom_counts_are_inconsistent():
-    assert not MDAnalysisParser.have_equal_particle_counts([np.array([0, 1, 2]), np.arange(8)])
-
-
-def test_direct_child_label_mismatch_uses_whole_system_hierarchy():
-    first = np.arange(8)
-    second = np.arange(8, 15)
-    assert not MDAnalysisParser.have_equal_particle_counts([first, second])
-
-    label_counts = {}
-    assert not MDAnalysisParser.register_particle_groups(
-        [('PEO', first), ('PEO', second)], label_counts
+def test_conflicting_atom_group_labels_are_disambiguated_and_retained():
+    repeated_small = runschema.system.AtomsGroup(
+        label='PEO', type='monomer', atom_indices=[0, 1, 2]
     )
-    assert label_counts == {}
-
-    groups = MDAnalysisParser.create_whole_system_atom_groups(n_atoms=15)
-
-    assert len(groups) == 1
-    assert groups[0].type == 'molecule_group'
-    assert groups[0].atom_indices.tolist() == list(range(15))
-    assert len(groups[0].atoms_group) == 1
-    assert groups[0].atoms_group[0].type == 'molecule'
-    assert groups[0].atoms_group[0].atom_indices.tolist() == list(range(15))
-    assert groups[0].atoms_group[0].atoms_group == []
-
-
-def test_atom_group_labels_with_matching_atom_counts_are_consistent():
-    assert MDAnalysisParser.have_equal_particle_counts(
-        [np.array([0, 1, 2]), np.array([3, 4, 5])]
+    repeated_large = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=list(range(8))
     )
-    label_counts = {}
-    assert MDAnalysisParser.register_particle_groups(
-        [('PEO', np.array([0, 1, 2])), ('PEO', np.array([3, 4, 5]))],
-        label_counts,
+    same_signature = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=list(range(8, 16))
     )
-    assert label_counts == {'PEO': 3}
+    root = runschema.system.AtomsGroup(
+        label='group_PEO', type='molecule_group', atom_indices=list(range(16))
+    )
+    root.atoms_group.extend([repeated_large, same_signature, repeated_small])
+    groups = [root]
+
+    MDAnalysisParser.disambiguate_atom_group_labels(groups)
+
+    assert root.label == 'group_PEO'
+    assert repeated_small.label == 'PEO_1'
+    assert repeated_large.label == 'PEO'
+    assert same_signature.label == repeated_large.label
+    assert root.atoms_group == [repeated_large, same_signature, repeated_small]
+    assert repeated_small.atom_indices.tolist() == [0, 1, 2]
+    assert repeated_large.atom_indices.tolist() == list(range(8))
+
+
+def test_same_type_and_size_labels_are_left_unchanged():
+    first = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=[0, 1, 2]
+    )
+    second = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=[3, 4, 5]
+    )
+
+    MDAnalysisParser.disambiguate_atom_group_labels([first, second])
+
+    assert first.label == second.label == 'PEO'
+
+
+def test_disambiguated_group_labels_avoid_existing_labels():
+    first = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=[0, 1]
+    )
+    other_label = runschema.system.AtomsGroup(
+        label='PEO_1', type='molecule', atom_indices=[2, 3]
+    )
+    conflicting = runschema.system.AtomsGroup(
+        label='PEO', type='monomer', atom_indices=[0]
+    )
+
+    MDAnalysisParser.disambiguate_atom_group_labels([first, other_label, conflicting])
+
+    assert first.label == 'PEO'
+    assert other_label.label == 'PEO_1'
+    assert conflicting.label == 'PEO_2'
 
 
 @pytest.fixture(scope='module')

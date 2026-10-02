@@ -47,23 +47,34 @@ MOL = 6.022140857e23
 
 class MDAnalysisParser(FileParser):
     @staticmethod
-    def have_equal_particle_counts(particle_indices):
-        """Return whether all particle-index groups have equal lengths."""
-        counts = {len(indices) for indices in particle_indices}
-        return len(counts) <= 1
+    def disambiguate_atom_group_labels(groups):
+        """Number reused labels when group type or particle count differs."""
+        groups_by_label = {}
+        pending_groups = list(reversed(groups or []))
+        while pending_groups:
+            group = pending_groups.pop()
+            signature = (group.type, len(group.atom_indices))
+            groups_by_label.setdefault(group.label, {}).setdefault(
+                signature, []
+            ).append(group)
+            pending_groups.extend(reversed(group.atoms_group or []))
 
-    @staticmethod
-    def register_particle_groups(groups, label_particle_counts):
-        """Record label/count pairs atomically, rejecting conflicting repeats."""
-        candidate_counts = dict(label_particle_counts)
-        for label, particle_indices in groups:
-            particle_count = len(particle_indices)
-            previous_count = candidate_counts.get(label)
-            if previous_count is not None and previous_count != particle_count:
-                return False
-            candidate_counts[label] = particle_count
-        label_particle_counts.update(candidate_counts)
-        return True
+        reserved_labels = set(groups_by_label)
+        for label, signatures in groups_by_label.items():
+            if len(signatures) < 2:
+                continue
+            for suffix, matching_groups in enumerate(signatures.values()):
+                if suffix == 0:
+                    unique_label = label
+                else:
+                    counter = suffix
+                    unique_label = f'{label}_{counter}'
+                    while unique_label in reserved_labels:
+                        counter += 1
+                        unique_label = f'{label}_{counter}'
+                    reserved_labels.add(unique_label)
+                for group in matching_groups:
+                    group.label = unique_label
 
     @staticmethod
     def create_whole_system_atom_groups(n_atoms):

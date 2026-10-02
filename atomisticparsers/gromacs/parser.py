@@ -974,10 +974,6 @@ class GromacsParser(MDParser):
         atoms_elements = np.array(atoms_info['elements'])
         atoms_resnames = np.array(atoms_info['resnames'])
 
-        label_particle_counts = {}
-        warned_monomer_size_mismatch = False
-        warned_monomer_label_mismatch = False
-
         for segment in self.traj_parser.universe.segments:
             segment_indices = segment.atoms.ix
             molecule_ids = np.unique(atoms_molnums[segment_indices])
@@ -987,30 +983,10 @@ class GromacsParser(MDParser):
                 )
                 for molecule_id in molecule_ids
             ]
-            if not molecules or not self.traj_parser.have_equal_particle_counts(
-                molecules
-            ):
-                self.logger.warning(
-                    'Skipping GROMACS molecule group because its molecules have '
-                    'different numbers of atoms.'
-                )
-                continue
-
             molecule_labels = [
                 str(atoms_moltypes[indices[0]]) for indices in molecules
             ]
             segment_label = f'group_{molecule_labels[0]}'
-            molecule_groups = [(segment_label, segment_indices)] + list(
-                zip(molecule_labels, molecules)
-            )
-            if not self.traj_parser.register_particle_groups(
-                molecule_groups, label_particle_counts
-            ):
-                self.logger.warning(
-                    'Skipping GROMACS molecule group because a repeated label has '
-                    'a different number of atoms.'
-                )
-                continue
 
             # We only create atomsgroup for the initial system.
             sec_segment = AtomsGroup()
@@ -1056,9 +1032,6 @@ class GromacsParser(MDParser):
                 else:
                     mol_resnames = atoms_resnames[sec_molecule.atom_indices]
                     restypes = np.unique(mol_resnames)
-                    molecule_monomer_groups = []
-                    molecule_label_counts = dict(label_particle_counts)
-                    monomer_hierarchy_is_valid = True
                     for i_restype, restype in enumerate(restypes):
                         restype_indices = np.intersect1d(
                             np.where(atoms_resnames == restype)[0],
@@ -1071,36 +1044,9 @@ class GromacsParser(MDParser):
                             )
                             for res_id in restype_resids
                         ]
-                        if not residue_indices or not self.traj_parser.have_equal_particle_counts(
-                            residue_indices
-                        ):
-                            if not warned_monomer_size_mismatch:
-                                self.logger.warning(
-                                    'Skipping GROMACS monomer groups because monomers '
-                                    'have different numbers of atoms.'
-                                )
-                                warned_monomer_size_mismatch = True
-                            monomer_hierarchy_is_valid = False
-                            break
-
                         monomer_group_label = f'group_{restype}'
-                        monomer_groups = [(monomer_group_label, restype_indices)] + [
-                            (str(restype), indices) for indices in residue_indices
-                        ]
-                        if not self.traj_parser.register_particle_groups(
-                            monomer_groups, molecule_label_counts
-                        ):
-                            if not warned_monomer_label_mismatch:
-                                self.logger.warning(
-                                    'Skipping GROMACS monomer groups because a '
-                                    'repeated label has a different number of atoms.'
-                                )
-                                warned_monomer_label_mismatch = True
-                            monomer_hierarchy_is_valid = False
-                            break
-
                         sec_monomer_group = AtomsGroup()
-                        molecule_monomer_groups.append(sec_monomer_group)
+                        sec_molecule.atoms_group.append(sec_monomer_group)
                         sec_monomer_group.label = monomer_group_label
                         sec_monomer_group.type = 'monomer_group'
                         sec_monomer_group.index = i_restype
@@ -1126,10 +1072,6 @@ class GromacsParser(MDParser):
                             elements = atoms_elements[sec_residue.atom_indices]
                             sec_residue.composition_formula = get_composition(elements)
 
-                    if monomer_hierarchy_is_valid:
-                        label_particle_counts.update(molecule_label_counts)
-                        sec_molecule.atoms_group.extend(molecule_monomer_groups)
-
                     names = atoms_resnames[sec_molecule.atom_indices]
                     ids = atoms_resids[sec_molecule.atom_indices]
                     # filter for the first instance of each residue, as to not overcount
@@ -1142,6 +1084,7 @@ class GromacsParser(MDParser):
                     sec_molecule.composition_formula = get_composition(names_firstatom)
 
         groups = sec_run.system[0].atoms_group
+        self.traj_parser.disambiguate_atom_group_labels(groups)
         covered_indices = (
             np.sort(np.concatenate([group.atom_indices for group in groups]))
             if groups

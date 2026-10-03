@@ -79,6 +79,52 @@ def test_same_type_and_size_labels_are_left_unchanged():
     assert first.label == second.label == 'PEO'
 
 
+def test_same_sized_groups_under_different_chains_get_distinct_labels():
+    chains = []
+    for chain_index, chain_label in enumerate(
+        ['Protein_chain_A', 'Protein_chain_B']
+    ):
+        chain_start = chain_index * 6
+        residues = [
+            runschema.system.AtomsGroup(
+                label='SA',
+                type='monomer',
+                atom_indices=list(range(residue_start, residue_start + 3)),
+            )
+            for residue_start in (chain_start, chain_start + 3)
+        ]
+        monomer_group = runschema.system.AtomsGroup(
+            label='group_SA',
+            type='monomer_group',
+            atom_indices=list(range(chain_start, chain_start + 6)),
+        )
+        monomer_group.atoms_group.extend(residues)
+        molecule = runschema.system.AtomsGroup(
+            label=chain_label,
+            type='molecule',
+            atom_indices=list(range(chain_start, chain_start + 6)),
+        )
+        molecule.atoms_group.append(monomer_group)
+        chain_group = runschema.system.AtomsGroup(
+            label=f'group_{chain_label}',
+            type='molecule_group',
+            atom_indices=list(range(chain_start, chain_start + 6)),
+        )
+        chain_group.atoms_group.append(molecule)
+        chains.append(chain_group)
+
+    MDAnalysisParser.disambiguate_atom_group_labels(chains)
+
+    chain_a_group = chains[0].atoms_group[0].atoms_group[0]
+    chain_b_group = chains[1].atoms_group[0].atoms_group[0]
+    assert chain_a_group.label == 'group_SA'
+    assert chain_b_group.label == 'group_SA_1'
+    assert [group.label for group in chain_a_group.atoms_group] == ['SA', 'SA']
+    assert [group.label for group in chain_b_group.atoms_group] == ['SA_1', 'SA_1']
+    assert chain_a_group.atom_indices.tolist() == list(range(6))
+    assert chain_b_group.atom_indices.tolist() == list(range(6, 12))
+
+
 def test_disambiguated_group_labels_avoid_existing_labels():
     first = runschema.system.AtomsGroup(
         label='PEO', type='molecule', atom_indices=[0, 1]

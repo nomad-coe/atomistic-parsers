@@ -74,6 +74,19 @@ def to_float(string):
     return value
 
 
+def group_indices_by_value(indices, values):
+    """Group a subset of particle indices by the corresponding array value."""
+    indices = np.sort(np.asarray(indices))
+    grouped_indices = {}
+    for index in indices:
+        grouped_indices.setdefault(values[index], []).append(index)
+
+    return {
+        value: np.asarray(grouped_indices[value], dtype=indices.dtype)
+        for value in sorted(grouped_indices)
+    }
+
+
 class GromacsLogParser(TextParser):
     def __init__(self):
         super().__init__(None)
@@ -976,15 +989,9 @@ class GromacsParser(MDParser):
 
         for segment in self.traj_parser.universe.segments:
             segment_indices = segment.atoms.ix
-            molecule_ids = np.unique(atoms_molnums[segment_indices])
-            molecules = [
-                np.intersect1d(
-                    np.where(atoms_molnums == molecule_id)[0], segment_indices
-                )
-                for molecule_id in molecule_ids
-            ]
+            molecules = group_indices_by_value(segment_indices, atoms_molnums)
             molecule_labels = [
-                str(atoms_moltypes[indices[0]]) for indices in molecules
+                str(atoms_moltypes[indices[0]]) for indices in molecules.values()
             ]
             segment_label = f'group_{molecule_labels[0]}'
 
@@ -997,22 +1004,18 @@ class GromacsParser(MDParser):
             sec_segment.n_atoms = len(sec_segment.atom_indices)
             sec_segment.is_molecule = False
 
-            moltypes = np.unique(atoms_moltypes[segment_indices])
             moltypes_count = {}
-            for moltype in moltypes:
-                atom_indices = np.where(atoms_moltypes == moltype)[0]
-                # mol_nums is the molecule identifier for each atom
-                mol_nums = atoms_molnums[atom_indices]
-                moltypes_count[moltype] = np.unique(mol_nums).shape[0]
+            for molecule_indices in molecules.values():
+                moltype = atoms_moltypes[molecule_indices[0]]
+                moltypes_count[moltype] = moltypes_count.get(moltype, 0) + 1
             formula = ''.join(
-                [f'{moltype}({moltypes_count[moltype]})' for moltype in moltypes_count]
+                f'{moltype}({moltypes_count[moltype]})'
+                for moltype in sorted(moltypes_count)
             )
             sec_segment.composition_formula = formula
             sec_segment.label = segment_label
 
-            for i_molecule, (molecule, molecule_indices) in enumerate(
-                zip(molecule_ids, molecules)
-            ):
+            for i_molecule, molecule_indices in enumerate(molecules.values()):
                 sec_molecule = AtomsGroup()
                 sec_segment.atoms_group.append(sec_molecule)
                 sec_molecule.index = i_molecule
@@ -1024,26 +1027,27 @@ class GromacsParser(MDParser):
                 sec_molecule.type = 'molecule'
                 sec_molecule.is_molecule = True
 
-                mol_resids = np.unique(atoms_resids[sec_molecule.atom_indices])
-                n_res = mol_resids.shape[0]
-                if n_res == 1:
+                residues = group_indices_by_value(
+                    sec_molecule.atom_indices, atoms_resids
+                )
+                if len(residues) == 1:
                     elements = atoms_elements[sec_molecule.atom_indices]
                     sec_molecule.composition_formula = get_composition(elements)
                 else:
-                    mol_resnames = atoms_resnames[sec_molecule.atom_indices]
-                    restypes = np.unique(mol_resnames)
-                    for i_restype, restype in enumerate(restypes):
-                        restype_indices = np.intersect1d(
-                            np.where(atoms_resnames == restype)[0],
-                            sec_molecule.atom_indices,
+                    residues_by_type = {}
+                    for res_id, residue_indices in residues.items():
+                        restype = atoms_resnames[residue_indices[0]]
+                        residues_by_type.setdefault(restype, []).append(
+                            (res_id, residue_indices)
                         )
-                        restype_resids = np.unique(atoms_resids[restype_indices])
-                        residue_indices = [
-                            np.intersect1d(
-                                np.where(atoms_resids == res_id)[0], restype_indices
+
+                    for i_restype, restype in enumerate(sorted(residues_by_type)):
+                        typed_residues = residues_by_type[restype]
+                        restype_indices = np.sort(
+                            np.concatenate(
+                                [indices for _, indices in typed_residues]
                             )
-                            for res_id in restype_resids
-                        ]
+                        )
                         monomer_group_label = f'group_{restype}'
                         sec_monomer_group = AtomsGroup()
                         sec_molecule.atoms_group.append(sec_monomer_group)
@@ -1054,13 +1058,11 @@ class GromacsParser(MDParser):
                         sec_monomer_group.n_atoms = len(sec_monomer_group.atom_indices)
                         sec_monomer_group.is_molecule = False
 
-                        restype_count = restype_resids.shape[0]
+                        restype_count = len(typed_residues)
                         sec_monomer_group.composition_formula = (
                             f'{restype}({restype_count})'
                         )
-                        for i_res, (res_id, atom_indices) in enumerate(
-                            zip(restype_resids, residue_indices)
-                        ):
+                        for i_res, (res_id, atom_indices) in enumerate(typed_residues):
                             sec_residue = AtomsGroup()
                             sec_monomer_group.atoms_group.append(sec_residue)
                             sec_residue.index = i_res
@@ -1072,15 +1074,9 @@ class GromacsParser(MDParser):
                             elements = atoms_elements[sec_residue.atom_indices]
                             sec_residue.composition_formula = get_composition(elements)
 
-                    names = atoms_resnames[sec_molecule.atom_indices]
-                    ids = atoms_resids[sec_molecule.atom_indices]
-                    # filter for the first instance of each residue, as to not overcount
-                    __, ids_count = np.unique(ids, return_counts=True)
-                    # get the index of the first atom of each residue
-                    ids_firstatom = np.cumsum(ids_count)[:-1]
-                    # add the 0th index manually
-                    ids_firstatom = np.insert(ids_firstatom, 0, 0)
-                    names_firstatom = names[ids_firstatom]
+                    names_firstatom = [
+                        atoms_resnames[indices[0]] for indices in residues.values()
+                    ]
                     sec_molecule.composition_formula = get_composition(names_firstatom)
 
         groups = sec_run.system[0].atoms_group

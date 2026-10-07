@@ -29,6 +29,7 @@ from typing import (
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo import runschema
 from atomisticparsers.gromacs import GromacsParser
+from atomisticparsers.gromacs.parser import group_indices_by_value
 from simulationworkflowschema.molecular_dynamics import FreeEnergyCalculationParameters
 from atomisticparsers.gromacs import GromacsLogParser
 from atomisticparsers.utils import MDAnalysisParser
@@ -37,6 +38,16 @@ import MDAnalysis
 
 def approx(value, abs=0, rel=1e-6):
     return pytest.approx(value, abs=abs, rel=rel)
+
+
+def test_group_indices_by_value_groups_only_selected_indices_once():
+    values = np.array(['B', 'A', 'B', 'A', 'B', 'A'])
+
+    grouped = group_indices_by_value([5, 2, 3, 0], values)
+
+    assert list(grouped) == ['A', 'B']
+    assert grouped['A'].tolist() == [3, 5]
+    assert grouped['B'].tolist() == [0, 2]
 
 
 def test_conflicting_atom_group_labels_are_disambiguated_and_retained():

@@ -48,54 +48,49 @@ MOL = 6.022140857e23
 class MDAnalysisParser(FileParser):
     @staticmethod
     def disambiguate_atom_group_labels(groups):
-        """Number reused labels across incompatible types, sizes, or parents."""
+        """Number every label reused across incompatible hierarchy contexts."""
+        groups = list(groups or [])
         reserved_labels = set()
-        pending_groups = list(groups or [])
-        while pending_groups:
-            group = pending_groups.pop()
-            reserved_labels.add(group.label)
-            pending_groups.extend(group.atoms_group or [])
-
-        assigned_labels = set()
         labels_by_context = {}
 
-        def assign_labels(siblings, parent_path=()):
-            sibling_signatures = {}
+        def collect_contexts(siblings, parent_path=()):
             for group in siblings or []:
                 base_label = group.label
+                reserved_labels.add(base_label)
                 signature = (group.type, len(group.atom_indices), parent_path)
                 contexts = labels_by_context.setdefault(base_label, {})
-                if signature in contexts:
-                    unique_label = contexts[signature]
-                elif not contexts:
-                    unique_label = base_label
-                    contexts[signature] = unique_label
-                    assigned_labels.add(unique_label)
-                else:
-                    counter = 1
+                contexts.setdefault(signature, []).append(group)
+                child_path = parent_path + (
+                    (group.type, base_label, len(group.atom_indices)),
+                )
+                collect_contexts(group.atoms_group, child_path)
+
+        collect_contexts(groups)
+
+        assigned_labels = set()
+        for base_label, contexts in labels_by_context.items():
+            if len(contexts) == 1:
+                unique_labels = [base_label]
+            else:
+                unique_labels = []
+                counter = 0
+                for _ in contexts:
                     unique_label = f'{base_label}_{counter}'
-                    while unique_label in reserved_labels or unique_label in assigned_labels:
+                    while (
+                        unique_label in reserved_labels
+                        or unique_label in assigned_labels
+                    ):
                         counter += 1
                         unique_label = f'{base_label}_{counter}'
-                    contexts[signature] = unique_label
-                    assigned_labels.add(unique_label)
+                    unique_labels.append(unique_label)
+                    counter += 1
 
-                group.label = unique_label
-                sibling_signatures.setdefault(signature, []).append(group)
-
-            # Descend only after every sibling has its final label so that each
-            # child context contains the disambiguated parent label.
-            for signature, matching_groups in sibling_signatures.items():
-                representative = matching_groups[0]
-                child_path = parent_path + (
-                    representative.type,
-                    representative.label,
-                    len(representative.atom_indices),
-                )
+            for matching_groups, unique_label in zip(
+                contexts.values(), unique_labels
+            ):
+                assigned_labels.add(unique_label)
                 for group in matching_groups:
-                    assign_labels(group.atoms_group, child_path)
-
-        assign_labels(groups)
+                    group.label = unique_label
 
     @staticmethod
     def create_whole_system_atom_groups(n_atoms):

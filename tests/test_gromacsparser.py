@@ -27,14 +27,131 @@ from typing import (
 )
 
 from nomad.datamodel import EntryArchive
+from nomad.datamodel.metainfo import runschema
 from atomisticparsers.gromacs import GromacsParser
+from atomisticparsers.gromacs.parser import group_indices_by_value
 from simulationworkflowschema.molecular_dynamics import FreeEnergyCalculationParameters
 from atomisticparsers.gromacs import GromacsLogParser
+from atomisticparsers.utils import MDAnalysisParser
 import MDAnalysis
 
 
 def approx(value, abs=0, rel=1e-6):
     return pytest.approx(value, abs=abs, rel=rel)
+
+
+def test_group_indices_by_value_groups_only_selected_indices_once():
+    values = np.array(['B', 'A', 'B', 'A', 'B', 'A'])
+
+    grouped = group_indices_by_value([5, 2, 3, 0], values)
+
+    assert list(grouped) == ['A', 'B']
+    assert grouped['A'].tolist() == [3, 5]
+    assert grouped['B'].tolist() == [0, 2]
+
+
+def test_conflicting_atom_group_labels_are_disambiguated_and_retained():
+    repeated_small = runschema.system.AtomsGroup(
+        label='PEO', type='monomer', atom_indices=[0, 1, 2]
+    )
+    repeated_large = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=list(range(8))
+    )
+    same_signature = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=list(range(8, 16))
+    )
+    root = runschema.system.AtomsGroup(
+        label='group_PEO', type='molecule_group', atom_indices=list(range(16))
+    )
+    root.atoms_group.extend([repeated_large, same_signature, repeated_small])
+    groups = [root]
+
+    MDAnalysisParser.disambiguate_atom_group_labels(groups)
+
+    assert root.label == 'group_PEO'
+    assert repeated_small.label == 'PEO_1'
+    assert repeated_large.label == 'PEO'
+    assert same_signature.label == repeated_large.label
+    assert root.atoms_group == [repeated_large, same_signature, repeated_small]
+    assert repeated_small.atom_indices.tolist() == [0, 1, 2]
+    assert repeated_large.atom_indices.tolist() == list(range(8))
+
+
+def test_same_type_and_size_labels_are_left_unchanged():
+    first = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=[0, 1, 2]
+    )
+    second = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=[3, 4, 5]
+    )
+
+    MDAnalysisParser.disambiguate_atom_group_labels([first, second])
+
+    assert first.label == second.label == 'PEO'
+
+
+def test_same_sized_groups_under_different_chains_get_distinct_labels():
+    chains = []
+    for chain_index, chain_label in enumerate(
+        ['Protein_chain_A', 'Protein_chain_B']
+    ):
+        chain_start = chain_index * 6
+        residues = [
+            runschema.system.AtomsGroup(
+                label='SA',
+                type='monomer',
+                atom_indices=list(range(residue_start, residue_start + 3)),
+            )
+            for residue_start in (chain_start, chain_start + 3)
+        ]
+        monomer_group = runschema.system.AtomsGroup(
+            label='group_SA',
+            type='monomer_group',
+            atom_indices=list(range(chain_start, chain_start + 6)),
+        )
+        monomer_group.atoms_group.extend(residues)
+        molecule = runschema.system.AtomsGroup(
+            label=chain_label,
+            type='molecule',
+            atom_indices=list(range(chain_start, chain_start + 6)),
+        )
+        molecule.atoms_group.append(monomer_group)
+        chain_group = runschema.system.AtomsGroup(
+            label=f'group_{chain_label}',
+            type='molecule_group',
+            atom_indices=list(range(chain_start, chain_start + 6)),
+        )
+        chain_group.atoms_group.append(molecule)
+        chains.append(chain_group)
+
+    MDAnalysisParser.disambiguate_atom_group_labels(chains)
+
+    chain_a_group = chains[0].atoms_group[0].atoms_group[0]
+    chain_b_group = chains[1].atoms_group[0].atoms_group[0]
+    assert chain_a_group.label == 'group_SA'
+    assert chain_b_group.label == 'group_SA_1'
+    assert [group.label for group in chain_a_group.atoms_group] == ['SA', 'SA']
+    assert [group.label for group in chain_b_group.atoms_group] == ['SA_1', 'SA_1']
+    assert chain_a_group.atom_indices.tolist() == list(range(6))
+    assert chain_b_group.atom_indices.tolist() == list(range(6, 12))
+
+
+def test_disambiguated_group_labels_avoid_existing_labels():
+    first = runschema.system.AtomsGroup(
+        label='PEO', type='molecule', atom_indices=[0, 1]
+    )
+    other_label = runschema.system.AtomsGroup(
+        label='PEO_1', type='molecule', atom_indices=[2, 3]
+    )
+    conflicting = runschema.system.AtomsGroup(
+        label='PEO', type='monomer', atom_indices=[0]
+    )
+
+    MDAnalysisParser.disambiguate_atom_group_labels([first, other_label, conflicting])
+
+    assert first.label == 'PEO'
+    assert other_label.label == 'PEO_1'
+    assert conflicting.label == 'PEO_2'
 
 
 @pytest.fixture(scope='module')

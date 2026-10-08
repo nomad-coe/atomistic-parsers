@@ -32,6 +32,8 @@ from array import array
 from scipy import sparse
 from scipy.stats import linregress
 
+from runschema.system import AtomsGroup
+
 from nomad.units import ureg
 from nomad.parsing.file_parser import FileParser
 from simulationworkflowschema.molecular_dynamics import (
@@ -44,6 +46,80 @@ MOL = 6.022140857e23
 
 
 class MDAnalysisParser(FileParser):
+    @staticmethod
+    def disambiguate_atom_group_labels(groups):
+        """Number reused labels across incompatible types, sizes, or parents."""
+        reserved_labels = set()
+        pending_groups = list(groups or [])
+        while pending_groups:
+            group = pending_groups.pop()
+            reserved_labels.add(group.label)
+            pending_groups.extend(group.atoms_group or [])
+
+        assigned_labels = set()
+        labels_by_context = {}
+
+        def assign_labels(siblings, parent_path=()):
+            sibling_signatures = {}
+            for group in siblings or []:
+                base_label = group.label
+                signature = (group.type, len(group.atom_indices), parent_path)
+                contexts = labels_by_context.setdefault(base_label, {})
+                if signature in contexts:
+                    unique_label = contexts[signature]
+                elif not contexts:
+                    unique_label = base_label
+                    contexts[signature] = unique_label
+                    assigned_labels.add(unique_label)
+                else:
+                    counter = 1
+                    unique_label = f'{base_label}_{counter}'
+                    while unique_label in reserved_labels or unique_label in assigned_labels:
+                        counter += 1
+                        unique_label = f'{base_label}_{counter}'
+                    contexts[signature] = unique_label
+                    assigned_labels.add(unique_label)
+
+                group.label = unique_label
+                sibling_signatures.setdefault(signature, []).append(group)
+
+            # Descend only after every sibling has its final label so that each
+            # child context contains the disambiguated parent label.
+            for signature, matching_groups in sibling_signatures.items():
+                representative = matching_groups[0]
+                child_path = parent_path + (
+                    representative.type,
+                    representative.label,
+                    len(representative.atom_indices),
+                )
+                for group in matching_groups:
+                    assign_labels(group.atoms_group, child_path)
+
+        assign_labels(groups)
+
+    @staticmethod
+    def create_whole_system_atom_groups(n_atoms):
+        """Create a converter-compatible whole-system group and molecule."""
+        atom_indices = np.arange(n_atoms, dtype=np.int32)
+        molecule = AtomsGroup(
+            label='whole_system',
+            type='molecule',
+            index=0,
+            atom_indices=atom_indices,
+            n_atoms=n_atoms,
+            is_molecule=True,
+        )
+        system_group = AtomsGroup(
+            label='system',
+            type='molecule_group',
+            index=0,
+            atom_indices=atom_indices,
+            n_atoms=n_atoms,
+            is_molecule=False,
+        )
+        system_group.atoms_group.append(molecule)
+        return [system_group]
+
     def __init__(self, *args, **kwargs):
         super().__init__()
         self._args = args

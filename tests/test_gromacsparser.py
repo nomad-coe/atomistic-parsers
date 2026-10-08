@@ -70,7 +70,7 @@ def test_conflicting_atom_group_labels_are_disambiguated_and_retained():
 
     assert root.label == 'group_PEO'
     assert repeated_small.label == 'PEO_1'
-    assert repeated_large.label == 'PEO'
+    assert repeated_large.label == 'PEO_0'
     assert same_signature.label == repeated_large.label
     assert root.atoms_group == [repeated_large, same_signature, repeated_small]
     assert repeated_small.atom_indices.tolist() == [0, 1, 2]
@@ -128,9 +128,9 @@ def test_same_sized_groups_under_different_chains_get_distinct_labels():
 
     chain_a_group = chains[0].atoms_group[0].atoms_group[0]
     chain_b_group = chains[1].atoms_group[0].atoms_group[0]
-    assert chain_a_group.label == 'group_SA'
+    assert chain_a_group.label == 'group_SA_0'
     assert chain_b_group.label == 'group_SA_1'
-    assert [group.label for group in chain_a_group.atoms_group] == ['SA', 'SA']
+    assert [group.label for group in chain_a_group.atoms_group] == ['SA_0', 'SA_0']
     assert [group.label for group in chain_b_group.atoms_group] == ['SA_1', 'SA_1']
     assert chain_a_group.atom_indices.tolist() == list(range(6))
     assert chain_b_group.atom_indices.tolist() == list(range(6, 12))
@@ -149,7 +149,7 @@ def test_disambiguated_group_labels_avoid_existing_labels():
 
     MDAnalysisParser.disambiguate_atom_group_labels([first, other_label, conflicting])
 
-    assert first.label == 'PEO'
+    assert first.label == 'PEO_0'
     assert other_label.label == 'PEO_1'
     assert conflicting.label == 'PEO_2'
 

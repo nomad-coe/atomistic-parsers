@@ -203,6 +203,13 @@ class MDAnalysisParser(FileParser):
             value = value * unit_map.get(key, 1) if value is not None else value
             self._results['atoms_info'][name_map.get(key, f'{key}s')] = value
 
+        # Preserve whether the topology provided chemical elements. The fallback
+        # below copies atom names into ``elements`` when this information is
+        # missing, but atom names such as ``C0`` are not reliable element symbols.
+        self._results['atoms_info']['elements_are_explicit'] = (
+            self._results['atoms_info'].get('elements') is not None
+        )
+
         # if atom name is not identified, set it to 'X'
         if self._results['atoms_info'].get('names') is None:
             self._results['atoms_info']['names'] = ['X'] * self.universe.atoms.n_atoms
@@ -461,9 +468,20 @@ class MDAnalysisParser(FileParser):
         Returns the number of atoms of the frame with index frame_index.
         """
         # MDAnalysis assumes no change in atom configuration
+        atoms_info = self.get('atoms_info', {})
+        names = atoms_info.get('names', [])
+        elements = (
+            atoms_info.get('elements', [])
+            if atoms_info.get('elements_are_explicit', False)
+            else []
+        )
         return [
-            guess_atom_element(name).title()
-            for name in self.get('atoms_info', {}).get('names', [])
+            (
+                str(elements[index]).title()
+                if index < len(elements) and elements[index]
+                else guess_atom_element(name).title()
+            )
+            for index, name in enumerate(names)
         ]
 
     def get_time(self, frame_index):

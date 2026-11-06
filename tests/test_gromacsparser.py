@@ -50,6 +50,34 @@ def test_group_indices_by_value_groups_only_selected_indices_once():
     assert grouped['B'].tolist() == [0, 2]
 
 
+def test_mdanalysis_atom_labels_prefer_explicit_elements():
+    parser = MDAnalysisParser()
+    parser._results = {
+        'atoms_info': {
+            'names': ['C0', 'C2', 'H3', 'O1'],
+            'elements': ['C', 'C', 'H', 'O'],
+            'elements_are_explicit': True,
+        }
+    }
+    parser.get = lambda key, default=None: parser._results.get(key, default)
+
+    assert parser.get_atom_labels(0) == ['C', 'C', 'H', 'O']
+
+
+def test_mdanalysis_atom_labels_fall_back_to_name_guessing():
+    parser = MDAnalysisParser()
+    parser._results = {
+        'atoms_info': {
+            'names': ['OW', 'HW1'],
+            'elements': ['OW', 'HW1'],
+            'elements_are_explicit': False,
+        }
+    }
+    parser.get = lambda key, default=None: parser._results.get(key, default)
+
+    assert parser.get_atom_labels(0) == ['O', 'H']
+
+
 def test_conflicting_atom_group_labels_are_disambiguated_and_retained():
     repeated_small = runschema.system.AtomsGroup(
         label='PEO', type='monomer', atom_indices=[0, 1, 2]

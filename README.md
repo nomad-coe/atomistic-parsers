@@ -21,6 +21,18 @@ This is a collection of the NOMAD parsers for the following atomistic codes.
 12. [openKIM](https://openkim.org/)
 13. [Tinker](https://dasher.wustl.edu/tinker/)
 
+## Publishing a release
+
+Publishing a GitHub release triggers the **Upload Python Package** workflow.
+If publishing fails and the workflow needs fixing, merge the fix into `develop`
+and run **Upload Python Package** manually from that branch, supplying the existing
+release tag (for example `v1.0.15`) in the `tag` input. The workflow builds the tagged
+source with the corrected publishing steps and uploads it to PyPI.
+
+Rerunning the original failed job uses its original workflow revision, so it does
+not pick up a workflow fix merged afterward. The manual run avoids moving the
+release tag or changing the package version.
+
 Each of the parsers will read the relevant input and output files and provide all information in
 NOMAD's unified Metainfo based Archive format.
 

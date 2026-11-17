@@ -707,16 +707,17 @@ class LogParser(TextParser):
         # next column header (`Step <keyword>`), so an unclosed run is not merged with
         # the next one; `thermo_style multi` frames (`--- Step <n> ---`) cannot be told
         # apart this way. The raw text of the first closed block is kept and converted
-        # in `get_thermodynamic_data`.
+        # in `get_thermodynamic_data`. The match starts at `Step` itself: optional
+        # leading whitespace would be retried from every position of a long blank
+        # stretch (cubic cost).
         thermo_line = r'[\-\w\.\=\(\) \t\r\f\v]*\n'
         thermo_block = (
-            rf'\s*Step{thermo_line}'
-            rf'(?:(?!Loop|[ \t]*Step[ \t]+[A-Za-z]){thermo_line})*'
+            rf'Step{thermo_line}(?:(?!Loop|[ \t]*Step[ \t]+[A-Za-z]){thermo_line})*'
         )
         self._quantities.append(
             Quantity(
                 'thermo_data',
-                rf'\s*\-*(?:({thermo_block})Loop|{thermo_block})',
+                rf'(?:({thermo_block})Loop|{thermo_block})',
                 repeats=False,
                 flatten=False,
                 convert=False,

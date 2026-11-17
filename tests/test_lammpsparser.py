@@ -383,6 +383,14 @@ def thermo_frames(n_frames):
             + THERMO_LOOP,
             [0, 10],
         ),
+        (
+            thermo_frames(300)
+            + 'ERROR: Lost atoms: original 100 current 99\n'
+            + 'run 20\n'
+            + thermo_frames(3)
+            + THERMO_LOOP,
+            [0, 10, 20],
+        ),
     ],
     ids=[
         'one-closed',
@@ -392,6 +400,7 @@ def thermo_frames(n_frames):
         'multi-unterminated',
         'first-unclosed-then-closed',
         'warning-in-block',
+        'multi-first-unclosed-then-closed',
     ],
 )
 def test_thermo_block(tmp_path, body, expected_steps):

@@ -698,6 +698,10 @@ class LogParser(TextParser):
         )
 
         def str_to_thermo(val):
+            if not val.endswith('Loop'):
+                # block not closed by `Loop time of`: crashed or truncated run
+                return None
+            val = val[: -len('Loop')]
             res = {}
             if val.count('Step') > 1:
                 val = (
@@ -721,12 +725,18 @@ class LogParser(TextParser):
 
             return res
 
+        # The block runs from the `Step` header to the `Loop time of` line. Matching it
+        # line by line, with no character class spanning line ends, leaves only one way
+        # to match. A block without `Loop` (crashed or truncated run) is still consumed,
+        # so the scan moves past it instead of restarting at every later `Step` header,
+        # and `str_to_thermo` discards it.
+        thermo_line = r'[\-\w\.\=\(\) \t\r\f\v]*\n'
         self._quantities.append(
             Quantity(
                 'thermo_data',
-                r'\s*\-*(\s*Step\s*[\-\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop',
+                rf'\s*\-*(\s*Step{thermo_line}(?:(?!Loop){thermo_line})*(?:Loop)?)',
                 str_operation=str_to_thermo,
-                repeats=False,
+                repeats=True,
                 convert=False,
             )
         )
@@ -739,7 +749,10 @@ class LogParser(TextParser):
         return self._units
 
     def get_thermodynamic_data(self):
-        thermo_data = self.get('thermo_data')
+        # first block closed by `Loop time of`
+        thermo_data = next(
+            (block for block in self.get('thermo_data', []) if block is not None), None
+        )
 
         if thermo_data is None:
             return

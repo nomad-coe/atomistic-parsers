@@ -665,11 +665,13 @@ class LogParser(TextParser):
             return val
 
         # arguments run to the end of the line (and over `&` continuations), so file
-        # names with characters such as `+`, `*` or `%` are not cut off
+        # names with characters such as `+`, `*` or `%` are not cut off; the
+        # indentation before a command stays on its line, so blank stretches are not
+        # rescanned from every newline
         self._quantities = [
             Quantity(
                 name,
-                r'\n\s*%s\s+(?!.*\$\{)([^\n&]+)(\&\n[^\n&]*)*' % name,
+                r'\n[ \t]*%s\s+(?!.*\$\{)([^\n&]+)(\&\n[^\n&]*)*' % name,
                 str_operation=str_op,
                 comment='#',
                 repeats=True,

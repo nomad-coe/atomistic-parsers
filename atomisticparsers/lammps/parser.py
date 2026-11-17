@@ -666,12 +666,13 @@ class LogParser(TextParser):
 
         # arguments run to the end of the line (and over `&` continuations), so file
         # names with characters such as `+`, `*` or `%` are not cut off; the
-        # indentation before a command stays on its line, so blank stretches are not
-        # rescanned from every newline
+        # indentation before and the space after a command stay on its line, so blank
+        # stretches are not rescanned from every newline and a command without
+        # arguments does not take the next line as its arguments
         self._quantities = [
             Quantity(
                 name,
-                r'\n[ \t]*%s\s+(?!.*\$\{)([^\n&]+)(\&\n[^\n&]*)*' % name,
+                r'\n[ \t]*%s[ \t]+(?!.*\$\{)([^\n&]+)(\&\n[^\n&]*)*' % name,
                 str_operation=str_op,
                 comment='#',
                 repeats=True,

@@ -71,6 +71,15 @@ def test_nvt(parser):
     )
 
     sec_method = sec_run.method[0]
+    # data file (`atom_style full`): atom 1 is C (type 1), atom 7 is H (type 2)
+    assert sec_method.atom_parameters[0].mass.to('amu').magnitude == approx(12.011)
+    assert sec_method.atom_parameters[6].mass.to('amu').magnitude == approx(1.008)
+    assert sec_method.atom_parameters[0].charge.to(
+        'elementary_charge'
+    ).magnitude == approx(-0.12)
+    assert sec_method.atom_parameters[6].charge.to(
+        'elementary_charge'
+    ).magnitude == approx(0.06)
     assert len(sec_method.force_field.model[0].contributions) == 3
     assert sec_method.force_field.model[0].contributions[1].type == 'bond'
     assert sec_method.force_field.model[0].contributions[1].n_interactions == 666

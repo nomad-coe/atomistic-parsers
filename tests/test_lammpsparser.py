@@ -391,6 +391,15 @@ def thermo_frames(n_frames):
             + THERMO_LOOP,
             [0, 10, 20],
         ),
+        (
+            THERMO_HEADER
+            + thermo_rows(300)
+            + 'run 20\n'
+            + THERMO_HEADER
+            + thermo_rows(3)
+            + THERMO_LOOP,
+            [0, 10, 20],
+        ),
     ],
     ids=[
         'one-closed',
@@ -401,6 +410,7 @@ def thermo_frames(n_frames):
         'first-unclosed-then-closed',
         'warning-in-block',
         'multi-first-unclosed-then-closed',
+        'unclosed-then-closed-no-separator',
     ],
 )
 def test_thermo_block(tmp_path, body, expected_steps):

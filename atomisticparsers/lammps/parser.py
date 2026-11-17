@@ -1809,6 +1809,9 @@ class LammpsParser(MDParser):
                     # mda necessary to calculate rdf and atomsgroup
                     if n == 0:
                         self._mdanalysistraj_parser = traj_parser
+                    else:
+                        # replaced below and closed nowhere else
+                        traj_parser.close()
                     traj_parser = TrajParser()
                     traj_parser.mainfile = traj_file
             else:

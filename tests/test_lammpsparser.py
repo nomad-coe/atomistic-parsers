@@ -448,32 +448,54 @@ def test_read_data_cpu_echo(tmp_path):
 
 
 @pytest.mark.parametrize(
-    'atom_style_line, expected_options',
+    'atom_style_line, atoms_header, expected_options',
     [
-        ('atom_style atomic\n', {'atom_style': 'id type x y z'}),
-        ('atom_style full\n', {'atom_style': 'id resid type charge x y z'}),
+        ('atom_style atomic\n', 'Atoms\n', {'atom_style': 'id type x y z'}),
+        (
+            'atom_style full\n',
+            'Atoms\n',
+            {'atom_style': 'id resid type charge x y z'},
+        ),
         (
             'atom_style ellipsoid\n',
+            'Atoms\n',
             {'atom_style': 'id type ellipsoidflag density x y z'},
         ),
-        ('atom_style hybrid full dipole\n', {'atom_style': 'id type x y z'}),
-        ('', {'atom_style': 'id type x y z'}),
-        ('atom_style mystyle\n', {}),
+        (
+            'atom_style hybrid full dipole\n',
+            'Atoms\n',
+            {'atom_style': 'id type x y z'},
+        ),
+        ('atom_style atomic\n', 'Atoms # full\n', {'atom_style': 'id type x y z'}),
+        ('', 'Atoms # full\n', {'atom_style': 'id resid type charge x y z'}),
+        ('', 'Atoms\n', {}),
+        ('atom_style mystyle\n', 'Atoms\n', {}),
     ],
     ids=[
         'atom-style-atomic',
         'atom-style-full',
         'atom-style-ellipsoid',
         'atom-style-hybrid',
-        'atom-style-missing',
+        'log-before-data-comment',
+        'missing-with-data-comment',
+        'missing-without-data-comment',
         'atom-style-unknown',
     ],
 )
-def test_mda_topology_options(tmp_path, atom_style_line, expected_options):
-    """The MDAnalysis column layout of the data file follows the log's `atom_style`."""
+def test_mda_topology_options(
+    tmp_path, atom_style_line, atoms_header, expected_options
+):
+    """The MDAnalysis column layout follows the log's `atom_style`, else the
+    `Atoms # <style>` comment of the data file."""
     log_file = tmp_path / 'log.lammps'
     log_file.write_text('LAMMPS (29 Aug 2024)\nunits real\n' + atom_style_line)
+    data_file = tmp_path / 'final.data'
+    data_file.write_text(
+        'LAMMPS data file\n\n1 atoms\n1 atom types\n\n'
+        + atoms_header
+        + '\n1 1 0.0 0.0 0.0\n'
+    )
     lammps_parser = LammpsParser()
     lammps_parser.log_parser.mainfile = str(log_file)
 
-    assert lammps_parser.get_mda_topology_options() == expected_options
+    assert lammps_parser.get_mda_topology_options(str(data_file)) == expected_options

@@ -968,19 +968,24 @@ class LammpsParser(MDParser):
             'poteng': 'potential',
         }
 
-    def get_mda_topology_options(self) -> dict:
+    def get_mda_topology_options(self, data_file: str) -> dict:
         """MDAnalysis options to read the `Atoms` section of the data file.
 
-        The column layout follows the last `atom_style` command in the log, per the
-        Atoms section of https://docs.lammps.org/read_data.html. MDAnalysis locates
-        columns by the positions of `id`, `resid`, `type`, `charge`, `x`, `y`, `z`
-        and ignores the other names, so layouts stop at `z`.
+        The column layout follows the last `atom_style` command in the log or, when
+        the log has none (e.g. the style was restored by `read_restart`), the
+        `Atoms # <style>` comment that `write_data` puts in the data file. Layouts
+        are those of the Atoms section of https://docs.lammps.org/read_data.html.
+        MDAnalysis locates columns by the positions of `id`, `resid`, `type`,
+        `charge`, `x`, `y`, `z` and ignores the other names, so layouts stop at `z`.
+
+        Args:
+            data_file: path of the data file read as topology.
 
         Returns:
-            `{'atom_style': <layout>}` for the styles documented by LAMMPS, with
-            `atomic` when the log has no `atom_style` (the LAMMPS default); `{}`
-            for any other style (e.g. from a plugin), which leaves MDAnalysis to its
-            default (`id resid type [charge] x y z`) and may misread the file.
+            `{'atom_style': <layout>}` for a style documented by LAMMPS; `{}` when
+            neither the log nor the data file names a style, or for an undocumented
+            style (e.g. from a plugin). `{}` leaves MDAnalysis to its default
+            (`id resid type [charge] x y z`), which may misread the file.
         """
         atom_style_columns = {
             'angle': 'id resid type x y z',
@@ -1012,10 +1017,20 @@ class LammpsParser(MDParser):
             # sub-style fields follow the coordinates
             'hybrid': 'id type x y z',
         }
-        atom_style = self.log_parser.get('atom_style', ['atomic'])[-1]
-        # a style with sub-styles (`hybrid`) is parsed as a list
-        if isinstance(atom_style, list):
-            atom_style = atom_style[0]
+        atom_styles = self.log_parser.get('atom_style')
+        atom_style = None
+        if atom_styles:
+            atom_style = atom_styles[-1]
+            # a style with sub-styles (`hybrid`) is parsed as a list
+            if isinstance(atom_style, list):
+                atom_style = atom_style[0]
+        elif os.path.isfile(data_file):
+            with open(data_file, errors='ignore') as f:
+                for line in f:
+                    if line.lstrip().startswith('Atoms'):
+                        match = re.match(r'\s*Atoms\s*#\s*(\S+)', line)
+                        atom_style = match.group(1) if match else None
+                        break
         columns = atom_style_columns.get(atom_style)
         return {'atom_style': columns} if columns else {}
 
@@ -1775,7 +1790,7 @@ class LammpsParser(MDParser):
                 traj_parser = MDAnalysisParser(
                     topology_format='DATA',
                     format='LAMMPSDUMP',
-                    **self.get_mda_topology_options(),
+                    **self.get_mda_topology_options(data_files[0]),
                 )
                 if data_files:
                     traj_parser.mainfile = data_files[0]

@@ -1012,7 +1012,7 @@ class LammpsParser(MDParser):
             # sub-style fields follow the coordinates
             'hybrid': 'id type x y z',
         }
-        atom_style = (self.log_parser.get('atom_style') or ['atomic'])[-1]
+        atom_style = self.log_parser.get('atom_style', ['atomic'])[-1]
         # a style with sub-styles (`hybrid`) is parsed as a list
         if isinstance(atom_style, list):
             atom_style = atom_style[0]

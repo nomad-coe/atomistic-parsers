@@ -735,33 +735,28 @@ class LogParser(TextParser):
             The values per thermo keyword, for both `thermo_style multi` (several
             `Step` headers) and column styles (one header line).
         """
-        res = {}
         if val.count('Step') > 1:
-            val = val.replace('--', '').replace('=', '').replace('(sec)', '').split()
-            val = [v.strip() for v in val]
+            tokens = val.replace('--', '').replace('=', '').replace('(sec)', '').split()
+            tokens = [v.strip() for v in tokens]
 
-            for i in range(len(val)):
-                if val[i][0].isalpha():
-                    res.setdefault(val[i], [])
-                    res[val[i]].append(float(val[i + 1]))
+            res: dict[str, list[float]] = {}
+            for i in range(len(tokens)):
+                if tokens[i][0].isalpha():
+                    res.setdefault(tokens[i], [])
+                    res[tokens[i]].append(float(tokens[i + 1]))
+            return res
 
-        else:
-            val = val.split('\n')
-            keys = [v.strip() for v in val[0].split()]
-            val = np.array([v.split() for v in val[1:] if v], dtype=float).T
-
-            res = {key: [] for key in keys}
-            for i in range(len(keys)):
-                res[keys[i]] = val[i]
-
-        return res
+        lines = val.split('\n')
+        keys = [v.strip() for v in lines[0].split()]
+        columns = np.array([v.split() for v in lines[1:] if v], dtype=float).T
+        return {key: columns[i] for i, key in enumerate(keys)}
 
     def get_thermodynamic_data(self) -> dict | None:
         # only the first block closed by `Loop time of` is used
         thermo_block = self.get('thermo_data')
 
         if thermo_block is None:
-            return
+            return None
 
         thermo_data = self.str_to_thermo(thermo_block)
         data = {}
@@ -1716,7 +1711,7 @@ class LammpsParser(MDParser):
                 setattr(sec_control_parameters, key, str(val))
 
     def write_to_archive(self) -> None:
-        self._open_traj_parsers = []
+        self._open_traj_parsers: list[TrajParser | MDAnalysisParser] = []
         try:
             self._write_to_archive()
         finally:

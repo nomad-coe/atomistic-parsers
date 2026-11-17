@@ -705,17 +705,24 @@ class LogParser(TextParser):
         # line by line, with no character class spanning line ends, leaves only one way
         # to match. Only a block closed by `Loop` is captured; one without it (crashed
         # or truncated run) is consumed by the second branch, so the scan moves past it
-        # instead of restarting at every later `Step` header. A block also ends at the
-        # next column header (`Step <keyword>`), so an unclosed run is not merged with
-        # the next one; `thermo_style multi` frames (`--- Step <n> ---`) cannot be told
-        # apart this way. The raw text of the first closed block is kept and converted
-        # in `get_thermodynamic_data`. The match starts at `Step` itself: optional
-        # leading whitespace would be retried from every position of a long blank
-        # stretch (cubic cost).
+        # instead of restarting at every later `Step` header. So that an unclosed run
+        # is not merged with the next one, a column block (`Step <keyword> ...`) ends
+        # at any later `Step` line, and a `thermo_style multi` block (`--- Step <n>
+        # ---` per frame) ends at a column header; consecutive multi runs cannot be
+        # told apart. The raw text of the first closed block is kept and converted in
+        # `get_thermodynamic_data`. The match starts at `Step` itself: optional leading
+        # whitespace would be retried from every position of a long blank stretch
+        # (cubic cost).
         thermo_line = r'[\-\w\.\=\(\) \t\r\f\v]*\n'
-        thermo_block = (
-            rf'Step{thermo_line}(?:(?!Loop|[ \t]*Step[ \t]+[A-Za-z]){thermo_line})*'
+        column_block = (
+            rf'Step(?![ \t]+\d){thermo_line}'
+            rf'(?:(?!Loop|[ \t\-]*Step\b){thermo_line})*'
         )
+        multi_block = (
+            rf'Step(?=[ \t]+\d){thermo_line}'
+            rf'(?:(?!Loop|[ \t]*Step(?![ \t]+\d)){thermo_line})*'
+        )
+        thermo_block = rf'(?:{column_block}|{multi_block})'
         self._quantities.append(
             Quantity(
                 'thermo_data',

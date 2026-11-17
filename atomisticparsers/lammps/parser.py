@@ -982,9 +982,10 @@ class LammpsParser(MDParser):
         other names.
 
         Returns:
-            `{'atom_style': <layout>}` for the styles listed below; `{}` when the log
-            has no `atom_style` or uses another one (e.g. `hybrid`), which leaves
-            MDAnalysis to its default (`id resid type [charge] x y z`).
+            `{'atom_style': <layout>}` for the styles listed below, with `atomic`
+            when the log has no `atom_style` (the LAMMPS default); `{}` for any
+            other style, which leaves MDAnalysis to its default
+            (`id resid type [charge] x y z`).
         """
         atom_style_columns = {
             'atomic': 'id type x y z',
@@ -995,12 +996,11 @@ class LammpsParser(MDParser):
             'angle': 'id resid type x y z',
             'molecular': 'id resid type x y z',
             'full': 'id resid type charge x y z',
+            # sub-style fields follow the coordinates
+            'hybrid': 'id type x y z',
         }
-        atom_styles = self.log_parser.get('atom_style')
-        if not atom_styles:
-            return {}
+        atom_style = (self.log_parser.get('atom_style') or ['atomic'])[-1]
         # a style with sub-styles (`hybrid`) is parsed as a list
-        atom_style = atom_styles[-1]
         if isinstance(atom_style, list):
             atom_style = atom_style[0]
         columns = atom_style_columns.get(atom_style)
@@ -1697,7 +1697,17 @@ class LammpsParser(MDParser):
                     val = ' '.join([str(v) for v in val])
                 setattr(sec_control_parameters, key, str(val))
 
-    def write_to_archive(self):
+    def write_to_archive(self) -> None:
+        self._open_traj_parsers = []
+        try:
+            self._write_to_archive()
+        finally:
+            # close on every path, including the early return and exceptions
+            self._mdanalysistraj_parser.close()
+            for parser in self._open_traj_parsers:
+                parser.close()
+
+    def _write_to_archive(self) -> None:
         self.log_parser.mainfile = self.mainfile
         self.log_parser.logger = self.logger
         self._traj_parser.logger = self.logger
@@ -1729,7 +1739,7 @@ class LammpsParser(MDParser):
         if len(traj_files) > 1:
             self.logger.warning('Multiple traj files are specified')
 
-        parsers = []
+        parsers = self._open_traj_parsers
         for n, traj_file in enumerate(traj_files):
             # parser initialization for each traj file cannot be avoided as there are
             # cases where traj files can share the same parser
@@ -1796,7 +1806,3 @@ class LammpsParser(MDParser):
         self.parse_thermodynamic_data()
 
         self.parse_workflow()
-
-        self._mdanalysistraj_parser.close()
-        for parser in parsers:
-            parser.close()

@@ -16,11 +16,14 @@
 # limitations under the License.
 #
 
+import time
+
 import pytest
 import numpy as np
 
 from nomad.datamodel import EntryArchive
 from atomisticparsers.lammps import LammpsParser
+from atomisticparsers.lammps.parser import LogParser
 
 
 def approx(value, abs=0, rel=1e-6):
@@ -322,3 +325,88 @@ def test_geometry_optimization(parser):
     assert sec_workflow.results.energies[14].units == 'joule'
     assert len(sec_workflow.results.steps) == 159
     assert sec_workflow.results.steps[22] == 1100
+
+
+THERMO_HEADER = '   Step          Temp          Press     \n'
+THERMO_LOOP = (
+    'Loop time of 1.2 on 4 procs for 20 steps with 100 atoms\n\n'
+    'Performance: 1.0 ns/day\n'
+)
+
+
+def thermo_rows(n_rows):
+    return ''.join(
+        f'{10 * i:9d} {300.0 + i:12.4f} {1.5:12.4f}\n' for i in range(n_rows)
+    )
+
+
+def thermo_frames(n_frames):
+    return ''.join(
+        f'---------------- Step {10 * i:8d} ----- CPU = {0.1 * i:10.4f} (sec) '
+        '----------------\n'
+        'TotEng   =     -4.6695 KinEng   =      2.2486 Temp     =      1.5000 \n'
+        for i in range(n_frames)
+    )
+
+
+@pytest.mark.parametrize(
+    'body, expected_steps',
+    [
+        (THERMO_HEADER + thermo_rows(3) + THERMO_LOOP, [0, 10, 20]),
+        (
+            THERMO_HEADER
+            + thermo_rows(300)
+            + 'ERROR: Lost atoms: original 100 current 99\n',
+            None,
+        ),
+        (THERMO_HEADER + thermo_rows(300), None),
+        (thermo_frames(3) + THERMO_LOOP, [0, 10, 20]),
+        (thermo_frames(300), None),
+        (
+            THERMO_HEADER
+            + thermo_rows(300)
+            + 'ERROR: Lost atoms: original 100 current 99\n'
+            + 'run 20\n'
+            + THERMO_HEADER
+            + thermo_rows(3)
+            + THERMO_LOOP,
+            [0, 10, 20],
+        ),
+        (
+            THERMO_HEADER
+            + thermo_rows(2)
+            + THERMO_LOOP
+            + 'run 1500000\n'
+            + THERMO_HEADER
+            + thermo_rows(300)
+            + 'WARNING: Wall time limit reached (../timer.cpp:194)\n'
+            + THERMO_LOOP,
+            [0, 10],
+        ),
+    ],
+    ids=[
+        'one-closed',
+        'one-unterminated',
+        'one-truncated-eof',
+        'multi-closed',
+        'multi-unterminated',
+        'first-unclosed-then-closed',
+        'warning-in-block',
+    ],
+)
+def test_thermo_block(tmp_path, body, expected_steps):
+    """Only the first thermo block closed by `Loop time of` is used; unclosed blocks
+    are skipped without catastrophic backtracking."""
+    log_file = tmp_path / 'log.lammps'
+    log_file.write_text('LAMMPS (29 Aug 2024)\nunits metal\nrun 20\n' + body)
+    log_parser = LogParser()
+    log_parser.mainfile = str(log_file)
+
+    start = time.perf_counter()
+    thermo_data = log_parser.get_thermodynamic_data()
+    assert time.perf_counter() - start < 5
+
+    if expected_steps is None:
+        assert thermo_data is None
+    else:
+        assert [int(step) for step in thermo_data['Step']] == expected_steps

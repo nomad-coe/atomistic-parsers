@@ -16,11 +16,14 @@
 # limitations under the License.
 #
 
+import time
+
 import pytest
 import numpy as np
 
 from nomad.datamodel import EntryArchive
 from atomisticparsers.lammps import LammpsParser
+from atomisticparsers.lammps.parser import LogParser
 
 
 def approx(value, abs=0, rel=1e-6):
@@ -68,6 +71,15 @@ def test_nvt(parser):
     )
 
     sec_method = sec_run.method[0]
+    # data file (`atom_style full`): atom 1 is C (type 1), atom 7 is H (type 2)
+    assert sec_method.atom_parameters[0].mass.to('amu').magnitude == approx(12.011)
+    assert sec_method.atom_parameters[6].mass.to('amu').magnitude == approx(1.008)
+    assert sec_method.atom_parameters[0].charge.to(
+        'elementary_charge'
+    ).magnitude == approx(-0.12)
+    assert sec_method.atom_parameters[6].charge.to(
+        'elementary_charge'
+    ).magnitude == approx(0.06)
     assert len(sec_method.force_field.model[0].contributions) == 3
     assert sec_method.force_field.model[0].contributions[1].type == 'bond'
     assert sec_method.force_field.model[0].contributions[1].n_interactions == 666
@@ -322,3 +334,202 @@ def test_geometry_optimization(parser):
     assert sec_workflow.results.energies[14].units == 'joule'
     assert len(sec_workflow.results.steps) == 159
     assert sec_workflow.results.steps[22] == 1100
+
+
+THERMO_HEADER = '   Step          Temp          Press     \n'
+THERMO_LOOP = (
+    'Loop time of 1.2 on 4 procs for 20 steps with 100 atoms\n\n'
+    'Performance: 1.0 ns/day\n'
+)
+
+
+def thermo_rows(n_rows):
+    return ''.join(
+        f'{10 * i:9d} {300.0 + i:12.4f} {1.5:12.4f}\n' for i in range(n_rows)
+    )
+
+
+def thermo_frames(n_frames):
+    return ''.join(
+        f'---------------- Step {10 * i:8d} ----- CPU = {0.1 * i:10.4f} (sec) '
+        '----------------\n'
+        'TotEng   =     -4.6695 KinEng   =      2.2486 Temp     =      1.5000 \n'
+        for i in range(n_frames)
+    )
+
+
+@pytest.mark.parametrize(
+    'body, expected_steps',
+    [
+        (THERMO_HEADER + thermo_rows(3) + THERMO_LOOP, [0, 10, 20]),
+        (
+            THERMO_HEADER
+            + thermo_rows(300)
+            + 'ERROR: Lost atoms: original 100 current 99\n',
+            None,
+        ),
+        (THERMO_HEADER + thermo_rows(300), None),
+        (thermo_frames(3) + THERMO_LOOP, [0, 10, 20]),
+        (thermo_frames(300), None),
+        (
+            THERMO_HEADER
+            + thermo_rows(300)
+            + 'ERROR: Lost atoms: original 100 current 99\n'
+            + 'run 20\n'
+            + THERMO_HEADER
+            + thermo_rows(3)
+            + THERMO_LOOP,
+            [0, 10, 20],
+        ),
+        (
+            THERMO_HEADER
+            + thermo_rows(2)
+            + THERMO_LOOP
+            + 'run 1500000\n'
+            + THERMO_HEADER
+            + thermo_rows(300)
+            + 'WARNING: Wall time limit reached (../timer.cpp:194)\n'
+            + THERMO_LOOP,
+            [0, 10],
+        ),
+        (
+            thermo_frames(300)
+            + 'ERROR: Lost atoms: original 100 current 99\n'
+            + 'run 20\n'
+            + thermo_frames(3)
+            + THERMO_LOOP,
+            [0, 10, 20],
+        ),
+        (
+            THERMO_HEADER
+            + thermo_rows(300)
+            + 'run 20\n'
+            + THERMO_HEADER
+            + thermo_rows(3)
+            + THERMO_LOOP,
+            [0, 10, 20],
+        ),
+        (
+            '\n' * 8000 + 'x y\n' + THERMO_HEADER + thermo_rows(3) + THERMO_LOOP,
+            [0, 10, 20],
+        ),
+        (
+            THERMO_HEADER
+            + thermo_rows(5)
+            + 'thermo_style multi\n'
+            + 'run 20\n'
+            + thermo_frames(3)
+            + THERMO_LOOP,
+            [0, 10, 20],
+        ),
+    ],
+    ids=[
+        'one-closed',
+        'one-unterminated',
+        'one-truncated-eof',
+        'multi-closed',
+        'multi-unterminated',
+        'first-unclosed-then-closed',
+        'warning-in-block',
+        'multi-first-unclosed-then-closed',
+        'unclosed-then-closed-no-separator',
+        'blank-lines-before-block',
+        'unclosed-column-then-closed-multi',
+    ],
+)
+def test_thermo_block(tmp_path, body, expected_steps):
+    """Only the first thermo block closed by `Loop time of` is used; unclosed blocks
+    are skipped without catastrophic backtracking."""
+    log_file = tmp_path / 'log.lammps'
+    log_file.write_text('LAMMPS (29 Aug 2024)\nunits metal\nrun 20\n' + body)
+    log_parser = LogParser()
+    log_parser.mainfile = str(log_file)
+
+    start = time.perf_counter()
+    thermo_data = log_parser.get_thermodynamic_data()
+    assert time.perf_counter() - start < 5
+
+    if expected_steps is None:
+        assert thermo_data is None
+    else:
+        assert [int(step) for step in thermo_data['Step']] == expected_steps
+
+
+def test_dump_file_name_with_plus(tmp_path):
+    """Command arguments are not cut off at characters such as `+`."""
+    log_file = tmp_path / 'log.lammps'
+    log_file.write_text(
+        'LAMMPS (29 Aug 2024)\n'
+        'dump di ion custom 100 ion_K+0.1_s1.dump id type xu yu zu\n'
+    )
+    log_parser = LogParser()
+    log_parser.mainfile = str(log_file)
+
+    assert log_parser.get_traj_files() == [str(tmp_path / 'ion_K+0.1_s1.dump')]
+
+
+def test_read_data_cpu_echo(tmp_path):
+    """The `read_data CPU = ...` echo triggers the directory scan for data files."""
+    log_file = tmp_path / 'log.lammps'
+    log_file.write_text(
+        'LAMMPS (29 Aug 2024)\nread_data data.x\n  read_data CPU = 0.04 seconds\n'
+    )
+    (tmp_path / 'final.data').write_text('LAMMPS data file\n')
+    log_parser = LogParser()
+    log_parser.mainfile = str(log_file)
+
+    assert log_parser.get_data_files() == [str(tmp_path / 'final.data')]
+
+
+@pytest.mark.parametrize(
+    'atom_style_line, atoms_header, expected_options',
+    [
+        ('atom_style atomic\n', 'Atoms\n', {'atom_style': 'id type x y z'}),
+        (
+            'atom_style full\n',
+            'Atoms\n',
+            {'atom_style': 'id resid type charge x y z'},
+        ),
+        (
+            'atom_style ellipsoid\n',
+            'Atoms\n',
+            {'atom_style': 'id type ellipsoidflag density x y z'},
+        ),
+        (
+            'atom_style hybrid full dipole\n',
+            'Atoms\n',
+            {'atom_style': 'id type x y z'},
+        ),
+        ('atom_style atomic\n', 'Atoms # full\n', {'atom_style': 'id type x y z'}),
+        ('', 'Atoms # full\n', {'atom_style': 'id resid type charge x y z'}),
+        ('', 'Atoms\n', {}),
+        ('atom_style mystyle\n', 'Atoms\n', {}),
+    ],
+    ids=[
+        'atom-style-atomic',
+        'atom-style-full',
+        'atom-style-ellipsoid',
+        'atom-style-hybrid',
+        'log-before-data-comment',
+        'missing-with-data-comment',
+        'missing-without-data-comment',
+        'atom-style-unknown',
+    ],
+)
+def test_mda_topology_options(
+    tmp_path, atom_style_line, atoms_header, expected_options
+):
+    """The MDAnalysis column layout follows the log's `atom_style`, else the
+    `Atoms # <style>` comment of the data file."""
+    log_file = tmp_path / 'log.lammps'
+    log_file.write_text('LAMMPS (29 Aug 2024)\nunits real\n' + atom_style_line)
+    data_file = tmp_path / 'final.data'
+    data_file.write_text(
+        'LAMMPS data file\n\n1 atoms\n1 atom types\n\n'
+        + atoms_header
+        + '\n1 1 0.0 0.0 0.0\n'
+    )
+    lammps_parser = LammpsParser()
+    lammps_parser.log_parser.mainfile = str(log_file)
+
+    assert lammps_parser.get_mda_topology_options(str(data_file)) == expected_options

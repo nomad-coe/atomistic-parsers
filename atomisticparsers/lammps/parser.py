@@ -664,10 +664,15 @@ class LogParser(TextParser):
             val = val if len(val) > 1 else val[0]
             return val
 
+        # arguments run to the end of the line (and over `&` continuations), so file
+        # names with characters such as `+`, `*` or `%` are not cut off; the
+        # indentation before and the space after a command stay on its line, so blank
+        # stretches are not rescanned from every newline and a command without
+        # arguments does not take the next line as its arguments
         self._quantities = [
             Quantity(
                 name,
-                r'\n\s*%s\s+(?!.*\$\{)([${}\w\. \/\#\-]+)(\&\n[\w\. \/\#\-]*)*' % name,
+                r'\n[ \t]*%s[ \t]+(?!.*\$\{)([^\n&]+)(\&\n[^\n&]*)*' % name,
                 str_operation=str_op,
                 comment='#',
                 repeats=True,
@@ -697,36 +702,34 @@ class LogParser(TextParser):
             )
         )
 
-        def str_to_thermo(val):
-            res = {}
-            if val.count('Step') > 1:
-                val = (
-                    val.replace('--', '').replace('=', '').replace('(sec)', '').split()
-                )
-                val = [v.strip() for v in val]
-
-                for i in range(len(val)):
-                    if val[i][0].isalpha():
-                        res.setdefault(val[i], [])
-                        res[val[i]].append(float(val[i + 1]))
-
-            else:
-                val = val.split('\n')
-                keys = [v.strip() for v in val[0].split()]
-                val = np.array([v.split() for v in val[1:] if v], dtype=float).T
-
-                res = {key: [] for key in keys}
-                for i in range(len(keys)):
-                    res[keys[i]] = val[i]
-
-            return res
-
+        # The block runs from the `Step` header to the `Loop time of` line. Matching it
+        # line by line, with no character class spanning line ends, leaves only one way
+        # to match. Only a block closed by `Loop` is captured; one without it (crashed
+        # or truncated run) is consumed by the second branch, so the scan moves past it
+        # instead of restarting at every later `Step` header. So that an unclosed run
+        # is not merged with the next one, a column block (`Step <keyword> ...`) ends
+        # at any later `Step` line, and a `thermo_style multi` block (`--- Step <n>
+        # ---` per frame) ends at a column header; consecutive multi runs cannot be
+        # told apart. The raw text of the first closed block is kept and converted in
+        # `get_thermodynamic_data`. The match starts at `Step` itself: optional leading
+        # whitespace would be retried from every position of a long blank stretch
+        # (cubic cost).
+        thermo_line = r'[\-\w\.\=\(\) \t\r\f\v]*\n'
+        column_block = (
+            rf'Step(?![ \t]+\d){thermo_line}'
+            rf'(?:(?!Loop|[ \t\-]*Step\b){thermo_line})*'
+        )
+        multi_block = (
+            rf'Step(?=[ \t]+\d){thermo_line}'
+            rf'(?:(?!Loop|[ \t]*Step(?![ \t]+\d)){thermo_line})*'
+        )
+        thermo_block = rf'(?:{column_block}|{multi_block})'
         self._quantities.append(
             Quantity(
                 'thermo_data',
-                r'\s*\-*(\s*Step\s*[\-\s\w\.\=\(\)]*[ \-\.\d\n]+)Loop',
-                str_operation=str_to_thermo,
+                rf'(?:({thermo_block})Loop|{thermo_block})',
                 repeats=False,
+                flatten=False,
                 convert=False,
             )
         )
@@ -738,12 +741,41 @@ class LogParser(TextParser):
             self._units = get_unit(units_type)
         return self._units
 
-    def get_thermodynamic_data(self):
-        thermo_data = self.get('thermo_data')
+    @staticmethod
+    def str_to_thermo(val: str) -> dict:
+        """Convert the text of a thermo block into a dict of columns.
 
-        if thermo_data is None:
-            return
+        Args:
+            val: block from the `Step` header up to, excluding, `Loop time of`.
 
+        Returns:
+            The values per thermo keyword, for both `thermo_style multi` (several
+            `Step` headers) and column styles (one header line).
+        """
+        if val.count('Step') > 1:
+            tokens = val.replace('--', '').replace('=', '').replace('(sec)', '').split()
+            tokens = [v.strip() for v in tokens]
+
+            res: dict[str, list[float]] = {}
+            for i in range(len(tokens)):
+                if tokens[i][0].isalpha():
+                    res.setdefault(tokens[i], [])
+                    res[tokens[i]].append(float(tokens[i + 1]))
+            return res
+
+        lines = val.split('\n')
+        keys = [v.strip() for v in lines[0].split()]
+        columns = np.array([v.split() for v in lines[1:] if v], dtype=float).T
+        return {key: columns[i] for i, key in enumerate(keys)}
+
+    def get_thermodynamic_data(self) -> dict | None:
+        # only the first block closed by `Loop time of` is used
+        thermo_block = self.get('thermo_data')
+
+        if thermo_block is None:
+            return None
+
+        thermo_data = self.str_to_thermo(thermo_block)
         data = {}
         for key, val in thermo_data.items():
             low_key = key.lower()
@@ -795,7 +827,10 @@ class LogParser(TextParser):
             return re.search(regex_pattern, file_header_str)
 
         read_data = self.get('read_data')
-        if read_data is None or 'CPU' in read_data:
+        # LAMMPS echoes `read_data CPU = <time> seconds` after reading the file
+        if read_data is None or any(
+            (val[0] if isinstance(val, list) else val) == 'CPU' for val in read_data
+        ):
             self.logger.warning('Data file not specified in directory, will scan.')
             data_files = os.listdir(self.maindir)
             data_files = [
@@ -949,6 +984,72 @@ class LammpsParser(MDParser):
             'kineng': 'kinetic',
             'poteng': 'potential',
         }
+
+    def get_mda_topology_options(self, data_file: str) -> dict:
+        """MDAnalysis options to read the `Atoms` section of the data file.
+
+        The column layout follows the last `atom_style` command in the log or, when
+        the log has none (e.g. the style was restored by `read_restart`), the
+        `Atoms # <style>` comment that `write_data` puts in the data file. Layouts
+        are those of the Atoms section of https://docs.lammps.org/read_data.html.
+        MDAnalysis locates columns by the positions of `id`, `resid`, `type`,
+        `charge`, `x`, `y`, `z` and ignores the other names, so layouts stop at `z`.
+
+        Args:
+            data_file: path of the data file read as topology.
+
+        Returns:
+            `{'atom_style': <layout>}` for a style documented by LAMMPS; `{}` when
+            neither the log nor the data file names a style, or for an undocumented
+            style (e.g. from a plugin). `{}` leaves MDAnalysis to its default
+            (`id resid type [charge] x y z`), which may misread the file.
+        """
+        atom_style_columns = {
+            'angle': 'id resid type x y z',
+            'atomic': 'id type x y z',
+            'body': 'id type bodyflag mass x y z',
+            'bond': 'id resid type x y z',
+            'bpm/sphere': 'id resid type diameter density x y z',
+            'charge': 'id type charge x y z',
+            'dielectric': 'id type charge x y z',
+            'dipole': 'id type charge x y z',
+            'dpd': 'id type theta x y z',
+            'edpd': 'id type edpd_temp edpd_cv x y z',
+            'electron': 'id type charge espin eradius x y z',
+            'ellipsoid': 'id type ellipsoidflag density x y z',
+            'full': 'id resid type charge x y z',
+            'line': 'id resid type lineflag density x y z',
+            'mdpd': 'id type rho x y z',
+            'molecular': 'id resid type x y z',
+            'peri': 'id type volume density x y z',
+            'rheo': 'id type status rho x y z',
+            'rheo/thermal': 'id type status rho energy x y z',
+            'smd': 'id type resid volume mass kradius cradius x0 y0 z0 x y z',
+            'sph': 'id type rho esph cv x y z',
+            'sphere': 'id type diameter density x y z',
+            'spin': 'id type x y z',
+            'tdpd': 'id type x y z',
+            'template': 'id type resid template_index template_atom x y z',
+            'tri': 'id resid type triangleflag density x y z',
+            # sub-style fields follow the coordinates
+            'hybrid': 'id type x y z',
+        }
+        atom_styles = self.log_parser.get('atom_style')
+        atom_style = None
+        if atom_styles:
+            atom_style = atom_styles[-1]
+            # a style with sub-styles (`hybrid`) is parsed as a list
+            if isinstance(atom_style, list):
+                atom_style = atom_style[0]
+        elif os.path.isfile(data_file):
+            with open(data_file, errors='ignore') as f:
+                for line in f:
+                    if line.lstrip().startswith('Atoms'):
+                        match = re.match(r'\s*Atoms\s*#\s*(\S+)', line)
+                        atom_style = match.group(1) if match else None
+                        break
+        columns = atom_style_columns.get(atom_style)
+        return {'atom_style': columns} if columns else {}
 
     def get_time_step(self):
         time_unit = self.log_parser.units.get('time', None)
@@ -1641,7 +1742,17 @@ class LammpsParser(MDParser):
                     val = ' '.join([str(v) for v in val])
                 setattr(sec_control_parameters, key, str(val))
 
-    def write_to_archive(self):
+    def write_to_archive(self) -> None:
+        self._open_traj_parsers: list[TrajParser | MDAnalysisParser] = []
+        try:
+            self._write_to_archive()
+        finally:
+            # close on every path, including the early return and exceptions
+            self._mdanalysistraj_parser.close()
+            for parser in self._open_traj_parsers:
+                parser.close()
+
+    def _write_to_archive(self) -> None:
         self.log_parser.mainfile = self.mainfile
         self.log_parser.logger = self.logger
         self._traj_parser.logger = self.logger
@@ -1673,7 +1784,7 @@ class LammpsParser(MDParser):
         if len(traj_files) > 1:
             self.logger.warning('Multiple traj files are specified')
 
-        parsers = []
+        parsers = self._open_traj_parsers
         for n, traj_file in enumerate(traj_files):
             # parser initialization for each traj file cannot be avoided as there are
             # cases where traj files can share the same parser
@@ -1691,21 +1802,12 @@ class LammpsParser(MDParser):
                 traj_parser.auxilliary_files = [traj_file]
                 self._mdanalysistraj_parser = traj_parser
             elif file_type == 'custom' and data_files:
-                custom_options = self.log_parser.get('dump')[n][5:]
-                custom_options = [
-                    option.replace('xu', 'x') for option in custom_options
-                ]
-                custom_options = [
-                    option.replace('yu', 'y') for option in custom_options
-                ]
-                custom_options = [
-                    option.replace('zu', 'z') for option in custom_options
-                ]
-                custom_options = ' '.join(custom_options)
+                # the dump columns are read by MDAnalysis from the dump header; the
+                # topology needs the column layout of the data file instead
                 traj_parser = MDAnalysisParser(
                     topology_format='DATA',
                     format='LAMMPSDUMP',
-                    atom_style=custom_options,
+                    **self.get_mda_topology_options(data_files[0]),
                 )
                 if data_files:
                     traj_parser.mainfile = data_files[0]
@@ -1718,6 +1820,9 @@ class LammpsParser(MDParser):
                     # mda necessary to calculate rdf and atomsgroup
                     if n == 0:
                         self._mdanalysistraj_parser = traj_parser
+                    else:
+                        # replaced below and closed nowhere else
+                        traj_parser.close()
                     traj_parser = TrajParser()
                     traj_parser.mainfile = traj_file
             else:
@@ -1749,7 +1854,3 @@ class LammpsParser(MDParser):
         self.parse_thermodynamic_data()
 
         self.parse_workflow()
-
-        self._mdanalysistraj_parser.close()
-        for parser in parsers:
-            parser.close()

@@ -976,26 +976,44 @@ class LammpsParser(MDParser):
     def get_mda_topology_options(self) -> dict:
         """MDAnalysis options to read the `Atoms` section of the data file.
 
-        The column layout follows the last `atom_style` command in the log
-        (https://docs.lammps.org/read_data.html); MDAnalysis locates columns by the
-        positions of `id`, `resid`, `type`, `charge`, `x`, `y`, `z` and ignores the
-        other names.
+        The column layout follows the last `atom_style` command in the log, per the
+        Atoms section of https://docs.lammps.org/read_data.html. MDAnalysis locates
+        columns by the positions of `id`, `resid`, `type`, `charge`, `x`, `y`, `z`
+        and ignores the other names, so layouts stop at `z`.
 
         Returns:
-            `{'atom_style': <layout>}` for the styles listed below, with `atomic`
-            when the log has no `atom_style` (the LAMMPS default); `{}` for any
-            other style, which leaves MDAnalysis to its default
-            (`id resid type [charge] x y z`).
+            `{'atom_style': <layout>}` for the styles documented by LAMMPS, with
+            `atomic` when the log has no `atom_style` (the LAMMPS default); `{}`
+            for any other style (e.g. from a plugin), which leaves MDAnalysis to its
+            default (`id resid type [charge] x y z`) and may misread the file.
         """
         atom_style_columns = {
-            'atomic': 'id type x y z',
-            'charge': 'id type charge x y z',
-            'dipole': 'id type charge x y z',
-            'sphere': 'id type diameter density x y z',
-            'bond': 'id resid type x y z',
             'angle': 'id resid type x y z',
-            'molecular': 'id resid type x y z',
+            'atomic': 'id type x y z',
+            'body': 'id type bodyflag mass x y z',
+            'bond': 'id resid type x y z',
+            'bpm/sphere': 'id resid type diameter density x y z',
+            'charge': 'id type charge x y z',
+            'dielectric': 'id type charge x y z',
+            'dipole': 'id type charge x y z',
+            'dpd': 'id type theta x y z',
+            'edpd': 'id type edpd_temp edpd_cv x y z',
+            'electron': 'id type charge espin eradius x y z',
+            'ellipsoid': 'id type ellipsoidflag density x y z',
             'full': 'id resid type charge x y z',
+            'line': 'id resid type lineflag density x y z',
+            'mdpd': 'id type rho x y z',
+            'molecular': 'id resid type x y z',
+            'peri': 'id type volume density x y z',
+            'rheo': 'id type status rho x y z',
+            'rheo/thermal': 'id type status rho energy x y z',
+            'smd': 'id type resid volume mass kradius cradius x0 y0 z0 x y z',
+            'sph': 'id type rho esph cv x y z',
+            'sphere': 'id type diameter density x y z',
+            'spin': 'id type x y z',
+            'tdpd': 'id type x y z',
+            'template': 'id type resid template_index template_atom x y z',
+            'tri': 'id resid type triangleflag density x y z',
             # sub-style fields follow the coordinates
             'hybrid': 'id type x y z',
         }

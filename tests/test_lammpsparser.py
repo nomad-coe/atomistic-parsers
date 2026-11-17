@@ -410,3 +410,61 @@ def test_thermo_block(tmp_path, body, expected_steps):
         assert thermo_data is None
     else:
         assert [int(step) for step in thermo_data['Step']] == expected_steps
+
+
+def test_dump_file_name_with_plus(tmp_path):
+    """Command arguments are not cut off at characters such as `+`."""
+    log_file = tmp_path / 'log.lammps'
+    log_file.write_text(
+        'LAMMPS (29 Aug 2024)\n'
+        'dump di ion custom 100 ion_K+0.1_s1.dump id type xu yu zu\n'
+    )
+    log_parser = LogParser()
+    log_parser.mainfile = str(log_file)
+
+    assert log_parser.get_traj_files() == [str(tmp_path / 'ion_K+0.1_s1.dump')]
+
+
+def test_read_data_cpu_echo(tmp_path):
+    """The `read_data CPU = ...` echo triggers the directory scan for data files."""
+    log_file = tmp_path / 'log.lammps'
+    log_file.write_text(
+        'LAMMPS (29 Aug 2024)\nread_data data.x\n  read_data CPU = 0.04 seconds\n'
+    )
+    (tmp_path / 'final.data').write_text('LAMMPS data file\n')
+    log_parser = LogParser()
+    log_parser.mainfile = str(log_file)
+
+    assert log_parser.get_data_files() == [str(tmp_path / 'final.data')]
+
+
+@pytest.mark.parametrize(
+    'atom_style_line, expected_options',
+    [
+        ('atom_style atomic\n', {'atom_style': 'id type x y z'}),
+        ('atom_style full\n', {'atom_style': 'id resid type charge x y z'}),
+        (
+            'atom_style ellipsoid\n',
+            {'atom_style': 'id type ellipsoidflag density x y z'},
+        ),
+        ('atom_style hybrid full dipole\n', {'atom_style': 'id type x y z'}),
+        ('', {'atom_style': 'id type x y z'}),
+        ('atom_style mystyle\n', {}),
+    ],
+    ids=[
+        'atom-style-atomic',
+        'atom-style-full',
+        'atom-style-ellipsoid',
+        'atom-style-hybrid',
+        'atom-style-missing',
+        'atom-style-unknown',
+    ],
+)
+def test_mda_topology_options(tmp_path, atom_style_line, expected_options):
+    """The MDAnalysis column layout of the data file follows the log's `atom_style`."""
+    log_file = tmp_path / 'log.lammps'
+    log_file.write_text('LAMMPS (29 Aug 2024)\nunits real\n' + atom_style_line)
+    lammps_parser = LammpsParser()
+    lammps_parser.log_parser.mainfile = str(log_file)
+
+    assert lammps_parser.get_mda_topology_options() == expected_options
